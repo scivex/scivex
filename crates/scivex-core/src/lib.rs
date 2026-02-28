@@ -13,13 +13,16 @@
 
 pub mod dtype;
 pub mod error;
+pub mod tensor;
 
 // Re-export key types at crate root for convenience.
 pub use dtype::{Float, Integer, Real, Scalar};
 pub use error::{CoreError, Result};
+pub use tensor::Tensor;
 
 /// Items intended for glob-import: `use scivex_core::prelude::*;`
 pub mod prelude {
     pub use crate::dtype::{Float, Integer, Real, Scalar};
     pub use crate::error::{CoreError, Result};
+    pub use crate::tensor::Tensor;
 }
