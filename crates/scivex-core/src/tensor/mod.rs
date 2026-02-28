@@ -6,9 +6,12 @@
 
 mod create;
 mod display;
-mod indexing;
 mod ops;
 mod reshape;
+
+pub mod indexing;
+
+pub use indexing::SliceRange;
 
 use crate::Scalar;
 use crate::error::{CoreError, Result};
