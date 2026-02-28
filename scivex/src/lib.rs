@@ -21,3 +21,6 @@ pub use scivex_core as core;
 pub mod prelude {
     pub use scivex_core::prelude::*;
 }
+
+// Re-export the Tensor type at the top level for ergonomics.
+pub use scivex_core::Tensor;
