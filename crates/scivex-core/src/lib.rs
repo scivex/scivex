@@ -13,6 +13,10 @@
 
 pub mod dtype;
 pub mod error;
+pub mod fft;
+pub mod linalg;
+pub mod math;
+pub mod random;
 pub mod tensor;
 
 // Re-export key types at crate root for convenience.

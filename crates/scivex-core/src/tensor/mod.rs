@@ -8,6 +8,7 @@ mod create;
 mod display;
 mod ops;
 mod reshape;
+mod sort;
 
 pub mod indexing;
 
