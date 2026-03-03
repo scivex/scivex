@@ -2,6 +2,9 @@
 members = [
     "scivex",
     "crates/scivex-core",
+    "crates/scivex-frame",
+    "crates/scivex-stats",
+    "crates/scivex-io",
 ]
 resolver = "3"
 
@@ -25,3 +28,6 @@ must_use_candidate = "allow"
 return_self_not_must_use = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
+many_single_char_names = "allow"
+similar_names = "allow"
+doc_markdown = "allow"

@@ -1,0 +1,21 @@
+[package]
+name = "scivex-io"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — CSV and JSON I/O for DataFrames"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }
+scivex-frame = { path = "../scivex-frame" }
+serde_json = { version = "1", optional = true }
+
+[features]
+default = ["csv"]
+csv = []
+json = ["dep:serde_json"]
+full = ["csv", "json"]

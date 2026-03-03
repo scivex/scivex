@@ -1,0 +1,13 @@
+[package]
+name = "scivex-frame"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — DataFrames, Series, GroupBy"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }
