@@ -107,7 +107,7 @@ impl Rng {
     ///
     /// Internally caches the spare value so every other call is essentially
     /// free.
-    fn next_normal_f64(&mut self) -> f64 {
+    pub fn next_normal_f64(&mut self) -> f64 {
         if let Some(spare) = self.spare_normal.take() {
             return spare;
         }

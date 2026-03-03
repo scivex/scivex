@@ -17,10 +17,31 @@
 
 pub use scivex_core as core;
 
+#[cfg(feature = "frame")]
+pub use scivex_frame as frame;
+
+#[cfg(feature = "stats")]
+pub use scivex_stats as stats;
+
+#[cfg(feature = "io")]
+pub use scivex_io as io;
+
 /// Glob-import convenience: `use scivex::prelude::*;`
 pub mod prelude {
     pub use scivex_core::prelude::*;
+
+    #[cfg(feature = "frame")]
+    pub use scivex_frame::prelude::*;
+
+    #[cfg(feature = "stats")]
+    pub use scivex_stats::prelude::*;
+
+    #[cfg(feature = "io")]
+    pub use scivex_io::prelude::*;
 }
 
 // Re-export the Tensor type at the top level for ergonomics.
 pub use scivex_core::Tensor;
+
+#[cfg(feature = "frame")]
+pub use scivex_frame::DataFrame;

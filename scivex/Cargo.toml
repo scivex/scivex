@@ -11,7 +11,14 @@ workspace = true
 
 [dependencies]
 scivex-core = { path = "../crates/scivex-core" }
+scivex-frame = { path = "../crates/scivex-frame", optional = true }
+scivex-stats = { path = "../crates/scivex-stats", optional = true }
+scivex-io = { path = "../crates/scivex-io", optional = true }
 
 [features]
 default = ["core"]
 core = []
+frame = ["dep:scivex-frame"]
+stats = ["dep:scivex-stats"]
+io = ["dep:scivex-io"]
+full = ["core", "frame", "stats", "io"]
