@@ -82,8 +82,11 @@ impl<'a, T: Float, D: Dataset<T>> DataLoader<'a, T, D> {
     pub fn new(dataset: &'a D, batch_size: usize, shuffle: bool, rng: Option<&mut Rng>) -> Self {
         let n = dataset.len();
         let mut indices: Vec<usize> = (0..n).collect();
-        if shuffle && let Some(rng) = rng {
-            fisher_yates_shuffle(&mut indices, rng);
+        #[allow(clippy::collapsible_if)]
+        if shuffle {
+            if let Some(rng) = rng {
+                fisher_yates_shuffle(&mut indices, rng);
+            }
         }
         Self {
             dataset,
@@ -97,10 +100,11 @@ impl<'a, T: Float, D: Dataset<T>> DataLoader<'a, T, D> {
 
     /// Re-shuffle and reset the iterator for a new epoch.
     pub fn reset(&mut self, rng: Option<&mut Rng>) {
-        if self.shuffle
-            && let Some(rng) = rng
-        {
-            fisher_yates_shuffle(&mut self.indices, rng);
+        #[allow(clippy::collapsible_if)]
+        if self.shuffle {
+            if let Some(rng) = rng {
+                fisher_yates_shuffle(&mut self.indices, rng);
+            }
         }
         self.pos = 0;
     }
