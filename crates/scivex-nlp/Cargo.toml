@@ -1,0 +1,13 @@
+[package]
+name = "scivex-nlp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — Tokenization, embeddings, and text processing"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }

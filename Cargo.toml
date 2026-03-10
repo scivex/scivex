@@ -5,6 +5,15 @@ members = [
     "crates/scivex-frame",
     "crates/scivex-stats",
     "crates/scivex-io",
+    "crates/scivex-optim",
+    "crates/scivex-viz",
+    "crates/scivex-ml",
+    "crates/scivex-nn",
+    "crates/scivex-image",
+    "crates/scivex-signal",
+    "crates/scivex-graph",
+    "crates/scivex-nlp",
+    "crates/scivex-sym",
 ]
 resolver = "3"
 

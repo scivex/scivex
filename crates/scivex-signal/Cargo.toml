@@ -1,0 +1,13 @@
+[package]
+name = "scivex-signal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — Signal processing, FFT, wavelets, audio"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }

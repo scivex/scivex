@@ -4,11 +4,17 @@
 //! Built on top of [`scivex_core`] with zero external dependencies for the
 //! math itself. All functions are generic over [`Float`](scivex_core::Float).
 
+/// Correlation coefficients (Pearson, Spearman, Kendall).
 pub mod correlation;
+/// Descriptive statistics (mean, variance, median, quantiles, skewness, kurtosis).
 pub mod descriptive;
+/// Probability distributions (Normal, Uniform, Exponential, etc.).
 pub mod distributions;
+/// Statistics error types.
 pub mod error;
+/// Hypothesis tests (t-test, chi-square, ANOVA, Mann-Whitney, KS).
 pub mod hypothesis;
+/// Ordinary least-squares regression.
 pub mod regression;
 pub(crate) mod special;
 

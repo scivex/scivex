@@ -10,12 +10,16 @@
 //! | `json` | JSON reading and writing (requires `serde_json`) |
 //! | `full` | All I/O formats |
 
+/// Shared I/O helpers and type inference.
 pub mod common;
+/// I/O-specific error types.
 pub mod error;
 
+/// CSV reading and writing.
 #[cfg(feature = "csv")]
 pub mod csv;
 
+/// JSON reading and writing (requires `serde_json`).
 #[cfg(feature = "json")]
 pub mod json;
 

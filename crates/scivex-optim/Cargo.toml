@@ -1,0 +1,13 @@
+[package]
+name = "scivex-optim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — Optimization, root finding, and numerical integration"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }

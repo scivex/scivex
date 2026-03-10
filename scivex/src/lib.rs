@@ -11,9 +11,19 @@
 //! | Feature | Enables |
 //! |---------|---------|
 //! | `core` *(default)* | Tensors, linear algebra, FFT, math primitives |
-//!
-//! Additional sub-crates will be gated behind their own feature flags as
-//! development progresses.
+//! | `frame`            | DataFrames, Series, GroupBy, joins             |
+//! | `stats`            | Distributions, hypothesis tests, regression    |
+//! | `io`               | CSV and JSON reading/writing                   |
+//! | `optim`            | Optimization, root finding, integration        |
+//! | `viz`              | Visualization, plotting, chart rendering        |
+//! | `ml`               | Classical ML: trees, ensembles, clustering      |
+//! | `nn`               | Neural networks, autograd, layers, optimizers   |
+//! | `image`            | Image loading, transforms, filters              |
+//! | `signal`           | Signal processing, FFT, wavelets, audio         |
+//! | `graph`            | Graph data structures, algorithms, network      |
+//! | `nlp`              | Tokenization, embeddings, text processing       |
+//! | `sym`              | Symbolic math, CAS, expression simplification   |
+//! | `full`             | All of the above                               |
 
 pub use scivex_core as core;
 
@@ -25,6 +35,33 @@ pub use scivex_stats as stats;
 
 #[cfg(feature = "io")]
 pub use scivex_io as io;
+
+#[cfg(feature = "optim")]
+pub use scivex_optim as optim;
+
+#[cfg(feature = "viz")]
+pub use scivex_viz as viz;
+
+#[cfg(feature = "ml")]
+pub use scivex_ml as ml;
+
+#[cfg(feature = "nn")]
+pub use scivex_nn as nn;
+
+#[cfg(feature = "image")]
+pub use scivex_image as image;
+
+#[cfg(feature = "signal")]
+pub use scivex_signal as signal;
+
+#[cfg(feature = "graph")]
+pub use scivex_graph as graph;
+
+#[cfg(feature = "nlp")]
+pub use scivex_nlp as nlp;
+
+#[cfg(feature = "sym")]
+pub use scivex_sym as sym;
 
 /// Glob-import convenience: `use scivex::prelude::*;`
 pub mod prelude {
@@ -38,6 +75,33 @@ pub mod prelude {
 
     #[cfg(feature = "io")]
     pub use scivex_io::prelude::*;
+
+    #[cfg(feature = "optim")]
+    pub use scivex_optim::prelude::*;
+
+    #[cfg(feature = "viz")]
+    pub use scivex_viz::prelude::*;
+
+    #[cfg(feature = "ml")]
+    pub use scivex_ml::prelude::*;
+
+    #[cfg(feature = "nn")]
+    pub use scivex_nn::prelude::*;
+
+    #[cfg(feature = "image")]
+    pub use scivex_image::prelude::*;
+
+    #[cfg(feature = "signal")]
+    pub use scivex_signal::prelude::*;
+
+    #[cfg(feature = "graph")]
+    pub use scivex_graph::prelude::*;
+
+    #[cfg(feature = "nlp")]
+    pub use scivex_nlp::prelude::*;
+
+    #[cfg(feature = "sym")]
+    pub use scivex_sym::prelude::*;
 }
 
 // Re-export the Tensor type at the top level for ergonomics.
