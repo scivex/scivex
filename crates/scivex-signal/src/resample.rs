@@ -104,7 +104,8 @@ pub fn decimate<T: Float>(x: &Tensor<T>, factor: usize) -> Result<Tensor<T>> {
     };
     let num_taps = 31.min(n).max(3);
     // Ensure odd.
-    let num_taps = if num_taps.is_multiple_of(2) {
+    #[allow(clippy::manual_is_multiple_of)]
+    let num_taps = if num_taps % 2 == 0 {
         num_taps - 1
     } else {
         num_taps

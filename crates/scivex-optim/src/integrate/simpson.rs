@@ -11,7 +11,8 @@ use super::QuadResult;
 ///
 /// Requires `n` to be even. Error is `O(h^4)` where `h = (b - a) / n`.
 pub fn simpson<T: Float, F: Fn(T) -> T>(f: F, a: T, b: T, n: usize) -> Result<QuadResult<T>> {
-    if n == 0 || !n.is_multiple_of(2) {
+    #[allow(clippy::manual_is_multiple_of)]
+    if n == 0 || n % 2 != 0 {
         return Err(OptimError::InvalidParameter {
             name: "n",
             reason: "must be a positive even number",

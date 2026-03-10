@@ -17,7 +17,8 @@ pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> 
     }
     let kh = kshape[0];
     let kw = kshape[1];
-    if kh.is_multiple_of(2) || kw.is_multiple_of(2) {
+    #[allow(clippy::manual_is_multiple_of)]
+    if kh % 2 == 0 || kw % 2 == 0 {
         return Err(ImageError::InvalidKernel {
             reason: "kernel dimensions must be odd",
         });
