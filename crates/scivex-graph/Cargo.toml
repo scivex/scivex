@@ -1,0 +1,13 @@
+[package]
+name = "scivex-graph"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — Graph data structures, algorithms, and network analysis"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }

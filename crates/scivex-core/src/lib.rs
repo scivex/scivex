@@ -11,12 +11,19 @@
 //! - `unsafe` is confined to this crate; all higher-level crates use only safe
 //!   abstractions.
 
+/// Numeric type traits: [`Scalar`], [`Float`], [`Real`], [`Integer`].
 pub mod dtype;
+/// Core error types.
 pub mod error;
+/// Fast Fourier Transform (FFT / IFFT / RFFT).
 pub mod fft;
+/// Linear algebra: decompositions, solvers, and matrix operations.
 pub mod linalg;
+/// Elementary mathematical functions.
 pub mod math;
+/// Pseudo-random number generation.
 pub mod random;
+/// N-dimensional tensor type and operations.
 pub mod tensor;
 
 // Re-export key types at crate root for convenience.

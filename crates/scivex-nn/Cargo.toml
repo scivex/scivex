@@ -1,0 +1,13 @@
+[package]
+name = "scivex-nn"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — Neural networks, autograd, layers, optimizers"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }

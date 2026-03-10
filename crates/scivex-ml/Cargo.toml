@@ -1,0 +1,14 @@
+[package]
+name = "scivex-ml"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — Classical machine learning: trees, ensembles, clustering, pipelines"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }
+scivex-stats = { path = "../scivex-stats" }

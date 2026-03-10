@@ -1,0 +1,13 @@
+[package]
+name = "scivex-sym"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Scivex — Symbolic math, CAS, and expression simplification"
+
+[lints]
+workspace = true
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }

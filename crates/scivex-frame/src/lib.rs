@@ -4,9 +4,9 @@
 //!
 //! This crate provides:
 //! - [`Series<T>`] — generic typed columns with compile-time safety
-//! - [`StringSeries`](series::string::StringSeries) — string-specific column
+//! - [`StringSeries`] — string-specific column
 //! - [`DataFrame`] — columnar data frame with type-erased columns
-//! - [`GroupBy`](groupby::GroupBy) — group-by aggregation
+//! - [`GroupBy`] — group-by aggregation
 //!
 //! # Quick Example
 //!
@@ -22,10 +22,15 @@
 //! assert_eq!(df.shape(), (3, 2));
 //! ```
 
+/// DataFrame type and columnar operations.
 pub mod dataframe;
+/// Column data type enum and type introspection.
 pub mod dtype;
+/// Frame-specific error types.
 pub mod error;
+/// Group-by split-apply-combine aggregation.
 pub mod groupby;
+/// Typed series (columns) and type-erased column trait.
 pub mod series;
 
 // Re-export primary types at the crate root.

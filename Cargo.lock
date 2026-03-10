@@ -38,8 +38,17 @@ version = "0.1.0"
 dependencies = [
  "scivex-core",
  "scivex-frame",
+ "scivex-graph",
+ "scivex-image",
  "scivex-io",
+ "scivex-ml",
+ "scivex-nlp",
+ "scivex-nn",
+ "scivex-optim",
+ "scivex-signal",
  "scivex-stats",
+ "scivex-sym",
+ "scivex-viz",
 ]
 
 [[package]]
@@ -48,6 +57,20 @@ version = "0.1.0"
 
 [[package]]
 name = "scivex-frame"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
+name = "scivex-graph"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
+name = "scivex-image"
 version = "0.1.0"
 dependencies = [
  "scivex-core",
@@ -63,7 +86,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "scivex-ml"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+ "scivex-stats",
+]
+
+[[package]]
+name = "scivex-nlp"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
+name = "scivex-nn"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
+name = "scivex-optim"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
+name = "scivex-signal"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
 name = "scivex-stats"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
+name = "scivex-sym"
+version = "0.1.0"
+dependencies = [
+ "scivex-core",
+]
+
+[[package]]
+name = "scivex-viz"
 version = "0.1.0"
 dependencies = [
  "scivex-core",
