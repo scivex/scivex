@@ -45,10 +45,7 @@ fn normal_ppf_0_975() {
     // scipy.stats.norm.ppf(0.975) ≈ 1.959963984540054
     let n = Normal::new(0.0_f64, 1.0).unwrap();
     let q = n.ppf(0.975).unwrap();
-    assert!(
-        (q - 1.96).abs() < 0.01,
-        "N(0,1).ppf(0.975) = {q}"
-    );
+    assert!((q - 1.96).abs() < 0.01, "N(0,1).ppf(0.975) = {q}");
 }
 
 #[test]
@@ -92,10 +89,7 @@ fn exponential_pdf_cdf() {
     let cdf1 = e.cdf(1.0);
     let e_inv = (-1.0_f64).exp(); // ≈ 0.3679
     assert!((pdf1 - e_inv).abs() < TOL, "Exp(1).pdf(1) = {pdf1}");
-    assert!(
-        (cdf1 - (1.0 - e_inv)).abs() < TOL,
-        "Exp(1).cdf(1) = {cdf1}"
-    );
+    assert!((cdf1 - (1.0 - e_inv)).abs() < TOL, "Exp(1).cdf(1) = {cdf1}");
 }
 
 #[test]
@@ -129,10 +123,7 @@ fn descriptive_std_dev() {
     // np.std([1, 2, 3, 4, 5], ddof=1) = sqrt(2.5) ≈ 1.5811
     let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
     let s = descriptive::std_dev(&data).unwrap();
-    assert!(
-        (s - 2.5_f64.sqrt()).abs() < TOL,
-        "std = {s}"
-    );
+    assert!((s - 2.5_f64.sqrt()).abs() < TOL, "std = {s}");
 }
 
 #[test]

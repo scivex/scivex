@@ -249,15 +249,13 @@ mod tests {
 
     #[test]
     fn box_plot_labels() {
-        let b = BoxPlotBuilder::new(vec![vec![1.0, 2.0]])
-            .labels(vec!["Group A".into()]);
+        let b = BoxPlotBuilder::new(vec![vec![1.0, 2.0]]).labels(vec!["Group A".into()]);
         assert_eq!(b.labels, Some(vec!["Group A".to_string()]));
     }
 
     #[test]
     fn box_plot_fill_color() {
-        let b = BoxPlotBuilder::new(vec![vec![1.0, 2.0]])
-            .fill_color(Color::RED);
+        let b = BoxPlotBuilder::new(vec![vec![1.0, 2.0]]).fill_color(Color::RED);
         assert_eq!(b.fill.unwrap().color, Color::RED);
     }
 

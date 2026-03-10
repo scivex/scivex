@@ -220,18 +220,17 @@ impl Polynomial<f64> {
             }
             Expr::Pow(base, exp) => {
                 let pb = Self::extract(base, var_name)?;
-                if let Some(n) = exp.as_const()
-                    && n >= 0.0
-                    && (n - n.floor()).abs() < f64::EPSILON
-                    && n <= 20.0
-                {
-                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-                    let ni = n as u32;
-                    let mut result = Polynomial::constant(1.0);
-                    for _ in 0..ni {
-                        result = result.mul(&pb);
+                #[allow(clippy::collapsible_if)]
+                if let Some(n) = exp.as_const() {
+                    if n >= 0.0 && (n - n.floor()).abs() < f64::EPSILON && n <= 20.0 {
+                        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                        let ni = n as u32;
+                        let mut result = Polynomial::constant(1.0);
+                        for _ in 0..ni {
+                            result = result.mul(&pb);
+                        }
+                        return Ok(result);
                     }
-                    return Ok(result);
                 }
                 Err(SymError::UnsupportedOperation {
                     reason: "only non-negative integer exponents are supported for polynomial extraction",

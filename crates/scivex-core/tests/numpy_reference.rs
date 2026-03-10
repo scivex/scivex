@@ -79,8 +79,8 @@ fn ref_det_5x5_permutation() {
     // Actually let's use the simpler identity det = ±1
     let p = mat(
         &[
-            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
         ],
         5,
         5,
@@ -126,8 +126,8 @@ fn ref_solve_5x5_residual() {
     // For larger systems, verify via residual ||Ax - b|| rather than exact values.
     let a = mat(
         &[
-            2.0, 1.0, -1.0, 0.0, 0.0, 1.0, 3.0, 0.0, -1.0, 0.0, -1.0, 0.0, 4.0, 1.0, 1.0,
-            0.0, -1.0, 1.0, 5.0, 0.0, 0.0, 0.0, 1.0, 0.0, 3.0,
+            2.0, 1.0, -1.0, 0.0, 0.0, 1.0, 3.0, 0.0, -1.0, 0.0, -1.0, 0.0, 4.0, 1.0, 1.0, 0.0,
+            -1.0, 1.0, 5.0, 0.0, 0.0, 0.0, 1.0, 0.0, 3.0,
         ],
         5,
         5,
@@ -135,10 +135,7 @@ fn ref_solve_5x5_residual() {
     let b = vec1d(&[1.0, 2.0, 3.0, 4.0, 5.0]);
     let x = linalg::solve(&a, &b).unwrap();
     let resid = residual_norm(&a, &x, &b);
-    assert!(
-        resid < 1e-12,
-        "5x5 solve residual too large: {resid}"
-    );
+    assert!(resid < 1e-12, "5x5 solve residual too large: {resid}");
 }
 
 // ─── Inverse ──────────────────────────────────────────────────────────
@@ -168,12 +165,7 @@ fn ref_inv_times_original_is_identity() {
     let inv = linalg::inv(&a).unwrap();
     let product = a.matmul(&inv).unwrap();
     let eye = Tensor::<f64>::eye(4);
-    assert_close(
-        product.as_slice(),
-        eye.as_slice(),
-        1e-10,
-        "A * A^-1 = I",
-    );
+    assert_close(product.as_slice(), eye.as_slice(), 1e-10, "A * A^-1 = I");
 }
 
 // ─── SVD singular values ─────────────────────────────────────────────
@@ -181,11 +173,7 @@ fn ref_inv_times_original_is_identity() {
 #[test]
 fn ref_svd_diagonal_matrix() {
     // SVD of diag(5, 3, 1) should give singular values [5, 3, 1]
-    let a = mat(
-        &[5.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 1.0],
-        3,
-        3,
-    );
+    let a = mat(&[5.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 1.0], 3, 3);
     let svd = SvdDecomposition::decompose(&a).unwrap();
     let s = svd.singular_values();
     assert!((s[0] - 5.0).abs() < 1e-10, "s[0]={}", s[0]);
@@ -196,11 +184,7 @@ fn ref_svd_diagonal_matrix() {
 #[test]
 fn ref_svd_reconstruction_3x3() {
     // Verify U * diag(s) * V^T = A
-    let a = mat(
-        &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0],
-        3,
-        3,
-    );
+    let a = mat(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0], 3, 3);
     let svd = SvdDecomposition::decompose(&a).unwrap();
     let u = svd.u();
     let vt = svd.vt();
@@ -392,11 +376,7 @@ fn ref_qr_reconstruction() {
 
 #[test]
 fn ref_qr_orthogonality() {
-    let a = mat(
-        &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0],
-        3,
-        3,
-    );
+    let a = mat(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0], 3, 3);
     let qr = QrDecomposition::decompose(&a).unwrap();
     let q = qr.q();
     let qt = q.transpose().unwrap();
@@ -415,8 +395,7 @@ fn ref_fft_4point() {
     // X[2] = 1 + 2*(-1) + 3*(1) + 4*(-1) = -2
     // X[3] = 1 + 2*(j) + 3*(-1) + 4*(-j) = -2-2j
     use scivex_core::fft;
-    let input =
-        Tensor::from_vec(vec![1.0, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0], vec![4, 2]).unwrap();
+    let input = Tensor::from_vec(vec![1.0, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0], vec![4, 2]).unwrap();
     let result = fft::fft(&input).unwrap();
     let r = result.as_slice();
     let expected = [10.0, 0.0, -2.0, 2.0, -2.0, 0.0, -2.0, -2.0];
@@ -427,8 +406,7 @@ fn ref_fft_4point() {
 fn ref_rfft_impulse() {
     // rfft of unit impulse [1, 0, 0, 0, 0, 0, 0, 0] = all ones
     use scivex_core::fft;
-    let input =
-        Tensor::from_vec(vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], vec![8]).unwrap();
+    let input = Tensor::from_vec(vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], vec![8]).unwrap();
     let result = fft::rfft(&input).unwrap();
     let r = result.as_slice();
     assert_eq!(r.len(), 10);
@@ -457,12 +435,7 @@ fn ref_matmul_2x3_3x2() {
     let a = mat(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], 2, 3);
     let b = mat(&[7.0, 8.0, 9.0, 10.0, 11.0, 12.0], 3, 2);
     let c = a.matmul(&b).unwrap();
-    assert_close(
-        c.as_slice(),
-        &[58.0, 64.0, 139.0, 154.0],
-        1e-10,
-        "matmul",
-    );
+    assert_close(c.as_slice(), &[58.0, 64.0, 139.0, 154.0], 1e-10, "matmul");
 }
 
 #[test]

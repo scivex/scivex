@@ -189,10 +189,11 @@ impl<T: Float> DiGraph<T> {
         }
         for u in 0..nrows {
             for v in 0..ncols {
-                if let Some(&w) = mat.get(u, v)
-                    && w != T::zero()
-                {
-                    g.add_edge(u, v, w)?;
+                #[allow(clippy::collapsible_if)]
+                if let Some(&w) = mat.get(u, v) {
+                    if w != T::zero() {
+                        g.add_edge(u, v, w)?;
+                    }
                 }
             }
         }
@@ -407,7 +408,10 @@ mod tests {
         let a = g.add_node();
         let b = g.add_node();
         let result = g.remove_edge(a, b);
-        assert_eq!(result.unwrap_err(), GraphError::EdgeNotFound { from: a, to: b });
+        assert_eq!(
+            result.unwrap_err(),
+            GraphError::EdgeNotFound { from: a, to: b }
+        );
     }
 
     #[test]
@@ -500,6 +504,9 @@ mod tests {
         let a = g.add_node();
         let b = g.add_node();
         let result = g.get_weight(a, b);
-        assert_eq!(result.unwrap_err(), GraphError::EdgeNotFound { from: a, to: b });
+        assert_eq!(
+            result.unwrap_err(),
+            GraphError::EdgeNotFound { from: a, to: b }
+        );
     }
 }

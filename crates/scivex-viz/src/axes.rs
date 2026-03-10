@@ -461,11 +461,22 @@ mod tests {
             .x_label("X Axis")
             .y_label("Y Axis")
             .add_plot(LinePlot::new(vec![0.0, 1.0], vec![0.0, 1.0]));
-        let bounds = Rect { x: 70.0, y: 50.0, w: 700.0, h: 490.0 };
+        let bounds = Rect {
+            x: 70.0,
+            y: 50.0,
+            w: 700.0,
+            h: 490.0,
+        };
         let elems = axes.render_elements(bounds);
         // Should have title, x/y labels as text elements
-        let text_count = elems.iter().filter(|e| matches!(e, Element::Text { .. })).count();
-        assert!(text_count >= 3, "expected title + labels, got {text_count} text elements");
+        let text_count = elems
+            .iter()
+            .filter(|e| matches!(e, Element::Text { .. }))
+            .count();
+        assert!(
+            text_count >= 3,
+            "expected title + labels, got {text_count} text elements"
+        );
     }
 
     #[test]
@@ -474,12 +485,14 @@ mod tests {
             .grid(false)
             .x_range(0.0, 10.0)
             .y_range(0.0, 10.0);
-        let bounds = Rect { x: 0.0, y: 0.0, w: 200.0, h: 200.0 };
+        let bounds = Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 200.0,
+            h: 200.0,
+        };
         let elems_no_grid = axes.render_elements(bounds);
-        let axes_grid = Axes::new()
-            .grid(true)
-            .x_range(0.0, 10.0)
-            .y_range(0.0, 10.0);
+        let axes_grid = Axes::new().grid(true).x_range(0.0, 10.0).y_range(0.0, 10.0);
         let elems_grid = axes_grid.render_elements(bounds);
         // Grid-enabled should produce more elements
         assert!(elems_grid.len() > elems_no_grid.len());

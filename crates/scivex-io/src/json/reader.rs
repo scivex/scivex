@@ -130,12 +130,18 @@ fn parse_records(value: &Value) -> Result<DataFrame> {
         if let Some(obj) = row.as_object() {
             for name in &col_names {
                 let val = obj.get(name.as_str()).unwrap_or(&null_val);
-                col_values.get_mut(name.as_str()).expect("key was inserted from col_names above").push(val);
+                col_values
+                    .get_mut(name.as_str())
+                    .expect("key was inserted from col_names above")
+                    .push(val);
             }
         } else {
             // Non-object row — fill with nulls.
             for name in &col_names {
-                col_values.get_mut(name.as_str()).expect("key was inserted from col_names above").push(&null_val);
+                col_values
+                    .get_mut(name.as_str())
+                    .expect("key was inserted from col_names above")
+                    .push(&null_val);
             }
         }
     }

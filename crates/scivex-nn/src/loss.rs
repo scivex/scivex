@@ -121,7 +121,7 @@ pub fn cross_entropy_loss<T: Float>(
                 }
             }
             let g_logits = Tensor::from_vec(grad_logits, vec![batch, classes])
-                    .expect("grad shape matches forward pass");
+                .expect("grad shape matches forward pass");
             // Target gradients are zero (not differentiable).
             let g_targets = Tensor::zeros(vec![batch]);
             vec![g_logits, g_targets]
@@ -174,8 +174,8 @@ pub fn bce_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
                 // d/dp = (-t/p + (1-t)/(1-p)) / n
                 grad_p.push((-t_s[i] / pi + (one - t_s[i]) / (one - pi)) * g_val / n_t);
             }
-            let gp = Tensor::from_vec(grad_p, shape.clone())
-                    .expect("grad shape matches forward pass");
+            let gp =
+                Tensor::from_vec(grad_p, shape.clone()).expect("grad shape matches forward pass");
             let gt = Tensor::zeros(shape.clone());
             vec![gp, gt]
         }),
@@ -263,7 +263,10 @@ mod tests {
     #[test]
     fn test_mse_shape_mismatch_error() {
         let a = Variable::new(Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap(), true);
-        let b = Variable::new(Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap(), false);
+        let b = Variable::new(
+            Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap(),
+            false,
+        );
         let result = mse_loss(&a, &b);
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -286,7 +289,10 @@ mod tests {
     #[test]
     fn test_cross_entropy_requires_2d() {
         // 1-D logits should fail
-        let logits = Variable::new(Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap(), true);
+        let logits = Variable::new(
+            Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap(),
+            true,
+        );
         let targets = Variable::new(Tensor::from_vec(vec![0.0], vec![1]).unwrap(), false);
         let result = cross_entropy_loss(&logits, &targets);
         assert!(result.is_err());

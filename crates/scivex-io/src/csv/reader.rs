@@ -209,10 +209,11 @@ impl CsvReaderBuilder {
                 records.push(fields);
             }
         }
-        if let Some(fields) = parser.finish()
-            && self.max_rows.is_none_or(|max| records.len() < max)
-        {
-            records.push(fields);
+        #[allow(clippy::collapsible_if)]
+        if let Some(fields) = parser.finish() {
+            if self.max_rows.is_none_or(|max| records.len() < max) {
+                records.push(fields);
+            }
         }
         if records.is_empty() {
             return Err(IoError::EmptyInput);

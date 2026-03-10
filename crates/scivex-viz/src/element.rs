@@ -56,7 +56,5 @@ pub enum Element {
         fill: Option<Fill>,
     },
     /// A group of child elements.
-    Group {
-        elements: Vec<Element>,
-    },
+    Group { elements: Vec<Element> },
 }

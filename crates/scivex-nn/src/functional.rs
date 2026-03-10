@@ -16,9 +16,10 @@ pub fn relu<T: Float>(x: &Variable<T>) -> Variable<T> {
         vec![x.clone()],
         Box::new(move |g: &Tensor<T>| {
             let mask = x_data.map(|v| if v > T::zero() { T::one() } else { T::zero() });
-            vec![g
-                .zip_map(&mask, |gi, mi| gi * mi)
-                .expect("shapes match from forward pass")]
+            vec![
+                g.zip_map(&mask, |gi, mi| gi * mi)
+                    .expect("shapes match from forward pass"),
+            ]
         }),
     )
 }
@@ -34,9 +35,10 @@ pub fn sigmoid<T: Float>(x: &Variable<T>) -> Variable<T> {
         Box::new(move |g: &Tensor<T>| {
             // grad = g * s * (1 - s)
             let deriv = sig_clone.map(|s| s * (T::one() - s));
-            vec![g
-                .zip_map(&deriv, |gi, di| gi * di)
-                .expect("shapes match from forward pass")]
+            vec![
+                g.zip_map(&deriv, |gi, di| gi * di)
+                    .expect("shapes match from forward pass"),
+            ]
         }),
     )
 }
@@ -58,9 +60,10 @@ pub fn tanh_fn<T: Float>(x: &Variable<T>) -> Variable<T> {
         Box::new(move |g: &Tensor<T>| {
             // grad = g * (1 - tanh^2)
             let deriv = out_clone.map(|t| T::one() - t * t);
-            vec![g
-                .zip_map(&deriv, |gi, di| gi * di)
-                .expect("shapes match from forward pass")]
+            vec![
+                g.zip_map(&deriv, |gi, di| gi * di)
+                    .expect("shapes match from forward pass"),
+            ]
         }),
     )
 }
@@ -128,8 +131,7 @@ pub fn softmax<T: Float>(x: &Variable<T>) -> Result<Variable<T>> {
                     result[idx] = s[idx] * (g_slice[idx] - dot);
                 }
             }
-            vec![Tensor::from_vec(result, shape.clone())
-                .expect("grad shape matches forward pass")]
+            vec![Tensor::from_vec(result, shape.clone()).expect("grad shape matches forward pass")]
         }),
     ))
 }
@@ -198,8 +200,7 @@ pub fn log_softmax<T: Float>(x: &Variable<T>) -> Result<Variable<T>> {
                     result[idx] = g_slice[idx] - s_slice[idx] * g_sum;
                 }
             }
-            vec![Tensor::from_vec(result, shape.clone())
-                .expect("grad shape matches forward pass")]
+            vec![Tensor::from_vec(result, shape.clone()).expect("grad shape matches forward pass")]
         }),
     ))
 }
@@ -213,9 +214,10 @@ pub fn exp<T: Float>(x: &Variable<T>) -> Variable<T> {
         out,
         vec![x.clone()],
         Box::new(move |g: &Tensor<T>| {
-            vec![g
-                .zip_map(&out_clone, |gi, ei| gi * ei)
-                .expect("shapes match from forward pass")]
+            vec![
+                g.zip_map(&out_clone, |gi, ei| gi * ei)
+                    .expect("shapes match from forward pass"),
+            ]
         }),
     )
 }
@@ -228,9 +230,10 @@ pub fn ln<T: Float>(x: &Variable<T>) -> Variable<T> {
         out,
         vec![x.clone()],
         Box::new(move |g: &Tensor<T>| {
-            vec![g
-                .zip_map(&x_data, |gi, xi| gi / xi)
-                .expect("shapes match from forward pass")]
+            vec![
+                g.zip_map(&x_data, |gi, xi| gi / xi)
+                    .expect("shapes match from forward pass"),
+            ]
         }),
     )
 }
@@ -250,9 +253,10 @@ pub fn clamp<T: Float>(x: &Variable<T>, min: T, max: T) -> Variable<T> {
                     T::zero()
                 }
             });
-            vec![g
-                .zip_map(&mask, |gi, mi| gi * mi)
-                .expect("shapes match from forward pass")]
+            vec![
+                g.zip_map(&mask, |gi, mi| gi * mi)
+                    .expect("shapes match from forward pass"),
+            ]
         }),
     )
 }

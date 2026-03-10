@@ -8,8 +8,8 @@
 use std::collections::HashMap;
 
 use scivex_sym::{
-    constant, cos, diff, diff_n, exp, ln, simplify, sin, solve_linear, solve_quadratic, var, Expr,
-    Polynomial,
+    Expr, Polynomial, constant, cos, diff, diff_n, exp, ln, simplify, sin, solve_linear,
+    solve_quadratic, var,
 };
 
 const TOL: f64 = 1e-10;
@@ -175,10 +175,7 @@ fn solve_quadratic_x2_minus_5x_plus_6() {
     let r0 = roots[0].eval(&empty).unwrap();
     let r1 = roots[1].eval(&empty).unwrap();
     // Roots should be 2 and 3 (sorted ascending).
-    assert!(
-        (r0 - 2.0).abs() < TOL,
-        "first root: expected 2.0, got {r0}"
-    );
+    assert!((r0 - 2.0).abs() < TOL, "first root: expected 2.0, got {r0}");
     assert!(
         (r1 - 3.0).abs() < TOL,
         "second root: expected 3.0, got {r1}"
@@ -195,10 +192,7 @@ fn polynomial_eval_cubic() {
     let p = Polynomial::<f64>::new(vec![1.0, -2.0, 0.0, 1.0]);
     let val = p.eval(2.0);
     // p(2) = 1 - 4 + 0 + 8 = 5
-    assert!(
-        (val - 5.0).abs() < TOL,
-        "p(2) expected 5.0, got {val}"
-    );
+    assert!((val - 5.0).abs() < TOL, "p(2) expected 5.0, got {val}");
 
     // Also verify at x=0 and x=-1.
     // p(0) = 1
@@ -236,11 +230,7 @@ fn simplify_identity_rules() {
 
     // x * 0 = 0
     let e = var("x") * constant(0.0);
-    assert_eq!(
-        simplify(&e),
-        constant(0.0),
-        "x * 0 should simplify to 0"
-    );
+    assert_eq!(simplify(&e), constant(0.0), "x * 0 should simplify to 0");
 
     // x ^ 1 = x
     let e = Expr::Pow(Box::new(var("x")), Box::new(constant(1.0)));
@@ -248,11 +238,7 @@ fn simplify_identity_rules() {
 
     // x ^ 0 = 1
     let e = Expr::Pow(Box::new(var("x")), Box::new(constant(0.0)));
-    assert_eq!(
-        simplify(&e),
-        constant(1.0),
-        "x^0 should simplify to 1"
-    );
+    assert_eq!(simplify(&e), constant(1.0), "x^0 should simplify to 1");
 }
 
 // -----------------------------------------------------------------------
@@ -316,9 +302,8 @@ fn polynomial_roots_quadratic() {
 #[test]
 fn polynomial_from_expr_eval() {
     let x = var("x");
-    let expr = Expr::Pow(Box::new(x.clone()), Box::new(constant(2.0)))
-        + constant(3.0) * x
-        + constant(2.0);
+    let expr =
+        Expr::Pow(Box::new(x.clone()), Box::new(constant(2.0))) + constant(3.0) * x + constant(2.0);
     let p = Polynomial::from_expr(&expr, "x").unwrap();
 
     // p(0) = 2, p(1) = 6, p(-1) = 0, p(2) = 12

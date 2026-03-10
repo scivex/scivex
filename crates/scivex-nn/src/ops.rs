@@ -40,9 +40,11 @@ pub fn mul<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
         data,
         vec![a.clone(), b.clone()],
         Box::new(move |g: &Tensor<T>| {
-            let ga = g.zip_map(&b_data, |gi, bi| gi * bi)
+            let ga = g
+                .zip_map(&b_data, |gi, bi| gi * bi)
                 .expect("shapes match from forward pass");
-            let gb = g.zip_map(&a_data, |gi, ai| gi * ai)
+            let gb = g
+                .zip_map(&a_data, |gi, ai| gi * ai)
                 .expect("shapes match from forward pass");
             vec![ga, gb]
         }),
@@ -127,7 +129,8 @@ pub fn pow<T: Float>(a: &Variable<T>, exponent: T) -> Variable<T> {
             // d/da (a^n) = n * a^(n-1)
             let n_minus_1 = exponent - T::one();
             let deriv = a_data.powf(n_minus_1).map(|v| exponent * v);
-            let grad = g.zip_map(&deriv, |gi, di| gi * di)
+            let grad = g
+                .zip_map(&deriv, |gi, di| gi * di)
                 .expect("shapes match from forward pass");
             vec![grad]
         }),
@@ -168,8 +171,8 @@ pub fn add_bias<T: Float>(input: &Variable<T>, bias: &Variable<T>) -> Variable<T
             out_data.push(x_slice[r * cols + c] + b_slice[c]);
         }
     }
-    let data = Tensor::from_vec(out_data, shape)
-        .expect("output data length matches shape from input");
+    let data =
+        Tensor::from_vec(out_data, shape).expect("output data length matches shape from input");
 
     let cols_copy = cols;
     Variable::from_op(
@@ -188,7 +191,7 @@ pub fn add_bias<T: Float>(input: &Variable<T>, bias: &Variable<T>) -> Variable<T
                 }
             }
             let g_bias = Tensor::from_vec(bias_grad, vec![cols_copy])
-                    .expect("bias grad length matches feature count");
+                .expect("bias grad length matches feature count");
             vec![g_input, g_bias]
         }),
     )

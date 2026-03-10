@@ -168,7 +168,12 @@ mod tests {
         // Just verify it doesn't panic and is set
         let xs = LinearScale::new(-0.5, 0.5);
         let ys = LinearScale::new(-0.5, 0.5);
-        let area = Rect { x: 0.0, y: 0.0, w: 100.0, h: 100.0 };
+        let area = Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 100.0,
+            h: 100.0,
+        };
         let elems = h.build_elements(&xs, &ys, area);
         assert_eq!(elems.len(), 1);
     }
@@ -187,7 +192,12 @@ mod tests {
         let h = HeatmapBuilder::new(vec![]);
         let xs = LinearScale::new(0.0, 1.0);
         let ys = LinearScale::new(0.0, 1.0);
-        let area = Rect { x: 0.0, y: 0.0, w: 100.0, h: 100.0 };
+        let area = Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 100.0,
+            h: 100.0,
+        };
         assert!(h.build_elements(&xs, &ys, area).is_empty());
     }
 

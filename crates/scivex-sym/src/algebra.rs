@@ -27,19 +27,18 @@ fn expand_inner(expr: &Expr) -> Expr {
             let base = expand_inner(base);
             let exp = expand_inner(exp);
             // Expand integer powers of sums: (a+b)^2 → (a+b)*(a+b) expanded.
-            if let Some(n) = exp.as_const()
-                && n > 0.0
-                && (n - n.floor()).abs() < f64::EPSILON
-                && n <= 8.0
-            {
-                #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-                let ni = n as u32;
-                if ni >= 2 {
-                    let mut result = base.clone();
-                    for _ in 1..ni {
-                        result = distribute(result, base.clone());
+            #[allow(clippy::collapsible_if)]
+            if let Some(n) = exp.as_const() {
+                if n > 0.0 && (n - n.floor()).abs() < f64::EPSILON && n <= 8.0 {
+                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                    let ni = n as u32;
+                    if ni >= 2 {
+                        let mut result = base.clone();
+                        for _ in 1..ni {
+                            result = distribute(result, base.clone());
+                        }
+                        return result;
                     }
-                    return result;
                 }
             }
             Expr::Pow(Box::new(base), Box::new(exp))

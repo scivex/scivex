@@ -24,7 +24,7 @@
 //! | `nlp`              | Tokenization, embeddings, text processing       |
 //! | `sym`              | Symbolic math, CAS, expression simplification   |
 //! | `full`             | All of the above                               |
-    
+
 pub use scivex_core as core;
 
 #[cfg(feature = "frame")]

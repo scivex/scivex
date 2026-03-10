@@ -101,10 +101,11 @@ fn step1a(word: &str) -> String {
     if word.ends_with("ss") {
         return word.to_string();
     }
-    if let Some(stem) = word.strip_suffix('s')
-        && !stem.is_empty()
-    {
-        return stem.to_string();
+    #[allow(clippy::collapsible_if)]
+    if let Some(stem) = word.strip_suffix('s') {
+        if !stem.is_empty() {
+            return stem.to_string();
+        }
     }
     word.to_string()
 }
@@ -152,11 +153,11 @@ fn step1b(word: &str) -> String {
 
 // Step 1c: y → i
 fn step1c(word: &str) -> String {
-    if let Some(stem) = word.strip_suffix('y')
-        && has_vowel(stem)
-        && !stem.is_empty()
-    {
-        return format!("{stem}i");
+    #[allow(clippy::collapsible_if)]
+    if let Some(stem) = word.strip_suffix('y') {
+        if has_vowel(stem) && !stem.is_empty() {
+            return format!("{stem}i");
+        }
     }
     word.to_string()
 }

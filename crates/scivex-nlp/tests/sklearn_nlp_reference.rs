@@ -39,7 +39,10 @@ fn count_vectorizer_basic() {
     // "cat" appears 2 times in doc 2
     let cat_idx = vocab["cat"];
     let cat_count_doc2: f64 = matrix.as_slice()[2 * 3 + cat_idx];
-    assert!((cat_count_doc2 - 2.0).abs() < TOL, "cat in doc2 = {cat_count_doc2}");
+    assert!(
+        (cat_count_doc2 - 2.0).abs() < TOL,
+        "cat in doc2 = {cat_count_doc2}"
+    );
 }
 
 // ─── Cosine similarity ──────────────────────────────────────────────

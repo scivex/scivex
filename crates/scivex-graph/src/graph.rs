@@ -174,10 +174,11 @@ impl<T: Float> Graph<T> {
         }
         for u in 0..nrows {
             for v in u..ncols {
-                if let Some(&w) = mat.get(u, v)
-                    && w != T::zero()
-                {
-                    g.add_edge(u, v, w)?;
+                #[allow(clippy::collapsible_if)]
+                if let Some(&w) = mat.get(u, v) {
+                    if w != T::zero() {
+                        g.add_edge(u, v, w)?;
+                    }
                 }
             }
         }
@@ -411,10 +412,19 @@ mod tests {
     #[test]
     fn test_invalid_node_errors() {
         let g = Graph::<f64>::new();
-        assert_eq!(g.neighbors(0).unwrap_err(), GraphError::NodeNotFound { id: 0 });
+        assert_eq!(
+            g.neighbors(0).unwrap_err(),
+            GraphError::NodeNotFound { id: 0 }
+        );
         assert_eq!(g.degree(5).unwrap_err(), GraphError::NodeNotFound { id: 5 });
-        assert_eq!(g.has_edge(0, 1).unwrap_err(), GraphError::NodeNotFound { id: 0 });
-        assert_eq!(g.get_weight(0, 1).unwrap_err(), GraphError::NodeNotFound { id: 0 });
+        assert_eq!(
+            g.has_edge(0, 1).unwrap_err(),
+            GraphError::NodeNotFound { id: 0 }
+        );
+        assert_eq!(
+            g.get_weight(0, 1).unwrap_err(),
+            GraphError::NodeNotFound { id: 0 }
+        );
     }
 
     #[test]
@@ -431,7 +441,10 @@ mod tests {
         let a = g.add_node();
         let b = g.add_node();
         let result = g.remove_edge(a, b);
-        assert_eq!(result.unwrap_err(), GraphError::EdgeNotFound { from: a, to: b });
+        assert_eq!(
+            result.unwrap_err(),
+            GraphError::EdgeNotFound { from: a, to: b }
+        );
     }
 
     #[test]
@@ -451,7 +464,10 @@ mod tests {
         let a = g.add_node();
         let b = g.add_node();
         let result = g.get_weight(a, b);
-        assert_eq!(result.unwrap_err(), GraphError::EdgeNotFound { from: a, to: b });
+        assert_eq!(
+            result.unwrap_err(),
+            GraphError::EdgeNotFound { from: a, to: b }
+        );
     }
 
     #[test]

@@ -1,7 +1,7 @@
 //! Reference tests comparing scivex-signal against known SciPy.signal values.
 
 use scivex_core::Tensor;
-use scivex_signal::convolution::{convolve, ConvolveMode};
+use scivex_signal::convolution::{ConvolveMode, convolve};
 use scivex_signal::window;
 
 const TOL: f64 = 1e-10;
@@ -13,10 +13,7 @@ fn vec1d(data: &[f64]) -> Tensor<f64> {
 fn assert_close(actual: &[f64], expected: &[f64], tol: f64, msg: &str) {
     assert_eq!(actual.len(), expected.len(), "{msg}: length mismatch");
     for (i, (&a, &e)) in actual.iter().zip(expected).enumerate() {
-        assert!(
-            (a - e).abs() < tol,
-            "{msg}: [{i}] got {a}, expected {e}"
-        );
+        assert!((a - e).abs() < tol, "{msg}: [{i}] got {a}, expected {e}");
     }
 }
 

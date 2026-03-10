@@ -588,7 +588,12 @@ mod tests {
         assert!(xr.is_none());
         let xs = LinearScale::new(0.0, 1.0);
         let ys = LinearScale::new(0.0, 1.0);
-        let area = Rect { x: 0.0, y: 0.0, w: 100.0, h: 100.0 };
+        let area = Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 100.0,
+            h: 100.0,
+        };
         assert!(p.build_elements(&xs, &ys, area).is_empty());
     }
 

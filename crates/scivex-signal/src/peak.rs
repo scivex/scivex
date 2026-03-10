@@ -32,10 +32,11 @@ pub fn find_peaks<T: Float>(
     let mut candidates: Vec<usize> = Vec::new();
     for i in 1..n - 1 {
         if xs[i] > xs[i - 1] && xs[i] > xs[i + 1] {
-            if let Some(h) = min_height
-                && xs[i] < h
-            {
-                continue;
+            #[allow(clippy::collapsible_if)]
+            if let Some(h) = min_height {
+                if xs[i] < h {
+                    continue;
+                }
             }
             candidates.push(i);
         }
@@ -43,21 +44,23 @@ pub fn find_peaks<T: Float>(
 
     // Filter by minimum distance (greedy: keep tallest first could be done,
     // but simple left-to-right filtering matches scipy's basic behavior).
-    if let Some(dist) = min_distance
-        && dist > 0
-    {
-        let mut filtered = Vec::new();
-        let mut last_peak: Option<usize> = None;
-        for &idx in &candidates {
-            if let Some(last) = last_peak
-                && idx - last < dist
-            {
-                continue;
+    #[allow(clippy::collapsible_if)]
+    if let Some(dist) = min_distance {
+        if dist > 0 {
+            let mut filtered = Vec::new();
+            let mut last_peak: Option<usize> = None;
+            for &idx in &candidates {
+                #[allow(clippy::collapsible_if)]
+                if let Some(last) = last_peak {
+                    if idx - last < dist {
+                        continue;
+                    }
+                }
+                filtered.push(idx);
+                last_peak = Some(idx);
             }
-            filtered.push(idx);
-            last_peak = Some(idx);
+            return Ok(filtered);
         }
-        return Ok(filtered);
     }
 
     Ok(candidates)
