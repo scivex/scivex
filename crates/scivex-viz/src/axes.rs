@@ -19,6 +19,7 @@ pub struct Axes {
 }
 
 impl Axes {
+    /// Create a new axes with default settings.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -34,54 +35,63 @@ impl Axes {
         }
     }
 
+    /// Set the axes title.
     #[must_use]
     pub fn title(mut self, t: &str) -> Self {
         self.title = Some(t.to_string());
         self
     }
 
+    /// Set the x-axis label.
     #[must_use]
     pub fn x_label(mut self, l: &str) -> Self {
         self.x_label = Some(l.to_string());
         self
     }
 
+    /// Set the y-axis label.
     #[must_use]
     pub fn y_label(mut self, l: &str) -> Self {
         self.y_label = Some(l.to_string());
         self
     }
 
+    /// Set the x-axis data range manually.
     #[must_use]
     pub fn x_range(mut self, min: f64, max: f64) -> Self {
         self.x_range = Some((min, max));
         self
     }
 
+    /// Set the y-axis data range manually.
     #[must_use]
     pub fn y_range(mut self, min: f64, max: f64) -> Self {
         self.y_range = Some((min, max));
         self
     }
 
+    /// Enable or disable grid lines.
     #[must_use]
     pub fn grid(mut self, show: bool) -> Self {
         self.show_grid = show;
         self
     }
 
+    /// Set the visual theme.
     #[must_use]
     pub fn theme(mut self, t: Theme) -> Self {
         self.theme = t;
         self
     }
 
+    /// Add a plot to this axes.
     #[must_use]
     pub fn add_plot<P: PlotBuilder + 'static>(mut self, plot: P) -> Self {
         self.plots.push(Box::new(plot));
         self
     }
 
+    /// Add an annotation (reference line, text, or legend).
     #[must_use]
     pub fn annotate(mut self, ann: Annotation) -> Self {
         self.annotations.push(ann);

@@ -1,8 +1,8 @@
 //! Digital filter design and application.
 //!
-//! - [`lfilter`] — apply an IIR/FIR filter (direct form II transposed).
-//! - [`filtfilt`] — zero-phase filtering (forward + backward pass).
-//! - [`FirFilter`] — FIR filter design (low-pass, high-pass, band-pass).
+//! - `lfilter` — apply an IIR/FIR filter (direct form II transposed).
+//! - `filtfilt` — zero-phase filtering (forward + backward pass).
+//! - `FirFilter` — FIR filter design (low-pass, high-pass, band-pass).
 
 use scivex_core::{Float, Tensor};
 

@@ -1,4 +1,6 @@
+/// SVG rendering backend.
 pub mod svg;
+/// Terminal braille rendering backend.
 pub mod terminal;
 
 use crate::element::Element;

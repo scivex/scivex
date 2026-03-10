@@ -18,6 +18,7 @@ pub struct CountVectorizer {
 }
 
 impl CountVectorizer {
+    /// Create a new, unfitted count vectorizer.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -81,6 +82,7 @@ impl CountVectorizer {
         &self.vocabulary
     }
 
+    /// Returns `true` if the vocabulary has been built via [`fit`](Self::fit).
     #[must_use]
     pub fn is_fitted(&self) -> bool {
         self.fitted
@@ -108,6 +110,7 @@ pub struct TfidfVectorizer {
 }
 
 impl TfidfVectorizer {
+    /// Create a new, unfitted TF-IDF vectorizer.
     #[must_use]
     pub fn new() -> Self {
         Self {

@@ -300,6 +300,7 @@ pub struct Histogram {
 }
 
 impl Histogram {
+    /// Create a histogram from raw data with the given number of bins.
     #[must_use]
     pub fn new(data: Vec<f64>, n_bins: usize) -> Self {
         Self {
@@ -311,12 +312,14 @@ impl Histogram {
         }
     }
 
+    /// Set the bar fill color.
     #[must_use]
     pub fn color(mut self, c: Color) -> Self {
         self.fill = Fill::new(c);
         self
     }
 
+    /// Set the legend label for this histogram.
     #[must_use]
     pub fn label(mut self, l: &str) -> Self {
         self.plot_label = Some(l.to_string());

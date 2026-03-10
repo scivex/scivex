@@ -15,6 +15,7 @@ pub struct Figure {
 }
 
 impl Figure {
+    /// Create a new figure with default size (800×600).
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -26,6 +27,7 @@ impl Figure {
         }
     }
 
+    /// Set the figure size in pixels.
     #[must_use]
     pub fn size(mut self, w: f64, h: f64) -> Self {
         self.width = w;
@@ -33,12 +35,14 @@ impl Figure {
         self
     }
 
+    /// Set the visual theme for the figure.
     #[must_use]
     pub fn theme(mut self, t: Theme) -> Self {
         self.theme = t;
         self
     }
 
+    /// Set the grid layout for multi-panel figures.
     #[must_use]
     pub fn layout(mut self, l: Layout) -> Self {
         self.layout = l;

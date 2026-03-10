@@ -10,8 +10,8 @@
 //! | L2 | `gemv` (matrix-vector multiply) | O(n^2) |
 //! | L3 | `gemm` (matrix-matrix multiply) | O(n^3) |
 //!
-//! Decompositions: [`LuDecomposition`], [`QrDecomposition`],
-//! [`CholeskyDecomposition`], [`SvdDecomposition`], [`EigDecomposition`]
+//! Decompositions: `LuDecomposition`, `QrDecomposition`,
+//! `CholeskyDecomposition`, `SvdDecomposition`, `EigDecomposition`
 
 pub mod blas;
 pub mod decomp;

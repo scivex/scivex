@@ -29,6 +29,7 @@ pub struct WordTokenizer {
 }
 
 impl WordTokenizer {
+    /// Create a new word tokenizer (case-preserving by default).
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -36,6 +37,7 @@ impl WordTokenizer {
         }
     }
 
+    /// Enable or disable lowercase conversion for owned tokenization.
     #[must_use]
     pub fn with_lowercase(mut self, yes: bool) -> Self {
         self.to_lowercase = yes;
@@ -112,6 +114,7 @@ pub struct NGramTokenizer {
 }
 
 impl NGramTokenizer {
+    /// Create an n-gram tokenizer with the given gram size.
     #[must_use]
     pub fn new(n: usize) -> Self {
         Self { n }

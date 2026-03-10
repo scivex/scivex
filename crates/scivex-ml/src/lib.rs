@@ -22,16 +22,27 @@
 //! | [`naive_bayes`] | `GaussianNB` |
 //! | [`model_selection`] | `train_test_split`, `KFold`, `cross_val_score` |
 
+/// K-Means clustering.
 pub mod cluster;
+/// Ensemble methods (Random Forest).
 pub mod ensemble;
+/// ML error types.
 pub mod error;
+/// Linear models (regression, ridge, logistic).
 pub mod linear;
+/// Evaluation metrics for classification and regression.
 pub mod metrics;
+/// Train/test split, k-fold cross-validation.
 pub mod model_selection;
+/// Naive Bayes classifiers.
 pub mod naive_bayes;
+/// K-nearest neighbors classifiers and regressors.
 pub mod neighbors;
+/// Data preprocessing: scaling and encoding.
 pub mod preprocessing;
+/// Estimator trait hierarchy (`Transformer`, `Predictor`, `Classifier`).
 pub mod traits;
+/// Decision tree classifiers and regressors.
 pub mod tree;
 
 pub use error::{MlError, Result};

@@ -22,6 +22,7 @@ pub struct TerminalBackend {
 }
 
 impl TerminalBackend {
+    /// Create a backend with the given terminal dimensions.
     #[must_use]
     pub fn new(cols: usize, rows: usize) -> Self {
         Self { cols, rows }

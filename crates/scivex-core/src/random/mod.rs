@@ -1,6 +1,6 @@
 //! Pseudo-random number generation and random tensor creation.
 //!
-//! Provides a fast, high-quality PRNG ([`Rng`]) based on the xoshiro256\*\*
+//! Provides a fast, high-quality PRNG (`Rng`) based on the xoshiro256\*\*
 //! algorithm and convenience functions for creating tensors filled with random
 //! values drawn from common distributions.
 //!

@@ -1,17 +1,27 @@
 use std::fmt;
 
+/// Errors that can occur in NLP operations.
 #[derive(Debug, Clone, PartialEq)]
 pub enum NlpError {
+    /// The input text or document list is empty.
     EmptyInput,
+    /// No vocabulary could be built from the input.
     EmptyVocabulary,
+    /// A configuration parameter is invalid.
     InvalidParameter {
+        /// Parameter name.
         name: &'static str,
+        /// Why the value is invalid.
         reason: &'static str,
     },
+    /// A token was not found in the vocabulary.
     UnknownToken {
+        /// The unrecognised token string.
         token: String,
     },
+    /// The model has not been fitted yet.
     NotFitted,
+    /// An error propagated from `scivex-core`.
     CoreError(scivex_core::CoreError),
 }
 
@@ -38,4 +48,5 @@ impl From<scivex_core::CoreError> for NlpError {
     }
 }
 
+/// Convenience alias for `Result<T, NlpError>`.
 pub type Result<T> = std::result::Result<T, NlpError>;

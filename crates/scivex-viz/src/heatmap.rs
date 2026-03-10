@@ -15,6 +15,7 @@ pub struct HeatmapBuilder {
 }
 
 impl HeatmapBuilder {
+    /// Create a heatmap from a 2-D grid of values.
     #[must_use]
     pub fn new(data: Vec<Vec<f64>>) -> Self {
         Self {
@@ -26,24 +27,28 @@ impl HeatmapBuilder {
         }
     }
 
+    /// Set the colormap used to map values to colors.
     #[must_use]
     pub fn colormap(mut self, cm: ColorMap) -> Self {
         self.colormap = cm;
         self
     }
 
+    /// Show numeric values inside each cell.
     #[must_use]
     pub fn show_values(mut self, show: bool) -> Self {
         self.show_values = show;
         self
     }
 
+    /// Set column labels.
     #[must_use]
     pub fn x_labels(mut self, labels: Vec<String>) -> Self {
         self.x_labels = Some(labels);
         self
     }
 
+    /// Set row labels.
     #[must_use]
     pub fn y_labels(mut self, labels: Vec<String>) -> Self {
         self.y_labels = Some(labels);

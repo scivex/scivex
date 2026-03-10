@@ -9,14 +9,23 @@
 //! - Minimum spanning trees: Kruskal, Prim
 //! - Community detection: label propagation
 
+/// Centrality measures (degree, betweenness, PageRank).
 pub mod centrality;
+/// Community detection (label propagation).
 pub mod community;
+/// Connectivity analysis (connected / strongly-connected components).
 pub mod connectivity;
+/// Directed weighted graph.
 pub mod digraph;
+/// Graph error types.
 pub mod error;
+/// Undirected weighted graph.
 pub mod graph;
+/// Minimum spanning trees (Kruskal, Prim).
 pub mod mst;
+/// Shortest path algorithms (Dijkstra, Bellman-Ford, Floyd-Warshall).
 pub mod shortest;
+/// Graph traversals (BFS, DFS, topological sort).
 pub mod traversal;
 
 pub use digraph::DiGraph;

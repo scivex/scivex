@@ -14,6 +14,7 @@ pub struct BoxPlotBuilder {
 }
 
 impl BoxPlotBuilder {
+    /// Create a box plot from one or more datasets.
     #[must_use]
     pub fn new(datasets: Vec<Vec<f64>>) -> Self {
         Self {
@@ -24,18 +25,21 @@ impl BoxPlotBuilder {
         }
     }
 
+    /// Set category labels for each box.
     #[must_use]
     pub fn labels(mut self, labels: Vec<String>) -> Self {
         self.labels = Some(labels);
         self
     }
 
+    /// Set the fill color for the IQR boxes.
     #[must_use]
     pub fn fill_color(mut self, c: Color) -> Self {
         self.fill = Some(Fill::new(c));
         self
     }
 
+    /// Remove the fill from the IQR boxes (outline only).
     #[must_use]
     pub fn no_fill(mut self) -> Self {
         self.fill = None;
