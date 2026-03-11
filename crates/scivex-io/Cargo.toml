@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Scivex — CSV and JSON I/O for DataFrames"
+description = "Scivex — CSV, JSON, SQL, Parquet, and Arrow I/O for DataFrames"
 
 [lints]
 workspace = true
@@ -14,8 +14,28 @@ scivex-core = { path = "../scivex-core" }
 scivex-frame = { path = "../scivex-frame" }
 serde_json = { version = "1", optional = true }
 
+# SQL backends
+rusqlite = { version = "0.31", optional = true, features = ["bundled"] }
+postgres = { version = "0.19", optional = true }
+mysql = { version = "25", optional = true }
+tiberius = { version = "0.12", optional = true, default-features = false, features = ["rustls"] }
+tokio = { version = "1", optional = true, features = ["rt", "net", "io-util"] }
+tokio-util = { version = "0.7", optional = true, features = ["compat"] }
+
+# Parquet & Arrow
+parquet_crate = { package = "parquet", version = "55", optional = true, default-features = false, features = ["arrow", "snap", "zstd", "lz4"] }
+arrow_crate = { package = "arrow", version = "55", optional = true, default-features = false, features = ["ipc"] }
+bytes = { version = "1", optional = true }
+
 [features]
 default = ["csv"]
 csv = []
 json = ["dep:serde_json"]
-full = ["csv", "json"]
+sqlite = ["dep:rusqlite"]
+postgres = ["dep:postgres"]
+mysql = ["dep:mysql"]
+mssql = ["dep:tiberius", "dep:tokio", "dep:tokio-util"]
+sql = ["sqlite", "postgres", "mysql", "mssql"]
+parquet = ["dep:parquet_crate", "dep:arrow_crate", "dep:bytes"]
+arrow = ["dep:arrow_crate"]
+full = ["csv", "json", "sql", "parquet", "arrow"]

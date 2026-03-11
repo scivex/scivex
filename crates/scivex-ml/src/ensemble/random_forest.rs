@@ -1,5 +1,8 @@
 use scivex_core::{Float, Tensor, random::Rng};
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 use crate::error::{MlError, Result};
 use crate::traits::Predictor;
 use crate::tree::{DecisionTreeClassifier, DecisionTreeRegressor};
@@ -37,6 +40,36 @@ impl<T: Float> RandomForestClassifier<T> {
             seed,
             trees: None,
         })
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl<T: Float> RandomForestClassifier<T> {
+    /// Train the random forest in parallel using Rayon.
+    ///
+    /// Each tree is built on a separate thread with its own RNG derived
+    /// from the parent seed via [`Rng::fork`].
+    pub fn par_fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
+        let (n, p) = matrix_shape(x)?;
+        check_y(y, n)?;
+        let max_feat = self.max_features.unwrap_or(float_sqrt(p));
+        let mut rng = Rng::new(self.seed);
+        let child_rngs = rng.fork(self.n_trees);
+
+        let trees: Result<Vec<_>> = child_rngs
+            .into_par_iter()
+            .map(|mut rng| {
+                let (bx, by) = bootstrap_sample(x, y, n, p, &mut rng)?;
+                let (sx, feat_count) = select_features(&bx, n, p, max_feat, &mut rng);
+                let mut tree = DecisionTreeClassifier::new(self.max_depth, self.min_samples_split);
+                let sx_tensor = Tensor::from_vec(sx, vec![n, feat_count])?;
+                tree.fit(&sx_tensor, &by)?;
+                Ok(tree)
+            })
+            .collect();
+
+        self.trees = Some(trees?);
+        Ok(())
     }
 }
 
@@ -124,6 +157,33 @@ impl<T: Float> RandomForestRegressor<T> {
             seed,
             trees: None,
         })
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl<T: Float> RandomForestRegressor<T> {
+    /// Train the random forest in parallel using Rayon.
+    ///
+    /// Each tree is built on a separate thread with its own RNG.
+    pub fn par_fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
+        let (n, p) = matrix_shape(x)?;
+        check_y(y, n)?;
+        let mut rng = Rng::new(self.seed);
+        let child_rngs = rng.fork(self.n_trees);
+
+        let trees: Result<Vec<_>> = child_rngs
+            .into_par_iter()
+            .map(|mut rng| {
+                let (bx, by) = bootstrap_sample(x, y, n, p, &mut rng)?;
+                let mut tree = DecisionTreeRegressor::new(self.max_depth, self.min_samples_split);
+                let bx_tensor = Tensor::from_vec(bx, vec![n, p])?;
+                tree.fit(&bx_tensor, &by)?;
+                Ok(tree)
+            })
+            .collect();
+
+        self.trees = Some(trees?);
+        Ok(())
     }
 }
 
@@ -290,6 +350,30 @@ mod tests {
         assert!(correct >= 4, "expected at least 4/6 correct, got {correct}");
     }
 
+    #[cfg(feature = "parallel")]
+    #[test]
+    fn test_par_random_forest_classifier() {
+        let x = Tensor::from_vec(
+            vec![
+                1.0_f64, 1.0, 2.0, 2.0, 1.5, 1.5, 8.0, 8.0, 9.0, 9.0, 8.5, 8.5,
+            ],
+            vec![6, 2],
+        )
+        .unwrap();
+        let y = Tensor::from_vec(vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0], vec![6]).unwrap();
+
+        let mut rf = RandomForestClassifier::new(10, Some(3), None, 42).unwrap();
+        rf.par_fit(&x, &y).unwrap();
+        let preds = rf.predict(&x).unwrap();
+        let correct: usize = preds
+            .as_slice()
+            .iter()
+            .zip(y.as_slice())
+            .filter(|(a, b)| (**a - **b).abs() < 0.5)
+            .count();
+        assert!(correct >= 4, "expected at least 4/6 correct, got {correct}");
+    }
+
     #[test]
     fn test_random_forest_regressor() {
         let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0], vec![5, 1]).unwrap();
@@ -299,6 +383,20 @@ mod tests {
         rf.fit(&x, &y).unwrap();
         let preds = rf.predict(&x).unwrap();
         // Predictions should be in a reasonable range
+        for &p in preds.as_slice() {
+            assert!(p > 0.0 && p < 15.0, "prediction {p} out of range");
+        }
+    }
+
+    #[cfg(feature = "parallel")]
+    #[test]
+    fn test_par_random_forest_regressor() {
+        let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0], vec![5, 1]).unwrap();
+        let y = Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0, 10.0], vec![5]).unwrap();
+
+        let mut rf = RandomForestRegressor::new(20, Some(3), None, 42).unwrap();
+        rf.par_fit(&x, &y).unwrap();
+        let preds = rf.predict(&x).unwrap();
         for &p in preds.as_slice() {
             assert!(p > 0.0 && p < 15.0, "prediction {p} out of range");
         }

@@ -77,6 +77,15 @@ impl Rng {
         *self = Self::new(seed);
     }
 
+    /// Create `n` independent child RNGs by advancing the state.
+    ///
+    /// Each child receives a unique seed derived from the parent's state.
+    /// This is useful for parallel workloads where each thread needs its
+    /// own RNG to avoid contention.
+    pub fn fork(&mut self, n: usize) -> Vec<Self> {
+        (0..n).map(|_| Self::new(self.next_u64())).collect()
+    }
+
     /// Generate the next random `u64`.
     #[inline]
     pub fn next_u64(&mut self) -> u64 {
@@ -359,6 +368,32 @@ mod tests {
         rng.seed(99);
         let second = rng.next_u64();
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn test_fork() {
+        let mut rng = Rng::new(42);
+        let children = rng.fork(4);
+        assert_eq!(children.len(), 4);
+        // All children should produce different sequences.
+        let vals: Vec<u64> = children.into_iter().map(|mut r| r.next_u64()).collect();
+        for i in 0..vals.len() {
+            for j in (i + 1)..vals.len() {
+                assert_ne!(vals[i], vals[j], "child RNGs should be independent");
+            }
+        }
+    }
+
+    #[test]
+    fn test_fork_reproducible() {
+        let mut rng1 = Rng::new(42);
+        let children1 = rng1.fork(3);
+        let mut rng2 = Rng::new(42);
+        let children2 = rng2.fork(3);
+        // Same seed → same children.
+        for (mut c1, mut c2) in children1.into_iter().zip(children2) {
+            assert_eq!(c1.next_u64(), c2.next_u64());
+        }
     }
 
     #[test]

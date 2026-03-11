@@ -25,12 +25,31 @@ use crate::{Float, Scalar};
 /// ```
 pub fn dot<T: Scalar>(x: &Tensor<T>, y: &Tensor<T>) -> Result<T> {
     check_vectors(x, y, "dot")?;
-    let result = x
-        .as_slice()
-        .iter()
-        .zip(y.as_slice().iter())
-        .fold(T::zero(), |acc, (&a, &b)| acc + a * b);
-    Ok(result)
+    Ok(dot_slice(x.as_slice(), y.as_slice()))
+}
+
+/// Inner dot product on raw slices, dispatching to SIMD when available.
+fn dot_slice<T: Scalar>(a: &[T], b: &[T]) -> T {
+    #[cfg(feature = "simd")]
+    {
+        use crate::simd;
+        use std::any::TypeId;
+        if TypeId::of::<T>() == TypeId::of::<f64>() {
+            // SAFETY: T is f64 confirmed by TypeId.
+            let result =
+                unsafe { simd::f64_ops::dot_f64(simd::slice_as_f64(a), simd::slice_as_f64(b)) };
+            return unsafe { simd::f64_to_t(result) };
+        }
+        if TypeId::of::<T>() == TypeId::of::<f32>() {
+            // SAFETY: T is f32 confirmed by TypeId.
+            let result =
+                unsafe { simd::f32_ops::dot_f32(simd::slice_as_f32(a), simd::slice_as_f32(b)) };
+            return unsafe { simd::f32_to_t(result) };
+        }
+    }
+    a.iter()
+        .zip(b.iter())
+        .fold(T::zero(), |acc, (&x, &y)| acc + x * y)
 }
 
 /// `y = alpha * x + y` (in-place update of `y`).
@@ -47,12 +66,42 @@ pub fn dot<T: Scalar>(x: &Tensor<T>, y: &Tensor<T>) -> Result<T> {
 /// ```
 pub fn axpy<T: Scalar>(alpha: T, x: &Tensor<T>, y: &mut Tensor<T>) -> Result<()> {
     check_vectors(x, y, "axpy")?;
-    let xs = x.as_slice();
-    let ys = y.as_mut_slice();
-    for (yi, &xi) in ys.iter_mut().zip(xs.iter()) {
+    axpy_slice(alpha, x.as_slice(), y.as_mut_slice());
+    Ok(())
+}
+
+/// In-place axpy on raw slices, dispatching to SIMD when available.
+fn axpy_slice<T: Scalar>(alpha: T, x: &[T], y: &mut [T]) {
+    #[cfg(feature = "simd")]
+    {
+        use crate::simd;
+        use std::any::TypeId;
+        if TypeId::of::<T>() == TypeId::of::<f64>() {
+            // SAFETY: T is f64 confirmed by TypeId.
+            unsafe {
+                simd::f64_ops::axpy_f64(
+                    simd::t_to_f64(alpha),
+                    simd::slice_as_f64(x),
+                    simd::slice_as_f64_mut(y),
+                );
+            }
+            return;
+        }
+        if TypeId::of::<T>() == TypeId::of::<f32>() {
+            // SAFETY: T is f32 confirmed by TypeId.
+            unsafe {
+                simd::f32_ops::axpy_f32(
+                    simd::t_to_f32(alpha),
+                    simd::slice_as_f32(x),
+                    simd::slice_as_f32_mut(y),
+                );
+            }
+            return;
+        }
+    }
+    for (yi, &xi) in y.iter_mut().zip(x.iter()) {
         *yi += alpha * xi;
     }
-    Ok(())
 }
 
 /// Euclidean norm (L2 norm) of a 1-D tensor: `sqrt(sum(x_i^2))`.
@@ -66,6 +115,23 @@ pub fn axpy<T: Scalar>(alpha: T, x: &Tensor<T>, y: &mut Tensor<T>) -> Result<()>
 /// ```
 pub fn nrm2<T: Float>(x: &Tensor<T>) -> Result<T> {
     check_vector(x, "nrm2")?;
+    #[cfg(feature = "simd")]
+    {
+        use crate::simd;
+        use std::any::TypeId;
+        if TypeId::of::<T>() == TypeId::of::<f64>() {
+            // SAFETY: T is f64 confirmed by TypeId.
+            let result =
+                unsafe { simd::f64_ops::sum_sq_f64(simd::slice_as_f64(x.as_slice())).sqrt() };
+            return Ok(unsafe { simd::f64_to_t(result) });
+        }
+        if TypeId::of::<T>() == TypeId::of::<f32>() {
+            // SAFETY: T is f32 confirmed by TypeId.
+            let result =
+                unsafe { simd::f32_ops::sum_sq_f32(simd::slice_as_f32(x.as_slice())).sqrt() };
+            return Ok(unsafe { simd::f32_to_t(result) });
+        }
+    }
     let sum_sq = x.as_slice().iter().fold(T::zero(), |acc, &v| acc + v * v);
     Ok(sum_sq.sqrt())
 }
@@ -81,6 +147,21 @@ pub fn nrm2<T: Float>(x: &Tensor<T>) -> Result<T> {
 /// ```
 pub fn asum<T: Float>(x: &Tensor<T>) -> Result<T> {
     check_vector(x, "asum")?;
+    #[cfg(feature = "simd")]
+    {
+        use crate::simd;
+        use std::any::TypeId;
+        if TypeId::of::<T>() == TypeId::of::<f64>() {
+            // SAFETY: T is f64 confirmed by TypeId.
+            let result = unsafe { simd::f64_ops::asum_f64(simd::slice_as_f64(x.as_slice())) };
+            return Ok(unsafe { simd::f64_to_t(result) });
+        }
+        if TypeId::of::<T>() == TypeId::of::<f32>() {
+            // SAFETY: T is f32 confirmed by TypeId.
+            let result = unsafe { simd::f32_ops::asum_f32(simd::slice_as_f32(x.as_slice())) };
+            return Ok(unsafe { simd::f32_to_t(result) });
+        }
+    }
     let result = x.as_slice().iter().fold(T::zero(), |acc, &v| acc + v.abs());
     Ok(result)
 }
@@ -96,6 +177,31 @@ pub fn asum<T: Float>(x: &Tensor<T>) -> Result<T> {
 /// ```
 pub fn scal<T: Scalar>(alpha: T, x: &mut Tensor<T>) -> Result<()> {
     check_vector(x, "scal")?;
+    #[cfg(feature = "simd")]
+    {
+        use crate::simd;
+        use std::any::TypeId;
+        if TypeId::of::<T>() == TypeId::of::<f64>() {
+            // SAFETY: T is f64 confirmed by TypeId.
+            unsafe {
+                simd::f64_ops::scal_f64(
+                    simd::t_to_f64(alpha),
+                    simd::slice_as_f64_mut(x.as_mut_slice()),
+                );
+            }
+            return Ok(());
+        }
+        if TypeId::of::<T>() == TypeId::of::<f32>() {
+            // SAFETY: T is f32 confirmed by TypeId.
+            unsafe {
+                simd::f32_ops::scal_f32(
+                    simd::t_to_f32(alpha),
+                    simd::slice_as_f32_mut(x.as_mut_slice()),
+                );
+            }
+            return Ok(());
+        }
+    }
     for v in x.as_mut_slice() {
         *v *= alpha;
     }
@@ -196,11 +302,9 @@ pub fn gemv<T: Scalar>(
     let y_data = y.as_mut_slice();
 
     for (i, yi) in y_data.iter_mut().enumerate().take(m) {
-        let mut sum = T::zero();
         let row_offset = i * n;
-        for j in 0..n {
-            sum += a_data[row_offset + j] * x_data[j];
-        }
+        let row = &a_data[row_offset..row_offset + n];
+        let sum = dot_slice(row, x_data);
         *yi = alpha * sum + beta * *yi;
     }
 
@@ -263,16 +367,27 @@ pub fn gemm<T: Scalar>(
     let b_data = b.as_slice();
     let c_data = c.as_mut_slice();
 
-    // ijk loop order (row-major friendly for A and C)
+    // Scale C by beta first (or zero it).
+    if beta == T::zero() {
+        for v in c_data.iter_mut() {
+            *v = T::zero();
+        }
+    } else if beta != T::one() {
+        for v in c_data.iter_mut() {
+            *v *= beta;
+        }
+    }
+
+    // ikj loop order: for each row i of A, accumulate alpha*A[i,p]*B[p,:] into C[i,:].
+    // The inner j-loop is a contiguous axpy which auto-vectorizes / uses SIMD.
     for i in 0..m {
-        for j in 0..n {
-            let mut sum = T::zero();
-            let a_row = i * k;
-            for p in 0..k {
-                sum += a_data[a_row + p] * b_data[p * n + j];
-            }
-            let c_idx = i * n + j;
-            c_data[c_idx] = alpha * sum + beta * c_data[c_idx];
+        let a_row = i * k;
+        let c_row = i * n;
+        for p in 0..k {
+            let scale = alpha * a_data[a_row + p];
+            let b_row = &b_data[p * n..(p + 1) * n];
+            let c_slice = &mut c_data[c_row..c_row + n];
+            axpy_slice(scale, b_row, c_slice);
         }
     }
 

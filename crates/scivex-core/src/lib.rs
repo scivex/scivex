@@ -21,8 +21,14 @@ pub mod fft;
 pub mod linalg;
 /// Elementary mathematical functions.
 pub mod math;
+/// Rayon-based parallel execution for tensors and matrix operations.
+#[cfg(feature = "parallel")]
+pub mod parallel;
 /// Pseudo-random number generation.
 pub mod random;
+/// SIMD-accelerated kernels for core numerical operations.
+#[cfg(feature = "simd")]
+pub(crate) mod simd;
 /// N-dimensional tensor type and operations.
 pub mod tensor;
 

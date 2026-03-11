@@ -1,6 +1,7 @@
 //! Typed and type-erased columnar series.
 
 pub mod categorical;
+pub mod datetime;
 mod filter;
 pub mod missing;
 mod ops;
