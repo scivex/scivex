@@ -216,7 +216,7 @@ fn column_value_at(col: &dyn AnySeries, row: usize) -> Value {
                 Value::String(col.display_value(row))
             }
         }
-        DType::Bool | DType::Categorical => Value::String(col.display_value(row)),
+        DType::Bool | DType::Categorical | DType::DateTime => Value::String(col.display_value(row)),
     }
 }
 

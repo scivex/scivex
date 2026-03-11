@@ -40,6 +40,7 @@ pub use dtype::DType;
 pub use error::{FrameError, Result};
 pub use groupby::{AggFunc, GroupBy};
 pub use series::categorical::CategoricalSeries;
+pub use series::datetime::{DateTime, DateTimeSeries, Duration};
 pub use series::string::StringSeries;
 pub use series::window::RollingWindow;
 pub use series::{AnySeries, Series};
@@ -52,6 +53,7 @@ pub mod prelude {
     pub use crate::error::{FrameError, Result};
     pub use crate::groupby::{AggFunc, GroupBy};
     pub use crate::series::categorical::CategoricalSeries;
+    pub use crate::series::datetime::{DateTime, DateTimeSeries, Duration};
     pub use crate::series::string::StringSeries;
     pub use crate::series::window::RollingWindow;
     pub use crate::series::{AnySeries, Series};

@@ -1,6 +1,6 @@
 //! # scivex-io
 //!
-//! CSV and JSON I/O for [`scivex_frame::DataFrame`].
+//! CSV, JSON, SQL, Parquet, and Arrow I/O for [`scivex_frame::DataFrame`].
 //!
 //! ## Feature Flags
 //!
@@ -8,6 +8,13 @@
 //! |---------|---------|
 //! | `csv` *(default)* | CSV reading and writing |
 //! | `json` | JSON reading and writing (requires `serde_json`) |
+//! | `sqlite` | SQLite database connectivity (via `rusqlite`) |
+//! | `postgres` | PostgreSQL database connectivity (via `postgres`) |
+//! | `mysql` | MySQL database connectivity (via `mysql`) |
+//! | `mssql` | SQL Server database connectivity (via `tiberius`) |
+//! | `sql` | All SQL backends |
+//! | `parquet` | Parquet file reading and writing |
+//! | `arrow` | Arrow IPC file and stream reading and writing |
 //! | `full` | All I/O formats |
 
 /// Shared I/O helpers and type inference.
@@ -22,6 +29,27 @@ pub mod csv;
 /// JSON reading and writing (requires `serde_json`).
 #[cfg(feature = "json")]
 pub mod json;
+
+/// SQL database connectivity (SQLite, PostgreSQL, MySQL, SQL Server).
+#[cfg(any(
+    feature = "sqlite",
+    feature = "postgres",
+    feature = "mysql",
+    feature = "mssql"
+))]
+pub mod sql;
+
+/// Shared Arrow conversion utilities used by Parquet and Arrow IPC modules.
+#[cfg(any(feature = "parquet", feature = "arrow"))]
+pub(crate) mod arrow_conv;
+
+/// Parquet file reading and writing.
+#[cfg(feature = "parquet")]
+pub mod parquet;
+
+/// Arrow IPC file and stream reading and writing.
+#[cfg(feature = "arrow")]
+pub mod arrow;
 
 pub use error::{IoError, Result};
 
@@ -39,4 +67,32 @@ pub mod prelude {
         JsonOrientation, JsonReaderBuilder, JsonWriterBuilder, read_json, read_json_path,
         write_json,
     };
+
+    #[cfg(any(
+        feature = "sqlite",
+        feature = "postgres",
+        feature = "mysql",
+        feature = "mssql"
+    ))]
+    pub use crate::sql::IfExists;
+
+    #[cfg(feature = "sqlite")]
+    pub use crate::sql::sqlite::SqliteConnection;
+
+    #[cfg(feature = "postgres")]
+    pub use crate::sql::postgres::PostgresConnection;
+
+    #[cfg(feature = "mysql")]
+    pub use crate::sql::mysql::MysqlConnection;
+
+    #[cfg(feature = "mssql")]
+    pub use crate::sql::mssql::{MssqlConfig, MssqlConnection};
+
+    #[cfg(feature = "parquet")]
+    pub use crate::parquet::{
+        ParquetCompression, ParquetReaderBuilder, ParquetWriterBuilder, read_parquet, write_parquet,
+    };
+
+    #[cfg(feature = "arrow")]
+    pub use crate::arrow::{read_arrow, read_arrow_stream, write_arrow, write_arrow_stream};
 }

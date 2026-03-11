@@ -67,6 +67,62 @@ impl_tensor_binop!(Sub, sub, -);
 impl_tensor_binop!(Mul, mul, *);
 impl_tensor_binop!(Div, div, /);
 
+// SIMD-accelerated overrides for f64 and f32 element-wise add/mul.
+// These override the generic macro implementations for concrete float types.
+#[cfg(feature = "simd")]
+impl Tensor<f64> {
+    /// SIMD-accelerated element-wise addition.
+    pub fn add_simd(&self, other: &Tensor<f64>) -> Tensor<f64> {
+        assert_eq!(self.shape, other.shape, "shape mismatch in simd add");
+        let mut out = vec![0.0_f64; self.data.len()];
+        crate::simd::f64_ops::add_f64(&self.data, &other.data, &mut out);
+        Tensor {
+            data: out,
+            shape: self.shape.clone(),
+            strides: self.strides.clone(),
+        }
+    }
+
+    /// SIMD-accelerated element-wise multiplication.
+    pub fn mul_simd(&self, other: &Tensor<f64>) -> Tensor<f64> {
+        assert_eq!(self.shape, other.shape, "shape mismatch in simd mul");
+        let mut out = vec![0.0_f64; self.data.len()];
+        crate::simd::f64_ops::mul_f64(&self.data, &other.data, &mut out);
+        Tensor {
+            data: out,
+            shape: self.shape.clone(),
+            strides: self.strides.clone(),
+        }
+    }
+}
+
+#[cfg(feature = "simd")]
+impl Tensor<f32> {
+    /// SIMD-accelerated element-wise addition.
+    pub fn add_simd(&self, other: &Tensor<f32>) -> Tensor<f32> {
+        assert_eq!(self.shape, other.shape, "shape mismatch in simd add");
+        let mut out = vec![0.0_f32; self.data.len()];
+        crate::simd::f32_ops::add_f32(&self.data, &other.data, &mut out);
+        Tensor {
+            data: out,
+            shape: self.shape.clone(),
+            strides: self.strides.clone(),
+        }
+    }
+
+    /// SIMD-accelerated element-wise multiplication.
+    pub fn mul_simd(&self, other: &Tensor<f32>) -> Tensor<f32> {
+        assert_eq!(self.shape, other.shape, "shape mismatch in simd mul");
+        let mut out = vec![0.0_f32; self.data.len()];
+        crate::simd::f32_ops::mul_f32(&self.data, &other.data, &mut out);
+        Tensor {
+            data: out,
+            shape: self.shape.clone(),
+            strides: self.strides.clone(),
+        }
+    }
+}
+
 // ======================================================================
 // Tensor + scalar  (broadcast scalar to every element)
 // ======================================================================
@@ -169,6 +225,23 @@ impl<T: Scalar> Tensor<T> {
 impl<T: Scalar> Tensor<T> {
     /// Sum of all elements.
     pub fn sum(&self) -> T {
+        #[cfg(feature = "simd")]
+        {
+            use crate::simd;
+            use std::any::TypeId;
+            if TypeId::of::<T>() == TypeId::of::<f64>() {
+                // SAFETY: T is f64 confirmed by TypeId.
+                let result =
+                    unsafe { simd::f64_ops::sum_f64(simd::slice_as_f64(self.data.as_slice())) };
+                return unsafe { simd::f64_to_t(result) };
+            }
+            if TypeId::of::<T>() == TypeId::of::<f32>() {
+                // SAFETY: T is f32 confirmed by TypeId.
+                let result =
+                    unsafe { simd::f32_ops::sum_f32(simd::slice_as_f32(self.data.as_slice())) };
+                return unsafe { simd::f32_to_t(result) };
+            }
+        }
         self.data.iter().copied().sum()
     }
 
@@ -179,6 +252,26 @@ impl<T: Scalar> Tensor<T> {
 
     /// Minimum element. Returns `None` for empty tensors.
     pub fn min_element(&self) -> Option<T> {
+        if self.data.is_empty() {
+            return None;
+        }
+        #[cfg(feature = "simd")]
+        {
+            use crate::simd;
+            use std::any::TypeId;
+            if TypeId::of::<T>() == TypeId::of::<f64>() {
+                // SAFETY: T is f64 confirmed by TypeId.
+                let result =
+                    unsafe { simd::f64_ops::min_f64(simd::slice_as_f64(self.data.as_slice())) };
+                return Some(unsafe { simd::f64_to_t(result) });
+            }
+            if TypeId::of::<T>() == TypeId::of::<f32>() {
+                // SAFETY: T is f32 confirmed by TypeId.
+                let result =
+                    unsafe { simd::f32_ops::min_f32(simd::slice_as_f32(self.data.as_slice())) };
+                return Some(unsafe { simd::f32_to_t(result) });
+            }
+        }
         self.data
             .iter()
             .copied()
@@ -187,6 +280,26 @@ impl<T: Scalar> Tensor<T> {
 
     /// Maximum element. Returns `None` for empty tensors.
     pub fn max_element(&self) -> Option<T> {
+        if self.data.is_empty() {
+            return None;
+        }
+        #[cfg(feature = "simd")]
+        {
+            use crate::simd;
+            use std::any::TypeId;
+            if TypeId::of::<T>() == TypeId::of::<f64>() {
+                // SAFETY: T is f64 confirmed by TypeId.
+                let result =
+                    unsafe { simd::f64_ops::max_f64(simd::slice_as_f64(self.data.as_slice())) };
+                return Some(unsafe { simd::f64_to_t(result) });
+            }
+            if TypeId::of::<T>() == TypeId::of::<f32>() {
+                // SAFETY: T is f32 confirmed by TypeId.
+                let result =
+                    unsafe { simd::f32_ops::max_f32(simd::slice_as_f32(self.data.as_slice())) };
+                return Some(unsafe { simd::f32_to_t(result) });
+            }
+        }
         self.data
             .iter()
             .copied()

@@ -16,6 +16,7 @@ pub enum DType {
     Bool,
     Str,
     Categorical,
+    DateTime,
 }
 
 impl core::fmt::Display for DType {
@@ -34,6 +35,7 @@ impl core::fmt::Display for DType {
             Self::Bool => "bool",
             Self::Str => "str",
             Self::Categorical => "categorical",
+            Self::DateTime => "datetime",
         };
         write!(f, "{s}")
     }

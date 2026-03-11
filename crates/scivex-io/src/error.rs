@@ -30,6 +30,12 @@ pub enum IoError {
 
     /// An error propagated from `scivex-core`.
     CoreError(scivex_core::CoreError),
+
+    /// A SQL database error.
+    SqlError(String),
+
+    /// An Arrow/Parquet error.
+    ArrowError(String),
 }
 
 impl fmt::Display for IoError {
@@ -52,6 +58,8 @@ impl fmt::Display for IoError {
             Self::InvalidHeader { reason } => write!(f, "invalid header: {reason}"),
             Self::FrameError(e) => write!(f, "frame error: {e}"),
             Self::CoreError(e) => write!(f, "core error: {e}"),
+            Self::SqlError(msg) => write!(f, "SQL error: {msg}"),
+            Self::ArrowError(msg) => write!(f, "Arrow/Parquet error: {msg}"),
         }
     }
 }
@@ -62,7 +70,13 @@ impl std::error::Error for IoError {
             Self::Io(e) => Some(e),
             Self::FrameError(e) => Some(e),
             Self::CoreError(e) => Some(e),
-            _ => None,
+            Self::CsvParse { .. }
+            | Self::JsonError(_)
+            | Self::TypeInference { .. }
+            | Self::EmptyInput
+            | Self::InvalidHeader { .. }
+            | Self::SqlError(_)
+            | Self::ArrowError(_) => None,
         }
     }
 }
