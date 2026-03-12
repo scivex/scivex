@@ -11,3 +11,11 @@ workspace = true
 
 [dependencies]
 scivex-core = { path = "../scivex-core" }
+png = { version = "0.17", optional = true }
+jpeg-decoder = { version = "0.3", optional = true }
+jpeg-encoder = { version = "0.6", optional = true }
+
+[features]
+default = []
+png = ["dep:png"]
+jpeg = ["dep:jpeg-decoder", "dep:jpeg-encoder"]

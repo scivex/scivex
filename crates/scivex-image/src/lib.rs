@@ -1,7 +1,7 @@
 //! `scivex-image` — Image loading, transforms, and filters.
 //!
 //! Provides a from-scratch image processing library with support for:
-//! - Image I/O (PPM, PGM, BMP formats)
+//! - Image I/O (PPM, PGM, BMP formats; PNG and JPEG via feature flags)
 //! - Color space conversions (grayscale, RGB, HSV)
 //! - Geometric transforms (resize, crop, flip, rotate, pad)
 //! - Spatial filters (convolution, Gaussian blur, Sobel edge detection)
