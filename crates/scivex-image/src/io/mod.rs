@@ -1,4 +1,8 @@
 pub mod bmp;
+#[cfg(feature = "jpeg")]
+pub mod jpeg;
+#[cfg(feature = "png")]
+pub mod png;
 pub mod ppm;
 
 use std::fs::File;
@@ -17,6 +21,10 @@ pub enum Format {
     Pgm,
     /// BMP (Bitmap) — 24-bit uncompressed.
     Bmp,
+    /// PNG (Portable Network Graphics).
+    Png,
+    /// JPEG / JPG.
+    Jpeg,
 }
 
 /// Detect image format from a file extension.
@@ -30,6 +38,8 @@ fn detect_format(path: &Path) -> Result<Format> {
         Some("ppm") => Ok(Format::Ppm),
         Some("pgm") => Ok(Format::Pgm),
         Some("bmp") => Ok(Format::Bmp),
+        Some("png") => Ok(Format::Png),
+        Some("jpg" | "jpeg") => Ok(Format::Jpeg),
         Some(other) => Err(ImageError::UnsupportedFormat {
             format: other.to_string(),
         }),
@@ -49,6 +59,18 @@ pub fn load<P: AsRef<Path>>(path: P) -> Result<Image<u8>> {
     match format {
         Format::Ppm | Format::Pgm => ppm::read_ppm(reader),
         Format::Bmp => bmp::read_bmp(reader),
+        #[cfg(feature = "png")]
+        Format::Png => png::read_png(reader),
+        #[cfg(not(feature = "png"))]
+        Format::Png => Err(ImageError::UnsupportedFormat {
+            format: "PNG support requires the `png` feature".into(),
+        }),
+        #[cfg(feature = "jpeg")]
+        Format::Jpeg => jpeg::read_jpeg(reader),
+        #[cfg(not(feature = "jpeg"))]
+        Format::Jpeg => Err(ImageError::UnsupportedFormat {
+            format: "JPEG support requires the `jpeg` feature".into(),
+        }),
     }
 }
 
@@ -63,5 +85,17 @@ pub fn save<P: AsRef<Path>>(img: &Image<u8>, path: P) -> Result<()> {
         Format::Ppm => ppm::write_ppm(img, &mut writer),
         Format::Pgm => ppm::write_pgm(img, &mut writer),
         Format::Bmp => bmp::write_bmp(img, &mut writer),
+        #[cfg(feature = "png")]
+        Format::Png => png::write_png(img, writer),
+        #[cfg(not(feature = "png"))]
+        Format::Png => Err(ImageError::UnsupportedFormat {
+            format: "PNG support requires the `png` feature".into(),
+        }),
+        #[cfg(feature = "jpeg")]
+        Format::Jpeg => jpeg::write_jpeg(img, &mut writer),
+        #[cfg(not(feature = "jpeg"))]
+        Format::Jpeg => Err(ImageError::UnsupportedFormat {
+            format: "JPEG support requires the `jpeg` feature".into(),
+        }),
     }
 }
