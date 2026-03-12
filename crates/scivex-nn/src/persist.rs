@@ -169,7 +169,12 @@ mod tests {
     use scivex_core::random::Rng;
 
     fn temp_path(name: &str) -> String {
-        format!("/tmp/scivex_nn_test_{name}_{}.bin", std::process::id())
+        let dir = std::env::temp_dir();
+        format!(
+            "{}/scivex_nn_test_{name}_{}.bin",
+            dir.display(),
+            std::process::id()
+        )
     }
 
     #[test]
@@ -228,7 +233,8 @@ mod tests {
 
     #[test]
     fn test_invalid_file() {
-        assert!(load_weights::<f64>("/tmp/nonexistent_svnn_file.bin").is_err());
+        let path = temp_path("nonexistent_svnn_file");
+        assert!(load_weights::<f64>(&path).is_err());
     }
 
     #[test]

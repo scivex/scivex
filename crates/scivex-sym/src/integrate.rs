@@ -139,56 +139,59 @@ fn integrate_mul(a: &Expr, b: &Expr, v: &str) -> Result<Expr> {
 // Power rule
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::collapsible_if)]
 fn integrate_pow(base: &Expr, exp: &Expr, v: &str) -> Result<Expr> {
     let base_has = contains_var(base, v);
     let exp_has = contains_var(exp, v);
 
     // x^n (constant exponent, base is the variable) → x^(n+1) / (n+1)
     if base_has && !exp_has {
-        if let Expr::Var(name) = base
-            && name == v
-            && let Some(n) = exp.as_const()
-        {
-            if (n - (-1.0)).abs() < f64::EPSILON {
-                return Ok(ln(var(v)));
+        if let Expr::Var(name) = base {
+            if name == v {
+                if let Some(n) = exp.as_const() {
+                    if (n - (-1.0)).abs() < f64::EPSILON {
+                        return Ok(ln(var(v)));
+                    }
+                    let n1 = n + 1.0;
+                    return Ok(Expr::Mul(
+                        Box::new(constant(1.0 / n1)),
+                        Box::new(Expr::Pow(Box::new(var(v)), Box::new(constant(n1)))),
+                    ));
+                }
             }
-            let n1 = n + 1.0;
-            return Ok(Expr::Mul(
-                Box::new(constant(1.0 / n1)),
-                Box::new(Expr::Pow(Box::new(var(v)), Box::new(constant(n1)))),
-            ));
         }
         // Try linear substitution: (a*x + b)^n
-        if let Some((a_coeff, _b_coeff)) = as_linear(base, v)
-            && let Some(n) = exp.as_const()
-        {
-            if (n - (-1.0)).abs() < f64::EPSILON {
+        if let Some((a_coeff, _b_coeff)) = as_linear(base, v) {
+            if let Some(n) = exp.as_const() {
+                if (n - (-1.0)).abs() < f64::EPSILON {
+                    return Ok(Expr::Mul(
+                        Box::new(constant(1.0 / a_coeff)),
+                        Box::new(ln(base.clone())),
+                    ));
+                }
+                let n1 = n + 1.0;
                 return Ok(Expr::Mul(
-                    Box::new(constant(1.0 / a_coeff)),
-                    Box::new(ln(base.clone())),
+                    Box::new(constant(1.0 / (a_coeff * n1))),
+                    Box::new(Expr::Pow(Box::new(base.clone()), Box::new(constant(n1)))),
                 ));
             }
-            let n1 = n + 1.0;
-            return Ok(Expr::Mul(
-                Box::new(constant(1.0 / (a_coeff * n1))),
-                Box::new(Expr::Pow(Box::new(base.clone()), Box::new(constant(n1)))),
-            ));
         }
     }
 
     // c^x  →  c^x / ln(c) (exponential with constant base)
-    if !base_has
-        && exp_has
-        && let Expr::Var(name) = exp
-        && name == v
-        && let Some(c) = base.as_const()
-        && c > 0.0
-        && (c - 1.0).abs() > f64::EPSILON
-    {
-        return Ok(Expr::Mul(
-            Box::new(constant(1.0 / c.ln())),
-            Box::new(Expr::Pow(Box::new(base.clone()), Box::new(var(v)))),
-        ));
+    if !base_has && exp_has {
+        if let Expr::Var(name) = exp {
+            if name == v {
+                if let Some(c) = base.as_const() {
+                    if c > 0.0 && (c - 1.0).abs() > f64::EPSILON {
+                        return Ok(Expr::Mul(
+                            Box::new(constant(1.0 / c.ln())),
+                            Box::new(Expr::Pow(Box::new(base.clone()), Box::new(var(v)))),
+                        ));
+                    }
+                }
+            }
+        }
     }
 
     Err(SymError::UnsupportedOperation {
@@ -200,27 +203,28 @@ fn integrate_pow(base: &Expr, exp: &Expr, v: &str) -> Result<Expr> {
 // Function integration
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::collapsible_if)]
 fn integrate_fn(func: MathFn, arg: &Expr, v: &str) -> Result<Expr> {
     // Simple case: f(x) where arg = x
-    if let Expr::Var(name) = arg
-        && name == v
-    {
-        return match func {
-            // ∫ sin(x) = -cos(x)
-            MathFn::Sin => Ok(Expr::Neg(Box::new(cos(var(v))))),
-            // ∫ cos(x) = sin(x)
-            MathFn::Cos => Ok(sin(var(v))),
-            // ∫ exp(x) = exp(x)
-            MathFn::Exp => Ok(exp(var(v))),
-            // ∫ ln(x) = x*ln(x) - x
-            MathFn::Ln => Ok(Expr::Add(
-                Box::new(Expr::Mul(Box::new(var(v)), Box::new(ln(var(v))))),
-                Box::new(Expr::Neg(Box::new(var(v)))),
-            )),
-            _ => Err(SymError::UnsupportedOperation {
-                reason: "cannot integrate this function",
-            }),
-        };
+    if let Expr::Var(name) = arg {
+        if name == v {
+            return match func {
+                // ∫ sin(x) = -cos(x)
+                MathFn::Sin => Ok(Expr::Neg(Box::new(cos(var(v))))),
+                // ∫ cos(x) = sin(x)
+                MathFn::Cos => Ok(sin(var(v))),
+                // ∫ exp(x) = exp(x)
+                MathFn::Exp => Ok(exp(var(v))),
+                // ∫ ln(x) = x*ln(x) - x
+                MathFn::Ln => Ok(Expr::Add(
+                    Box::new(Expr::Mul(Box::new(var(v)), Box::new(ln(var(v))))),
+                    Box::new(Expr::Neg(Box::new(var(v)))),
+                )),
+                _ => Err(SymError::UnsupportedOperation {
+                    reason: "cannot integrate this function",
+                }),
+            };
+        }
     }
 
     // Linear substitution: f(a*x + b) → (1/a) * F(a*x + b)
@@ -269,17 +273,19 @@ fn try_by_parts(u_candidate: &Expr, dv_candidate: &Expr, v: &str) -> Option<Expr
 }
 
 /// Check if expr is polynomial-like (var, const, or simple products/sums of those).
+#[allow(clippy::collapsible_if)]
 fn is_polynomial_like(expr: &Expr, v: &str) -> bool {
     match expr {
         Expr::Const(_) | Expr::Var(_) => true,
         Expr::Add(a, b) | Expr::Mul(a, b) => is_polynomial_like(a, v) && is_polynomial_like(b, v),
         Expr::Neg(inner) => is_polynomial_like(inner, v),
         Expr::Pow(base, exp) => {
-            if let Expr::Var(name) = base.as_ref()
-                && name == v
-                && let Some(n) = exp.as_const()
-            {
-                return n >= 0.0 && (n - n.floor()).abs() < f64::EPSILON;
+            if let Expr::Var(name) = base.as_ref() {
+                if name == v {
+                    if let Some(n) = exp.as_const() {
+                        return n >= 0.0 && (n - n.floor()).abs() < f64::EPSILON;
+                    }
+                }
             }
             false
         }
