@@ -3,9 +3,9 @@
 //! Provides multiple methods for solving systems of ordinary differential
 //! equations of the form `dy/dt = f(t, y)`:
 //!
-//! - [`euler`](euler::euler) — Forward Euler (1st order, simple)
-//! - [`rk45`](rk45::rk45) — Dormand-Prince RK4(5) (adaptive, general-purpose)
-//! - [`bdf2`](bdf::bdf2) — BDF-2 (implicit, for stiff systems)
+//! - [`euler`] — Forward Euler (1st order, simple)
+//! - [`rk45`] — Dormand-Prince RK4(5) (adaptive, general-purpose)
+//! - [`bdf2`] — BDF-2 (implicit, for stiff systems)
 //! - [`solve_ivp`] — Unified entry point with method selection
 //!
 //! ## Example

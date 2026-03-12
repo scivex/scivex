@@ -24,7 +24,7 @@
 //! | [`pipeline`] | `Pipeline`, `FeatureUnion`, `ColumnTransformer` |
 //! | [`search`] | `grid_search_cv`, `random_search_cv` |
 //! | [`decomposition`] | `PCA`, `TruncatedSVD`, `TSNE` |
-//! | [`persist`] | `Persistable` trait, binary save/load for all models |
+//! | [`persist`] | Persistable trait, binary save/load for all models |
 //! | [`model_selection`] | `train_test_split`, `KFold`, `cross_val_score` |
 
 /// K-Means clustering.

@@ -36,9 +36,10 @@ impl<T: Float> MultiHeadAttention<T> {
     /// Create a new MultiHeadAttention layer.
     ///
     /// `d_model` must be divisible by `num_heads`.
+    #[allow(clippy::manual_is_multiple_of)]
     pub fn new(d_model: usize, num_heads: usize, seq_len: usize, rng: &mut Rng) -> Self {
         assert!(
-            d_model.is_multiple_of(num_heads),
+            d_model % num_heads == 0,
             "d_model must be divisible by num_heads"
         );
         let d_k = d_model / num_heads;

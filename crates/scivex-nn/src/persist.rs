@@ -4,8 +4,8 @@
 //! reference-counted graph nodes, full model serialization is not possible.
 //! Instead, this module provides weight-only persistence:
 //!
-//! - [`save_weights`] — extracts all parameter tensors and writes them to a binary file
-//! - [`load_weights`] — reads tensors from a binary file and returns them
+//! - `save_weights` — extracts all parameter tensors and writes them to a binary file
+//! - `load_weights` — reads tensors from a binary file and returns them
 //!
 //! ## Binary Format
 //!

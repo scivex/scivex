@@ -1,6 +1,6 @@
 //! Model persistence — save and load trained ML models.
 //!
-//! Provides a [`Persistable`] trait and binary serialization for all major
+//! Provides a `Persistable` trait and binary serialization for all major
 //! scivex-ml model types. The binary format is compact and portable:
 //!
 //! ```text
@@ -511,7 +511,12 @@ mod tests {
     use scivex_core::Tensor;
 
     fn temp_path(name: &str) -> String {
-        format!("/tmp/scivex_test_{name}_{}.bin", std::process::id())
+        let dir = std::env::temp_dir();
+        format!(
+            "{}/scivex_test_{name}_{}.bin",
+            dir.display(),
+            std::process::id()
+        )
     }
 
     #[test]

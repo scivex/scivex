@@ -555,7 +555,8 @@ pub fn seasonal_decompose<T: Float>(data: &[T], period: usize) -> Result<Decompo
     }
 
     // For even period, average adjacent values to center
-    if period.is_multiple_of(2) {
+    #[allow(clippy::manual_is_multiple_of)]
+    if period % 2 == 0 {
         let mut centered = trend.clone();
         for i in 1..(n - 1) {
             if !trend[i].is_nan() && !trend[i - 1].is_nan() {
