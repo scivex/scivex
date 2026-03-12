@@ -13,18 +13,25 @@
 //! | Module | Contents |
 //! |--------|----------|
 //! | [`metrics`] | Accuracy, precision, recall, F1, MSE, R2, etc. |
-//! | [`preprocessing`] | `StandardScaler`, `MinMaxScaler`, `LabelEncoder` |
+//! | [`preprocessing`] | `StandardScaler`, `MinMaxScaler`, `LabelEncoder`, `OneHotEncoder` |
 //! | [`linear`] | `LinearRegression`, `Ridge`, `LogisticRegression` |
 //! | [`tree`] | `DecisionTreeClassifier`, `DecisionTreeRegressor` |
-//! | [`ensemble`] | `RandomForestClassifier`, `RandomForestRegressor` |
+//! | [`ensemble`] | `RandomForest*`, `GradientBoosting*` |
+//! | [`svm`] | `SVC`, `SVR`, `Kernel` |
 //! | [`neighbors`] | `KNNClassifier`, `KNNRegressor` |
 //! | [`cluster`] | `KMeans` |
 //! | [`naive_bayes`] | `GaussianNB` |
+//! | [`pipeline`] | `Pipeline`, `FeatureUnion`, `ColumnTransformer` |
+//! | [`search`] | `grid_search_cv`, `random_search_cv` |
+//! | [`decomposition`] | `PCA`, `TruncatedSVD`, `TSNE` |
+//! | [`persist`] | Persistable trait, binary save/load for all models |
 //! | [`model_selection`] | `train_test_split`, `KFold`, `cross_val_score` |
 
 /// K-Means clustering.
 pub mod cluster;
-/// Ensemble methods (Random Forest).
+/// Dimensionality reduction: PCA, TruncatedSVD, t-SNE.
+pub mod decomposition;
+/// Ensemble methods (Random Forest, Gradient Boosting).
 pub mod ensemble;
 /// ML error types.
 pub mod error;
@@ -38,8 +45,16 @@ pub mod model_selection;
 pub mod naive_bayes;
 /// K-nearest neighbors classifiers and regressors.
 pub mod neighbors;
+/// Model persistence: save and load trained models.
+pub mod persist;
+/// Pipeline composition: chaining transformers and predictors.
+pub mod pipeline;
 /// Data preprocessing: scaling and encoding.
 pub mod preprocessing;
+/// Hyperparameter search: grid search, random search.
+pub mod search;
+/// Support Vector Machines (classifier and regressor).
+pub mod svm;
 /// Estimator trait hierarchy (`Transformer`, `Predictor`, `Classifier`).
 pub mod traits;
 /// Decision tree classifiers and regressors.
@@ -54,14 +69,20 @@ pub mod prelude {
     pub use crate::traits::{Classifier, Predictor, Transformer};
 
     // Preprocessing
-    pub use crate::preprocessing::{LabelEncoder, MinMaxScaler, StandardScaler};
+    pub use crate::preprocessing::{LabelEncoder, MinMaxScaler, OneHotEncoder, StandardScaler};
 
     // Linear models
     pub use crate::linear::{LinearRegression, LogisticRegression, Ridge};
 
     // Trees & ensembles
-    pub use crate::ensemble::{RandomForestClassifier, RandomForestRegressor};
+    pub use crate::ensemble::{
+        GBLoss, GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier,
+        RandomForestRegressor,
+    };
     pub use crate::tree::{DecisionTreeClassifier, DecisionTreeRegressor};
+
+    // SVM
+    pub use crate::svm::{Kernel, SVC, SVR};
 
     // Neighbors
     pub use crate::neighbors::{KNNClassifier, KNNRegressor};
@@ -72,6 +93,18 @@ pub mod prelude {
     // Naive Bayes
     pub use crate::naive_bayes::GaussianNB;
 
+    // Dimensionality reduction
+    pub use crate::decomposition::{PCA, TSNE, TruncatedSVD};
+
+    // Pipeline & composition
+    pub use crate::pipeline::{ColumnTransformer, FeatureUnion, Pipeline};
+
+    // Hyperparameter search
+    pub use crate::search::{SearchResult, grid_search_cv, random_search_cv};
+
     // Model selection
     pub use crate::model_selection::{KFold, cross_val_score, train_test_split};
+
+    // Persistence
+    pub use crate::persist::Persistable;
 }

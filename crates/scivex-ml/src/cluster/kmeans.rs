@@ -5,14 +5,14 @@ use crate::error::{MlError, Result};
 /// K-Means clustering using Lloyd's algorithm.
 #[derive(Debug, Clone)]
 pub struct KMeans<T: Float> {
-    n_clusters: usize,
-    max_iter: usize,
-    tol: T,
-    n_init: usize,
-    seed: u64,
-    centroids: Option<Vec<T>>,
-    n_features: usize,
-    inertia: Option<T>,
+    pub(crate) n_clusters: usize,
+    pub(crate) max_iter: usize,
+    pub(crate) tol: T,
+    pub(crate) n_init: usize,
+    pub(crate) seed: u64,
+    pub(crate) centroids: Option<Vec<T>>,
+    pub(crate) n_features: usize,
+    pub(crate) inertia: Option<T>,
 }
 
 impl<T: Float> KMeans<T> {

@@ -6,8 +6,8 @@ use crate::traits::Transformer;
 /// Standardises features by removing the mean and scaling to unit variance.
 #[derive(Debug, Clone)]
 pub struct StandardScaler<T: Float> {
-    mean: Option<Vec<T>>,
-    std: Option<Vec<T>>,
+    pub(crate) mean: Option<Vec<T>>,
+    pub(crate) std: Option<Vec<T>>,
 }
 
 impl<T: Float> Default for StandardScaler<T> {
@@ -107,8 +107,8 @@ impl<T: Float> Transformer<T> for StandardScaler<T> {
 /// Scales features to the range `[0, 1]`.
 #[derive(Debug, Clone)]
 pub struct MinMaxScaler<T: Float> {
-    min: Option<Vec<T>>,
-    range: Option<Vec<T>>,
+    pub(crate) min: Option<Vec<T>>,
+    pub(crate) range: Option<Vec<T>>,
 }
 
 impl<T: Float> Default for MinMaxScaler<T> {
