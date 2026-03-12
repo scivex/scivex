@@ -118,8 +118,8 @@ impl<T: Float> Variable<T> {
         Self::new(self.data(), false)
     }
 
-    /// Replace the data tensor (used by optimizers to update parameters).
-    pub(crate) fn set_data(&self, data: Tensor<T>) {
+    /// Replace the data tensor (used by optimizers and weight loading).
+    pub fn set_data(&self, data: Tensor<T>) {
         self.inner.borrow_mut().data = data;
     }
 

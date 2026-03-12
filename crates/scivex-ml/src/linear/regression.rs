@@ -8,8 +8,8 @@ use crate::traits::Predictor;
 /// Fits `y = Xw + b` by solving the normal equations via QR-based least squares.
 #[derive(Debug, Clone)]
 pub struct LinearRegression<T: Float> {
-    weights: Option<Vec<T>>,
-    bias: Option<T>,
+    pub(crate) weights: Option<Vec<T>>,
+    pub(crate) bias: Option<T>,
 }
 
 impl<T: Float> Default for LinearRegression<T> {
@@ -81,9 +81,9 @@ impl<T: Float> Predictor<T> for LinearRegression<T> {
 /// Solves `(X^T X + alpha * I) w = X^T y`.
 #[derive(Debug, Clone)]
 pub struct Ridge<T: Float> {
-    alpha: T,
-    weights: Option<Vec<T>>,
-    bias: Option<T>,
+    pub(crate) alpha: T,
+    pub(crate) weights: Option<Vec<T>>,
+    pub(crate) bias: Option<T>,
 }
 
 impl<T: Float> Ridge<T> {

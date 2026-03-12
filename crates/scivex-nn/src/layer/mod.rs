@@ -1,15 +1,29 @@
 //! Neural network layers.
 
 mod activation;
+mod attention;
 mod batchnorm;
+mod conv;
 mod dropout;
-mod linear;
+mod embedding;
+mod flatten;
+pub(crate) mod layernorm;
+pub(crate) mod linear;
+mod pool;
+mod rnn;
 mod sequential;
 
 pub use activation::{ReLU, Sigmoid, Tanh};
+pub use attention::{MultiHeadAttention, TransformerEncoderLayer};
 pub use batchnorm::BatchNorm1d;
+pub use conv::{Conv1d, Conv2d};
 pub use dropout::Dropout;
+pub use embedding::Embedding;
+pub use flatten::Flatten;
+pub use layernorm::LayerNorm;
 pub use linear::Linear;
+pub use pool::{AvgPool1d, AvgPool2d, MaxPool1d, MaxPool2d};
+pub use rnn::{GRU, LSTM, SimpleRNN};
 pub use sequential::Sequential;
 
 use scivex_core::Float;

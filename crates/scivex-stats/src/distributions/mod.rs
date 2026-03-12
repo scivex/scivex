@@ -6,24 +6,38 @@
 mod bernoulli;
 mod beta;
 mod binomial;
+mod cauchy;
 mod chi_squared;
 mod exponential;
 mod gamma;
+mod hypergeometric;
+mod laplace;
+mod lognormal;
+mod negative_binomial;
 mod normal;
+mod pareto;
 mod poisson;
 mod student_t;
 mod uniform;
+mod weibull;
 
 pub use bernoulli::Bernoulli;
 pub use beta::Beta;
 pub use binomial::Binomial;
+pub use cauchy::Cauchy;
 pub use chi_squared::ChiSquared;
 pub use exponential::Exponential;
 pub use gamma::Gamma;
+pub use hypergeometric::Hypergeometric;
+pub use laplace::Laplace;
+pub use lognormal::LogNormal;
+pub use negative_binomial::NegativeBinomial;
 pub use normal::Normal;
+pub use pareto::Pareto;
 pub use poisson::Poisson;
 pub use student_t::StudentT;
 pub use uniform::Uniform;
+pub use weibull::Weibull;
 
 use scivex_core::Float;
 use scivex_core::random::Rng;

@@ -6,7 +6,7 @@ use crate::traits::Predictor;
 // ── Internal tree node ──
 
 #[derive(Debug, Clone)]
-enum Node<T: Float> {
+pub(crate) enum Node<T: Float> {
     Leaf {
         value: T,
     },
@@ -96,10 +96,10 @@ fn class_index<T: Float>(classes: &[T], v: T) -> usize {
 /// CART decision tree for classification (Gini impurity).
 #[derive(Debug, Clone)]
 pub struct DecisionTreeClassifier<T: Float> {
-    max_depth: Option<usize>,
-    min_samples_split: usize,
-    root: Option<Node<T>>,
-    classes: Option<Vec<T>>,
+    pub(crate) max_depth: Option<usize>,
+    pub(crate) min_samples_split: usize,
+    pub(crate) root: Option<Node<T>>,
+    pub(crate) classes: Option<Vec<T>>,
 }
 
 impl<T: Float> Default for DecisionTreeClassifier<T> {
@@ -252,9 +252,9 @@ impl<T: Float> Predictor<T> for DecisionTreeClassifier<T> {
 /// CART decision tree for regression (MSE criterion).
 #[derive(Debug, Clone)]
 pub struct DecisionTreeRegressor<T: Float> {
-    max_depth: Option<usize>,
-    min_samples_split: usize,
-    root: Option<Node<T>>,
+    pub(crate) max_depth: Option<usize>,
+    pub(crate) min_samples_split: usize,
+    pub(crate) root: Option<Node<T>>,
 }
 
 impl<T: Float> Default for DecisionTreeRegressor<T> {
@@ -334,6 +334,25 @@ impl<T: Float> DecisionTreeRegressor<T> {
     }
 }
 
+impl<T: Float> DecisionTreeRegressor<T> {
+    /// Compute feature importance based on the number of times each feature is
+    /// used as a split. Returns a vec of length `n_features`.
+    pub fn feature_importances(&self, n_features: usize) -> Vec<T> {
+        let mut counts = vec![0usize; n_features];
+        if let Some(ref root) = self.root {
+            count_splits(root, &mut counts);
+        }
+        let total: usize = counts.iter().sum();
+        if total == 0 {
+            return vec![T::zero(); n_features];
+        }
+        counts
+            .iter()
+            .map(|&c| T::from_usize(c) / T::from_usize(total))
+            .collect()
+    }
+}
+
 impl<T: Float> Predictor<T> for DecisionTreeRegressor<T> {
     fn fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
         let (n, p) = matrix_shape(x)?;
@@ -387,6 +406,22 @@ fn mean_of<T: Float>(y: &[T], indices: &[usize]) -> T {
 fn mse_of<T: Float>(y: &[T], indices: &[usize]) -> T {
     let vals: Vec<T> = indices.iter().map(|&i| y[i]).collect();
     mse_impurity(&vals)
+}
+
+fn count_splits<T: Float>(node: &Node<T>, counts: &mut [usize]) {
+    if let Node::Split {
+        feature,
+        left,
+        right,
+        ..
+    } = node
+    {
+        if *feature < counts.len() {
+            counts[*feature] += 1;
+        }
+        count_splits(left, counts);
+        count_splits(right, counts);
+    }
 }
 
 fn matrix_shape<T: Float>(x: &Tensor<T>) -> Result<(usize, usize)> {
