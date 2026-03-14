@@ -8,6 +8,10 @@ use crate::distributions::{Distribution, StudentT};
 use crate::error::{Result, StatsError};
 
 /// Results of an OLS regression.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct OlsResult<T: Float> {
     /// Estimated coefficients (including intercept at index 0).

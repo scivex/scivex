@@ -30,6 +30,9 @@ pub enum FrameError {
     /// Join key column counts do not match.
     JoinKeyMismatch { left: usize, right: usize },
 
+    /// An invalid value was encountered (e.g. invalid regex pattern).
+    InvalidValue { reason: String },
+
     /// An error propagated from `scivex-core`.
     CoreError(scivex_core::CoreError),
 }
@@ -56,6 +59,7 @@ impl fmt::Display for FrameError {
                     "join key count mismatch: left has {left}, right has {right}"
                 )
             }
+            Self::InvalidValue { reason } => write!(f, "invalid value: {reason}"),
             Self::CoreError(e) => write!(f, "core error: {e}"),
         }
     }

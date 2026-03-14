@@ -26,8 +26,10 @@ tokio-util = { version = "0.7", optional = true, features = ["compat"] }
 parquet_crate = { package = "parquet", version = "55", optional = true, default-features = false, features = ["arrow", "snap", "zstd", "lz4"] }
 arrow_crate = { package = "arrow", version = "55", optional = true, default-features = false, features = ["ipc"] }
 bytes = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
 
 [features]
+serde-support = ["dep:serde", "scivex-core/serde-support", "scivex-frame/serde-support"]
 default = ["csv"]
 csv = []
 json = ["dep:serde_json"]

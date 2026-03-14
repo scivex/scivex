@@ -22,6 +22,10 @@ pub trait Dataset<T: Float> {
 /// A dataset wrapping two tensors (inputs and targets).
 ///
 /// The first dimension is the sample dimension.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct TensorDataset<T: Float> {
     x: Tensor<T>,
     y: Tensor<T>,

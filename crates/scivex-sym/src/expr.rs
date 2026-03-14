@@ -5,6 +5,10 @@ use std::ops;
 use crate::error::{Result, SymError};
 
 /// Built-in mathematical functions.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MathFn {
     Sin,
@@ -34,6 +38,10 @@ impl fmt::Display for MathFn {
 /// A symbolic expression AST.
 ///
 /// `Sub` is represented as `Add(a, Neg(b))` and `Div` as `Mul(a, Pow(b, Const(-1)))`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     /// Numeric constant.
@@ -57,12 +65,33 @@ pub enum Expr {
 // ---------------------------------------------------------------------------
 
 /// Create a constant expression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::constant;
+/// # use std::collections::HashMap;
+/// let five = constant(5.0);
+/// let val = five.eval(&HashMap::new()).unwrap();
+/// assert!((val - 5.0).abs() < 1e-10);
+/// ```
 #[must_use]
 pub fn constant(v: f64) -> Expr {
     Expr::Const(v)
 }
 
 /// Create a variable expression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::var;
+/// # use std::collections::HashMap;
+/// let x = var("x");
+/// let mut vars = HashMap::new();
+/// vars.insert("x".to_string(), 7.0);
+/// assert!((x.eval(&vars).unwrap() - 7.0).abs() < 1e-10);
+/// ```
 #[must_use]
 pub fn var(name: &str) -> Expr {
     Expr::Var(name.to_owned())

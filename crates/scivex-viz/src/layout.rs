@@ -1,4 +1,8 @@
 /// Padding around a region.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Padding {
     /// Top padding in pixels.
@@ -23,6 +27,10 @@ impl Default for Padding {
 }
 
 /// A simple bounding rectangle.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Rect {
     /// X origin (left edge).
@@ -35,6 +43,10 @@ pub struct Rect {
     pub h: f64,
 }
 
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 /// Grid layout for placing multiple axes inside a figure.
 #[derive(Debug, Clone)]
 pub struct Layout {

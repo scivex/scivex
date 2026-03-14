@@ -14,6 +14,10 @@ use crate::traits::Transformer;
 /// 2. Compute SVD: `X_c = U S V^T`
 /// 3. The principal components are the first `k` columns of `V`
 /// 4. Transform: `X_c * V_k`
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct PCA<T: Float> {
     pub(crate) n_components: usize,

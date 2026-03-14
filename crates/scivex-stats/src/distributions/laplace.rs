@@ -8,6 +8,10 @@ use super::Distribution;
 /// Laplace (double exponential) distribution with location `mu` and scale `b`.
 ///
 /// PDF: `1/(2b) * exp(-|x - mu| / b)`
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Laplace<T: Float> {
     mu: T,

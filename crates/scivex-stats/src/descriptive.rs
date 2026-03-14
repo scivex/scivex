@@ -5,6 +5,15 @@ use scivex_core::Float;
 use crate::error::{Result, StatsError};
 
 /// Compute the arithmetic mean of `data`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::mean;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let m = mean(&data).unwrap();
+/// assert!((m - 3.0).abs() < 1e-10);
+/// ```
 pub fn mean<T: Float>(data: &[T]) -> Result<T> {
     if data.is_empty() {
         return Err(StatsError::EmptyInput);
@@ -30,6 +39,15 @@ pub fn variance_with_ddof<T: Float>(data: &[T], ddof: usize) -> Result<T> {
 }
 
 /// Sample variance (ddof = 1).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::variance;
+/// let data = [2.0_f64, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0];
+/// let v = variance(&data).unwrap();
+/// assert!((v - 4.571_428_571_428_571).abs() < 1e-8);
+/// ```
 pub fn variance<T: Float>(data: &[T]) -> Result<T> {
     variance_with_ddof(data, 1)
 }
@@ -138,6 +156,10 @@ pub fn kurtosis<T: Float>(data: &[T]) -> Result<T> {
 }
 
 /// Summary statistics returned by [`describe`].
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct DescribeResult<T: Float> {
     pub count: usize,

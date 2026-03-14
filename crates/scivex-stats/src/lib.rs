@@ -3,6 +3,22 @@
 //!
 //! Built on top of [`scivex_core`] with zero external dependencies for the
 //! math itself. All functions are generic over [`Float`](scivex_core::Float).
+//!
+//! # Examples
+//!
+//! ```
+//! use scivex_stats::{mean, variance, std_dev, median};
+//!
+//! let data = [2.0_f64, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0];
+//! let m = mean(&data).unwrap();
+//! let v = variance(&data).unwrap();
+//! let s = std_dev(&data).unwrap();
+//! let med = median(&data).unwrap();
+//!
+//! assert!((m - 5.0).abs() < 1e-10);
+//! assert!((s - v.sqrt()).abs() < 1e-10);
+//! assert!((med - 4.5).abs() < 1e-10);
+//! ```
 
 /// Confidence interval construction (mean, proportion).
 pub mod confidence;

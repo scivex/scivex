@@ -22,6 +22,10 @@ use crate::error::{IoError, Result};
 ///     .read(csv.as_bytes())
 ///     .unwrap();
 /// ```
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct CsvReaderBuilder {
     delimiter: u8,

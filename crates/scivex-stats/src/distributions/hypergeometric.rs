@@ -8,6 +8,10 @@ use super::Distribution;
 
 /// Hypergeometric distribution: number of successes in `n` draws from a
 /// population of size `big_n` containing `big_k` successes, without replacement.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Hypergeometric<T: Float> {
     big_n: usize,

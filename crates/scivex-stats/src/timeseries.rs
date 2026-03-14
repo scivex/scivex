@@ -119,6 +119,10 @@ fn difference<T: Float>(data: &[T], d: usize) -> Vec<T> {
 ///
 /// Fitting uses conditional least squares for the AR coefficients and
 /// sets MA coefficients via residual estimation.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Arima<T: Float> {
     p: usize,
@@ -307,6 +311,10 @@ impl<T: Float> Arima<T> {
 // ── Exponential Smoothing ───────────────────────────────────────────────
 
 /// Exponential smoothing method selection.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SmoothingMethod {
     /// Simple exponential smoothing (level only).
@@ -318,6 +326,10 @@ pub enum SmoothingMethod {
 }
 
 /// Exponential smoothing model.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct ExponentialSmoothing<T: Float> {
     method: SmoothingMethod,
@@ -506,6 +518,10 @@ fn validate_alpha<T: Float>(alpha: T) -> Result<()> {
 // ── Seasonal Decomposition ──────────────────────────────────────────────
 
 /// Result of additive seasonal decomposition.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct DecomposeResult<T: Float> {
     /// Trend component.
@@ -628,6 +644,10 @@ pub fn seasonal_decompose<T: Float>(data: &[T], period: usize) -> Result<Decompo
 // ── Augmented Dickey-Fuller Test ────────────────────────────────────────
 
 /// Result of the Augmented Dickey-Fuller test.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct AdfResult<T: Float> {
     /// ADF test statistic.

@@ -1,6 +1,10 @@
 use core::fmt;
 
 /// All errors returned by `scivex-optim`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum OptimError {
     /// An iterative algorithm did not converge within the iteration budget.

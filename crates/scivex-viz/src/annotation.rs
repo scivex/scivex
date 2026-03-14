@@ -6,6 +6,10 @@ use crate::scale::Scale;
 use crate::style::{Font, Stroke};
 
 /// An annotation to draw on an axes.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub enum Annotation {
     /// A horizontal reference line at a given y data value.
@@ -24,6 +28,10 @@ pub enum Annotation {
 }
 
 /// Position for the legend box.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LegendPosition {
     TopRight,

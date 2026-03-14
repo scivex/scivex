@@ -4,6 +4,10 @@ use crate::error::{MlError, Result};
 use crate::traits::Transformer;
 
 /// Standardises features by removing the mean and scaling to unit variance.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct StandardScaler<T: Float> {
     pub(crate) mean: Option<Vec<T>>,
@@ -105,6 +109,10 @@ impl<T: Float> Transformer<T> for StandardScaler<T> {
 }
 
 /// Scales features to the range `[0, 1]`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct MinMaxScaler<T: Float> {
     pub(crate) min: Option<Vec<T>>,

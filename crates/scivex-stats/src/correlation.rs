@@ -7,6 +7,10 @@ use crate::descriptive::{mean, std_dev};
 use crate::error::{Result, StatsError};
 
 /// Which correlation method to use.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CorrelationMethod {
     Pearson,

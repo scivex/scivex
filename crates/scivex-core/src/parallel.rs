@@ -106,7 +106,9 @@ impl<T: Scalar> Tensor<T> {
         } else {
             self.as_slice().iter().map(|&a| a + scalar).collect()
         };
-        Tensor::from_vec(data, self.shape().to_vec()).unwrap()
+        // SAFETY: data length equals numel, which matches the original shape.
+        Tensor::from_vec(data, self.shape().to_vec())
+            .expect("output data length matches input shape by construction")
     }
 
     /// Parallel scalar broadcast multiplication.
@@ -116,7 +118,9 @@ impl<T: Scalar> Tensor<T> {
         } else {
             self.as_slice().iter().map(|&a| a * scalar).collect()
         };
-        Tensor::from_vec(data, self.shape().to_vec()).unwrap()
+        // SAFETY: data length equals numel, which matches the original shape.
+        Tensor::from_vec(data, self.shape().to_vec())
+            .expect("output data length matches input shape by construction")
     }
 
     /// Parallel map: apply a function to every element.
@@ -129,7 +133,9 @@ impl<T: Scalar> Tensor<T> {
         } else {
             self.as_slice().iter().map(|&a| f(a)).collect()
         };
-        Tensor::from_vec(data, self.shape().to_vec()).unwrap()
+        // SAFETY: data length equals numel, which matches the original shape.
+        Tensor::from_vec(data, self.shape().to_vec())
+            .expect("output data length matches input shape by construction")
     }
 
     /// Parallel sum of all elements.

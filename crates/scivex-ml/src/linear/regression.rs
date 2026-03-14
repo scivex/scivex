@@ -6,6 +6,10 @@ use crate::traits::Predictor;
 /// Ordinary least-squares linear regression.
 ///
 /// Fits `y = Xw + b` by solving the normal equations via QR-based least squares.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct LinearRegression<T: Float> {
     pub(crate) weights: Option<Vec<T>>,
@@ -20,6 +24,20 @@ impl<T: Float> Default for LinearRegression<T> {
 
 impl<T: Float> LinearRegression<T> {
     /// Create a new, unfitted linear regression model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_ml::linear::LinearRegression;
+    /// # use scivex_ml::traits::Predictor;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4, 1]).unwrap();
+    /// let y = Tensor::from_vec(vec![3.0, 5.0, 7.0, 9.0], vec![4]).unwrap();
+    /// let mut model = LinearRegression::<f64>::new();
+    /// model.fit(&x, &y).unwrap();
+    /// let preds = model.predict(&x).unwrap();
+    /// assert!((preds.as_slice()[0] - 3.0).abs() < 1e-6);
+    /// ```
     pub fn new() -> Self {
         Self {
             weights: None,
@@ -79,6 +97,10 @@ impl<T: Float> Predictor<T> for LinearRegression<T> {
 /// Ridge regression (L2 regularisation).
 ///
 /// Solves `(X^T X + alpha * I) w = X^T y`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Ridge<T: Float> {
     pub(crate) alpha: T,

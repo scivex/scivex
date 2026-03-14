@@ -13,6 +13,10 @@ use crate::tensor::Tensor;
 /// Stores the factorization `A = QR` in compact form: the Householder
 /// vectors are stored in the lower triangle of the working matrix,
 /// and `R` is stored in the upper triangle.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct QrDecomposition<T: Float> {
     /// Working matrix: upper triangle holds R, columns below the diagonal
@@ -127,7 +131,8 @@ impl<T: Float> QrDecomposition<T> {
                 data[i * n + j] = self.qr[i * n + j];
             }
         }
-        Tensor::from_vec(data, vec![m, n]).unwrap()
+        // SAFETY: data has exactly m*n elements, matching shape [m, n].
+        Tensor::from_vec(data, vec![m, n]).expect("R data length equals m*n by construction")
     }
 
     /// Extract the orthogonal matrix `Q` (m x m).
@@ -157,7 +162,8 @@ impl<T: Float> QrDecomposition<T> {
             }
         }
 
-        Tensor::from_vec(q_data, vec![m, m]).unwrap()
+        // SAFETY: q_data has exactly m*m elements, matching shape [m, m].
+        Tensor::from_vec(q_data, vec![m, m]).expect("Q data length equals m*m by construction")
     }
 
     /// Extract the "thin" Q matrix (m x n) — only the first `n` columns.
@@ -185,7 +191,8 @@ impl<T: Float> QrDecomposition<T> {
             }
         }
 
-        Tensor::from_vec(q_data, vec![m, n]).unwrap()
+        // SAFETY: q_data has exactly m*n elements, matching shape [m, n].
+        Tensor::from_vec(q_data, vec![m, n]).expect("Q_thin data length equals m*n by construction")
     }
 
     /// Solve the least-squares problem `min ||Ax - b||_2`.

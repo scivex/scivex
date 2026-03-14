@@ -9,6 +9,10 @@ use super::Distribution;
 /// Weibull distribution with shape parameter `k` and scale parameter `lambda`.
 ///
 /// PDF: `(k / lambda) * (x / lambda)^(k-1) * exp(-(x/lambda)^k)` for `x >= 0`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Weibull<T: Float> {
     k: T,

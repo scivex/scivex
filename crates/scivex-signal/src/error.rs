@@ -1,6 +1,10 @@
 use core::fmt;
 
 /// All errors returned by `scivex-signal`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum SignalError {
     /// A parameter has an invalid value.

@@ -89,6 +89,16 @@ impl Figure {
         Ok(())
     }
 
+    /// Display this figure inline in an evcxr Jupyter notebook.
+    ///
+    /// This method is auto-detected by the evcxr kernel and renders the plot
+    /// as inline SVG in the notebook output cell.
+    pub fn evcxr_display(&self) {
+        if let Ok(svg) = self.to_svg() {
+            println!("EVCXR_BEGIN_CONTENT image/svg+xml\n{svg}\nEVCXR_END_CONTENT");
+        }
+    }
+
     fn render_all(&self) -> Vec<crate::element::Element> {
         let mut elements = Vec::new();
 

@@ -8,6 +8,10 @@ use super::Distribution;
 /// Pareto distribution (Type I) with shape `alpha` and scale `x_m`.
 ///
 /// PDF: `alpha * x_m^alpha / x^(alpha+1)` for `x >= x_m`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Pareto<T: Float> {
     alpha: T,

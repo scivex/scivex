@@ -8,6 +8,10 @@ use scivex_frame::DataFrame;
 use crate::error::Result;
 
 /// Controls when fields are quoted in CSV output.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QuoteStyle {
     /// Only quote fields that contain the delimiter, quote character, or
@@ -35,6 +39,10 @@ pub enum QuoteStyle {
 ///         .unwrap();
 /// }
 /// ```
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct CsvWriterBuilder {
     delimiter: u8,

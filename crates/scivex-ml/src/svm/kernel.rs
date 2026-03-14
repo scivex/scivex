@@ -1,6 +1,10 @@
 use scivex_core::Float;
 
 /// Kernel function for SVM.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Kernel<T: Float> {
     /// Linear kernel: K(x, y) = x · y

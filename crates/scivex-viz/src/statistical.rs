@@ -6,6 +6,10 @@ use crate::scale::Scale;
 use crate::style::{Fill, Stroke};
 
 /// A box plot builder for one or more datasets.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct BoxPlotBuilder {
     datasets: Vec<Vec<f64>>,
     labels: Option<Vec<String>>,

@@ -5,6 +5,10 @@ use crate::traits::Predictor;
 
 // ── Internal tree node ──
 
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub(crate) enum Node<T: Float> {
     Leaf {
@@ -94,6 +98,10 @@ fn class_index<T: Float>(classes: &[T], v: T) -> usize {
 // ── Decision Tree Classifier ──
 
 /// CART decision tree for classification (Gini impurity).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct DecisionTreeClassifier<T: Float> {
     pub(crate) max_depth: Option<usize>,
@@ -110,6 +118,20 @@ impl<T: Float> Default for DecisionTreeClassifier<T> {
 
 impl<T: Float> DecisionTreeClassifier<T> {
     /// Create a new decision tree classifier with optional depth limit.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_ml::tree::DecisionTreeClassifier;
+    /// # use scivex_ml::traits::Predictor;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4, 1]).unwrap();
+    /// let y = Tensor::from_vec(vec![0.0, 0.0, 1.0, 1.0], vec![4]).unwrap();
+    /// let mut tree = DecisionTreeClassifier::<f64>::new(Some(3), 1);
+    /// tree.fit(&x, &y).unwrap();
+    /// let preds = tree.predict(&x).unwrap();
+    /// assert_eq!(preds.as_slice(), &[0.0, 0.0, 1.0, 1.0]);
+    /// ```
     pub fn new(max_depth: Option<usize>, min_samples_split: usize) -> Self {
         Self {
             max_depth,
@@ -250,6 +272,10 @@ impl<T: Float> Predictor<T> for DecisionTreeClassifier<T> {
 // ── Decision Tree Regressor ──
 
 /// CART decision tree for regression (MSE criterion).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct DecisionTreeRegressor<T: Float> {
     pub(crate) max_depth: Option<usize>,

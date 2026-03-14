@@ -25,6 +25,10 @@ use crate::error::Result;
 ///         .unwrap();
 /// }
 /// ```
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct JsonWriterBuilder {
     orientation: JsonOrientation,

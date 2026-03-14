@@ -80,7 +80,10 @@ impl<T: Scalar> Series<T> {
         if self.null_mask.is_none() {
             return self.clone();
         }
-        let mask = self.null_mask.as_ref().unwrap();
+        let mask = self
+            .null_mask
+            .as_ref()
+            .expect("null_mask present when has_nulls is true");
         let data: Vec<T> = self
             .data
             .iter()
@@ -115,7 +118,10 @@ impl<T: Float> Series<T> {
         if self.null_mask.is_none() {
             return self.clone();
         }
-        let mask = self.null_mask.as_ref().unwrap();
+        let mask = self
+            .null_mask
+            .as_ref()
+            .expect("null_mask present when has_nulls is true");
         let mut data = self.data.clone();
         let mut new_mask = mask.clone();
         let n = data.len();
@@ -230,7 +236,10 @@ impl StringSeries {
         if self.null_mask.is_none() {
             return self.clone();
         }
-        let mask = self.null_mask.as_ref().unwrap();
+        let mask = self
+            .null_mask
+            .as_ref()
+            .expect("null_mask present when has_nulls is true");
         let data: Vec<String> = self
             .data
             .iter()
@@ -333,5 +342,116 @@ mod tests {
         let s = Series::with_nulls("x", vec![1.0_f64, 0.0, 3.0], vec![false, true, false]).unwrap();
         assert_eq!(s.is_null_mask(), vec![false, true, false]);
         assert_eq!(s.is_not_null_mask(), vec![true, false, true]);
+    }
+
+    #[test]
+    fn test_fill_null_no_nulls_is_noop() {
+        let s = Series::new("x", vec![1.0_f64, 2.0, 3.0]);
+        let filled = s.fill_null(99.0);
+        assert_eq!(filled.as_slice(), &[1.0, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn test_fill_forward_all_nulls() {
+        let s = Series::with_nulls("x", vec![0.0_f64, 0.0, 0.0], vec![true, true, true]).unwrap();
+        let filled = s.fill_forward();
+        // All leading nulls remain null
+        assert!(filled.is_null_at(0));
+        assert!(filled.is_null_at(1));
+        assert!(filled.is_null_at(2));
+    }
+
+    #[test]
+    fn test_fill_backward_all_nulls() {
+        let s = Series::with_nulls("x", vec![0.0_f64, 0.0, 0.0], vec![true, true, true]).unwrap();
+        let filled = s.fill_backward();
+        // All trailing nulls remain null
+        assert!(filled.is_null_at(0));
+        assert!(filled.is_null_at(1));
+        assert!(filled.is_null_at(2));
+    }
+
+    #[test]
+    fn test_interpolate_no_nulls() {
+        let s = Series::new("x", vec![1.0_f64, 2.0, 3.0]);
+        let interp = s.interpolate();
+        assert_eq!(interp.as_slice(), &[1.0, 2.0, 3.0]);
+        assert_eq!(interp.null_count(), 0);
+    }
+
+    #[test]
+    fn test_drop_null_no_nulls() {
+        let s = Series::new("x", vec![1_i32, 2, 3]);
+        let dropped = s.drop_null();
+        assert_eq!(dropped.len(), 3);
+        assert_eq!(dropped.as_slice(), &[1, 2, 3]);
+    }
+
+    #[test]
+    fn test_string_fill_forward() {
+        let s = StringSeries::with_nulls(
+            "s",
+            vec!["a".into(), String::new(), String::new()],
+            vec![false, true, true],
+        )
+        .unwrap();
+        let filled = s.fill_forward();
+        assert_eq!(filled.get(0), Some("a"));
+        assert_eq!(filled.get(1), Some("a"));
+        assert_eq!(filled.get(2), Some("a"));
+    }
+
+    #[test]
+    fn test_string_fill_backward() {
+        let s = StringSeries::with_nulls(
+            "s",
+            vec![String::new(), String::new(), "c".into()],
+            vec![true, true, false],
+        )
+        .unwrap();
+        let filled = s.fill_backward();
+        assert_eq!(filled.get(0), Some("c"));
+        assert_eq!(filled.get(1), Some("c"));
+        assert_eq!(filled.get(2), Some("c"));
+    }
+
+    #[test]
+    fn test_string_drop_null() {
+        let s = StringSeries::with_nulls(
+            "s",
+            vec!["a".into(), String::new(), "c".into()],
+            vec![false, true, false],
+        )
+        .unwrap();
+        let dropped = s.drop_null();
+        assert_eq!(dropped.len(), 2);
+        assert_eq!(dropped.get(0), Some("a"));
+        assert_eq!(dropped.get(1), Some("c"));
+    }
+
+    #[test]
+    fn test_is_null_mask_no_nulls() {
+        let s = Series::new("x", vec![1.0_f64, 2.0]);
+        assert_eq!(s.is_null_mask(), vec![false, false]);
+        assert_eq!(s.is_not_null_mask(), vec![true, true]);
+    }
+
+    #[test]
+    fn test_interpolate_leading_trailing_nulls() {
+        let s = Series::with_nulls(
+            "x",
+            vec![0.0_f64, 2.0, 0.0, 4.0, 0.0],
+            vec![true, false, true, false, true],
+        )
+        .unwrap();
+        let interp = s.interpolate();
+        // Leading null stays null
+        assert!(interp.is_null_at(0));
+        assert_eq!(interp.get(1), Some(2.0));
+        // Interpolated between 2.0 and 4.0
+        assert!((interp.get(2).unwrap() - 3.0).abs() < 1e-10);
+        assert_eq!(interp.get(3), Some(4.0));
+        // Trailing null stays null
+        assert!(interp.is_null_at(4));
     }
 }

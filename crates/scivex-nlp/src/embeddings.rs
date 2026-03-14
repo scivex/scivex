@@ -8,6 +8,10 @@ use crate::error::{NlpError, Result};
 use crate::similarity::cosine_similarity;
 
 /// Pre-computed word embedding vectors with lookup and similarity search.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct WordEmbeddings<T: Float> {
     /// Matrix of shape (vocab_size, embedding_dim).
     vectors: Tensor<T>,

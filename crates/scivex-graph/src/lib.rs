@@ -19,6 +19,8 @@ pub mod connectivity;
 pub mod digraph;
 /// Graph error types.
 pub mod error;
+/// Network flow algorithms (max-flow, bipartite matching).
+pub mod flow;
 /// Undirected weighted graph.
 pub mod graph;
 /// Minimum spanning trees (Kruskal, Prim).

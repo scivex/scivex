@@ -1,6 +1,10 @@
 use crate::color::{self, Color};
 
 /// Line/border stroke properties.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Stroke {
     /// Stroke color.
@@ -37,6 +41,10 @@ impl Default for Stroke {
 }
 
 /// Fill properties.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Fill {
     /// Fill color.
@@ -51,6 +59,10 @@ impl Fill {
     }
 }
 
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 /// Marker shape for scatter-style plots.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MarkerShape {
@@ -69,6 +81,10 @@ pub enum MarkerShape {
 }
 
 /// A point marker (shape + size + color).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Marker {
     /// The marker shape.
@@ -90,6 +106,10 @@ impl Default for Marker {
 }
 
 /// Font specification for text elements.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Font {
     /// Font family name (e.g. `"sans-serif"`).
@@ -117,6 +137,10 @@ impl Default for Font {
 }
 
 /// A visual theme controlling default colors and fonts.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Theme {
     /// Background fill color.

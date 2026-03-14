@@ -6,6 +6,10 @@ use scivex_frame::{AnySeries, Series, StringSeries};
 use crate::error::Result;
 
 /// The inferred data type for a column of text values.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InferredType {
     /// 64-bit signed integer.

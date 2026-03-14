@@ -13,6 +13,15 @@ workspace = true
 scivex-core = { path = "../scivex-core" }
 scivex-stats = { path = "../scivex-stats" }
 rayon = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "ml_benchmarks"
+harness = false
 
 [features]
 parallel = ["dep:rayon", "scivex-core/parallel"]
+serde-support = ["dep:serde", "scivex-core/serde-support", "scivex-stats/serde-support"]

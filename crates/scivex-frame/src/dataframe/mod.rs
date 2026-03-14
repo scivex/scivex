@@ -66,6 +66,18 @@ impl DataFrame {
     }
 
     /// Start building a `DataFrame` column-by-column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1.0_f64, 2.0, 3.0])
+    ///     .add_column("y", vec![4_i32, 5, 6])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.shape(), (3, 2));
+    /// ```
     pub fn builder() -> DataFrameBuilder {
         DataFrameBuilder::new()
     }
@@ -73,6 +85,18 @@ impl DataFrame {
     // -- Column access ------------------------------------------------------
 
     /// Look up a column by name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("age", vec![25_i32, 30, 35])
+    ///     .build()
+    ///     .unwrap();
+    /// let col = df.column("age").unwrap();
+    /// assert_eq!(col.len(), 3);
+    /// ```
     pub fn column(&self, name: &str) -> Result<&dyn AnySeries> {
         self.columns
             .iter()
@@ -122,16 +146,51 @@ impl DataFrame {
     // -- Shape --------------------------------------------------------------
 
     /// Number of rows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1_i32, 2, 3])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.nrows(), 3);
+    /// ```
     pub fn nrows(&self) -> usize {
         self.columns.first().map_or(0, |c| c.len())
     }
 
     /// Number of columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32])
+    ///     .add_column("b", vec![2_i32])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.ncols(), 2);
+    /// ```
     pub fn ncols(&self) -> usize {
         self.columns.len()
     }
 
     /// `(nrows, ncols)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1_i32, 2])
+    ///     .add_column("y", vec![3_i32, 4])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.shape(), (2, 2));
+    /// ```
     pub fn shape(&self) -> (usize, usize) {
         (self.nrows(), self.ncols())
     }
@@ -267,5 +326,49 @@ mod tests {
             .unwrap();
         assert_eq!(df.ncols(), 2);
         assert_eq!(df.nrows(), 3);
+    }
+
+    #[test]
+    fn test_from_series_alias() {
+        let cols: Vec<Box<dyn AnySeries>> = vec![
+            Box::new(Series::new("a", vec![1_i32, 2])),
+            Box::new(Series::new("b", vec![3_i32, 4])),
+        ];
+        let df = DataFrame::from_series(cols).unwrap();
+        assert_eq!(df.shape(), (2, 2));
+    }
+
+    #[test]
+    fn test_column_index() {
+        let df = DataFrame::new(vec![
+            Box::new(Series::new("a", vec![1_i32])),
+            Box::new(Series::new("b", vec![2_i32])),
+            Box::new(Series::new("c", vec![3_i32])),
+        ])
+        .unwrap();
+        assert_eq!(df.column_index("a").unwrap(), 0);
+        assert_eq!(df.column_index("b").unwrap(), 1);
+        assert_eq!(df.column_index("c").unwrap(), 2);
+        assert!(df.column_index("z").is_err());
+    }
+
+    #[test]
+    fn test_builder_add_boxed() {
+        let s: Box<dyn AnySeries> = Box::new(StringSeries::from_strs("name", &["Alice", "Bob"]));
+        let df = DataFrame::builder()
+            .add_column("id", vec![1_i32, 2])
+            .add_boxed(s)
+            .build()
+            .unwrap();
+        assert_eq!(df.ncols(), 2);
+        assert_eq!(df.column("name").unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_empty_df_shape() {
+        let df = DataFrame::empty();
+        assert_eq!(df.shape(), (0, 0));
+        assert_eq!(df.column_names(), Vec::<&str>::new());
+        assert_eq!(df.dtypes(), vec![]);
     }
 }

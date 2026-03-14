@@ -26,6 +26,10 @@ use crate::traits::Transformer;
 ///  [0, 1, 0, 0, 0, 1],
 ///  [0, 0, 1, 1, 0, 0]]
 /// ```
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct OneHotEncoder<T: Float> {
     /// Per-column sorted unique categories.

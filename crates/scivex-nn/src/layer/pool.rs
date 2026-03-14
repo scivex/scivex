@@ -26,6 +26,10 @@ fn pool_index(pos: usize, stride: usize, ki: usize, pad: usize, dim: usize) -> O
 ///
 /// Input: `[batch, channels, height, width]`
 /// Output: `[batch, channels, h_out, w_out]`
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct MaxPool2d {
     kernel_h: usize,
     kernel_w: usize,
@@ -119,7 +123,8 @@ impl<T: Float> Layer<T> for MaxPool2d {
             }
         }
 
-        let out_tensor = Tensor::from_vec(out, vec![n, c, ho, wo]).unwrap();
+        // SAFETY: out length == n * c * ho * wo by construction
+        let out_tensor = Tensor::from_vec(out, vec![n, c, ho, wo]).expect("valid maxpool shape");
         let input_numel = n * c * h * w;
         let grad_fn = Box::new(move |g: &Tensor<T>| {
             let gd = g.as_slice();
@@ -146,6 +151,10 @@ impl<T: Float> Layer<T> for MaxPool2d {
 ///
 /// Input: `[batch, channels, height, width]`
 /// Output: `[batch, channels, h_out, w_out]`
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct AvgPool2d {
     kernel_h: usize,
     kernel_w: usize,
@@ -237,7 +246,8 @@ impl<T: Float> Layer<T> for AvgPool2d {
             }
         }
 
-        let out_tensor = Tensor::from_vec(out, vec![n, c, ho, wo]).unwrap();
+        // SAFETY: out length == n * c * ho * wo by construction
+        let out_tensor = Tensor::from_vec(out, vec![n, c, ho, wo]).expect("valid avgpool shape");
         let input_numel = n * c * h * w;
         let grad_fn = Box::new(move |g: &Tensor<T>| {
             let gd = g.as_slice();
@@ -291,6 +301,10 @@ impl<T: Float> Layer<T> for AvgPool2d {
 // ── MaxPool1d ─────────────────────────────────────────────────────────────
 
 /// 1-D max pooling. Input: `[batch, channels, length]`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct MaxPool1d {
     inner: MaxPool2d,
 }
@@ -352,6 +366,10 @@ impl<T: Float> Layer<T> for MaxPool1d {
 // ── AvgPool1d ─────────────────────────────────────────────────────────────
 
 /// 1-D average pooling. Input: `[batch, channels, length]`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct AvgPool1d {
     inner: AvgPool2d,
 }

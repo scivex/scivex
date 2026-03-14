@@ -92,6 +92,10 @@ pub fn filtfilt<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result
 }
 
 /// FIR filter design utilities.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct FirFilter;
 
 impl FirFilter {

@@ -84,6 +84,106 @@ impl fmt::Display for DataFrame {
     }
 }
 
+// ---------------------------------------------------------------------------
+// HTML table rendering (for Jupyter / evcxr notebooks)
+// ---------------------------------------------------------------------------
+
+impl DataFrame {
+    /// Render the DataFrame as an HTML `<table>`.
+    ///
+    /// Large DataFrames are truncated the same way as the text display
+    /// (first 10 + last 10 rows with an ellipsis row in between).
+    pub fn to_html(&self) -> String {
+        if self.is_empty() {
+            return "<p><em>(empty DataFrame)</em></p>".to_string();
+        }
+
+        let nrows = self.nrows();
+        let ncols = self.ncols();
+        let truncated = nrows > MAX_DISPLAY_ROWS;
+
+        let row_indices: Vec<usize> = if truncated {
+            let mut v: Vec<usize> = (0..TRUNC_HEAD).collect();
+            v.push(usize::MAX);
+            v.extend(nrows - TRUNC_TAIL..nrows);
+            v
+        } else {
+            (0..nrows).collect()
+        };
+
+        let mut html = String::with_capacity(256 + nrows * ncols * 20);
+        html.push_str("<table style=\"border-collapse:collapse;\">\n<thead>\n<tr>");
+
+        // Index column header
+        html.push_str("<th style=\"border:1px solid #ddd;padding:4px 8px;\"></th>");
+
+        // Column headers
+        for col in &self.columns {
+            html.push_str("<th style=\"border:1px solid #ddd;padding:4px 8px;background:#f4f4f4;\">");
+            html_escape_into(&mut html, col.name());
+            html.push_str("</th>");
+        }
+        html.push_str("</tr>\n</thead>\n<tbody>\n");
+
+        // Data rows
+        for &ri in &row_indices {
+            html.push_str("<tr>");
+            if ri == usize::MAX {
+                html.push_str("<td style=\"border:1px solid #ddd;padding:4px 8px;text-align:center;\">…</td>");
+                for _ in 0..ncols {
+                    html.push_str("<td style=\"border:1px solid #ddd;padding:4px 8px;text-align:center;\">…</td>");
+                }
+            } else {
+                // Row index
+                html.push_str("<td style=\"border:1px solid #ddd;padding:4px 8px;background:#f9f9f9;\">");
+                html.push_str(&ri.to_string());
+                html.push_str("</td>");
+
+                for col in &self.columns {
+                    html.push_str("<td style=\"border:1px solid #ddd;padding:4px 8px;\">");
+                    if col.is_null(ri) {
+                        html.push_str("<em>null</em>");
+                    } else {
+                        html_escape_into(&mut html, &col.display_value(ri));
+                    }
+                    html.push_str("</td>");
+                }
+            }
+            html.push_str("</tr>\n");
+        }
+
+        html.push_str("</tbody>\n</table>\n");
+
+        if truncated {
+            use std::fmt::Write;
+            let _ = writeln!(html, "<p>{nrows} rows × {ncols} columns</p>");
+        }
+
+        html
+    }
+
+    /// Display this DataFrame in an evcxr Jupyter notebook.
+    ///
+    /// This method is auto-detected by the evcxr kernel and used to render
+    /// rich HTML output in Jupyter cells.
+    pub fn evcxr_display(&self) {
+        println!("EVCXR_BEGIN_CONTENT text/html\n{}\nEVCXR_END_CONTENT", self.to_html());
+    }
+}
+
+/// Escape HTML special characters into `out`.
+fn html_escape_into(out: &mut String, s: &str) {
+    for ch in s.chars() {
+        match ch {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            _ => out.push(ch),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::series::Series;
@@ -108,5 +208,49 @@ mod tests {
     fn test_display_empty() {
         let df = DataFrame::empty();
         assert_eq!(format!("{df}"), "(empty DataFrame)");
+    }
+
+    #[test]
+    fn test_to_html_basic() {
+        let df = DataFrame::new(vec![
+            Box::new(Series::new("x", vec![1_i32, 2, 3])),
+            Box::new(Series::new("y", vec![10.0_f64, 20.0, 30.0])),
+        ])
+        .unwrap();
+        let html = df.to_html();
+        assert!(html.contains("<table"));
+        assert!(html.contains("<thead>"));
+        assert!(html.contains("<tbody>"));
+        assert!(html.contains(">x</th>"));
+        assert!(html.contains(">y</th>"));
+        assert!(html.contains(">1</td>"));
+        assert!(html.contains(">30</td>"));
+    }
+
+    #[test]
+    fn test_to_html_empty() {
+        let df = DataFrame::empty();
+        let html = df.to_html();
+        assert!(html.contains("empty DataFrame"));
+    }
+
+    #[test]
+    fn test_to_html_escapes() {
+        let df = DataFrame::new(vec![Box::new(
+            crate::StringSeries::from_strs("text", &["<b>bold</b>", "a & b"]),
+        ) as _])
+        .unwrap();
+        let html = df.to_html();
+        assert!(html.contains("&lt;b&gt;bold&lt;/b&gt;"));
+        assert!(html.contains("a &amp; b"));
+    }
+
+    #[test]
+    fn test_to_html_truncation() {
+        let data: Vec<i32> = (0..50).collect();
+        let df = DataFrame::new(vec![Box::new(Series::new("n", data))]).unwrap();
+        let html = df.to_html();
+        assert!(html.contains("…")); // ellipsis row
+        assert!(html.contains("50 rows"));
     }
 }

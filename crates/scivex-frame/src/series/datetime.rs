@@ -17,6 +17,10 @@ use crate::series::AnySeries;
 /// A timestamp represented as nanoseconds since the Unix epoch.
 ///
 /// Positive values are after 1970-01-01, negative values are before.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DateTime {
     /// Nanoseconds since 1970-01-01T00:00:00 UTC.
@@ -784,7 +788,11 @@ impl AnySeries for DateTimeSeries {
             if keep && i < self.data.len() {
                 data.push(self.data[i]);
                 if let Some(ref mut nm) = new_nulls {
-                    nm.push(self.null_mask.as_ref().unwrap()[i]);
+                    nm.push(
+                        self.null_mask
+                            .as_ref()
+                            .expect("null_mask present when has_nulls is true")[i],
+                    );
                 }
             }
         }
@@ -829,7 +837,10 @@ impl AnySeries for DateTimeSeries {
         if self.null_mask.is_none() {
             return self.clone_box();
         }
-        let mask = self.null_mask.as_ref().unwrap();
+        let mask = self
+            .null_mask
+            .as_ref()
+            .expect("null_mask present when has_nulls is true");
         let keep: Vec<bool> = mask.iter().map(|&is_null| !is_null).collect();
         self.filter_mask(&keep)
     }
@@ -1136,5 +1147,104 @@ mod tests {
         assert_eq!(dt.year(), 1960);
         assert_eq!(dt.month(), 6);
         assert_eq!(dt.day(), 15);
+    }
+
+    #[test]
+    fn test_datetime_parse_invalid_strings() {
+        assert!(DateTime::parse("not-a-date").is_err());
+        assert!(DateTime::parse("").is_err());
+        assert!(DateTime::parse("2024").is_err());
+        assert!(DateTime::parse("20240101").is_err());
+    }
+
+    #[test]
+    fn test_date_range_zero_step_error() {
+        let start = DateTime::from_ymd(2024, 1, 1).unwrap();
+        let end = DateTime::from_ymd(2024, 1, 5).unwrap();
+        let result = DateTimeSeries::date_range("r", start, end, Duration::zero());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_date_range_backward() {
+        let start = DateTime::from_ymd(2024, 1, 5).unwrap();
+        let end = DateTime::from_ymd(2024, 1, 1).unwrap();
+        let s = DateTimeSeries::date_range("r", start, end, Duration::days(-1)).unwrap();
+        assert_eq!(s.len(), 5);
+        assert_eq!(s.get(0).unwrap().day(), 5);
+        assert_eq!(s.get(4).unwrap().day(), 1);
+    }
+
+    #[test]
+    fn test_datetime_day_of_year() {
+        let dt = DateTime::from_ymd(2024, 1, 1).unwrap();
+        assert_eq!(dt.day_of_year(), 1);
+        let dt = DateTime::from_ymd(2024, 12, 31).unwrap();
+        assert_eq!(dt.day_of_year(), 366); // 2024 is a leap year
+    }
+
+    #[test]
+    fn test_datetime_from_millis() {
+        let dt = DateTime::from_millis(1_704_067_200_000);
+        assert_eq!(dt.year(), 2024);
+        assert_eq!(dt.month(), 1);
+        assert_eq!(dt.day(), 1);
+    }
+
+    #[test]
+    fn test_datetime_sub_duration() {
+        let dt = DateTime::from_ymd(2024, 2, 1).unwrap();
+        let earlier = dt.sub_duration(Duration::days(1));
+        assert_eq!(earlier.month(), 1);
+        assert_eq!(earlier.day(), 31);
+    }
+
+    #[test]
+    fn test_duration_abs() {
+        let d = Duration::seconds(-90);
+        let abs_d = d.abs();
+        assert_eq!(abs_d.total_seconds(), 90);
+    }
+
+    #[test]
+    fn test_datetime_series_empty() {
+        let s = DateTimeSeries::new("empty", vec![]);
+        assert!(s.is_empty());
+        assert_eq!(s.len(), 0);
+        assert_eq!(s.get(0), None);
+        assert_eq!(s.min(), None);
+        assert_eq!(s.max(), None);
+    }
+
+    #[test]
+    fn test_datetime_series_from_millis() {
+        let s = DateTimeSeries::from_millis("ts", &[0, 86_400_000]);
+        assert_eq!(s.len(), 2);
+        assert_eq!(s.get(0).unwrap().year(), 1970);
+        assert_eq!(s.get(1).unwrap().day(), 2);
+    }
+
+    #[test]
+    fn test_datetime_series_sub_duration() {
+        let dates = vec![
+            DateTime::from_ymd(2024, 1, 10).unwrap(),
+            DateTime::from_ymd(2024, 6, 20).unwrap(),
+        ];
+        let s = DateTimeSeries::new("dt", dates);
+        let shifted = s.sub_duration(Duration::days(1));
+        assert_eq!(shifted.get(0).unwrap().day(), 9);
+        assert_eq!(shifted.get(1).unwrap().day(), 19);
+    }
+
+    #[test]
+    fn test_datetime_nanosecond() {
+        let dt = DateTime::from_nanos(1_000_000_123);
+        assert_eq!(dt.nanosecond(), 123);
+    }
+
+    #[test]
+    fn test_datetime_timestamp_millis() {
+        let dt = DateTime::from_millis(12345);
+        assert_eq!(dt.timestamp_millis(), 12345);
     }
 }

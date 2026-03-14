@@ -5,6 +5,10 @@ use crate::error::{ImageError, Result};
 use crate::image::Image;
 
 /// Resize interpolation method.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResizeMethod {
     /// Nearest-neighbor interpolation.
@@ -388,5 +392,106 @@ mod tests {
         for (a, b) in src.iter().zip(dst.iter()) {
             assert!((a - b).abs() < 1e-5);
         }
+    }
+
+    #[test]
+    fn test_resize_to_1x1() {
+        let img = make_2x2_rgb();
+        let resized = resize(&img, 1, 1, ResizeMethod::Nearest).unwrap();
+        assert_eq!(resized.width(), 1);
+        assert_eq!(resized.height(), 1);
+        assert_eq!(resized.channels(), 3);
+    }
+
+    #[test]
+    fn test_resize_zero_width() {
+        let img = make_2x2_rgb();
+        assert!(resize(&img, 0, 5, ResizeMethod::Nearest).is_err());
+    }
+
+    #[test]
+    fn test_resize_zero_height() {
+        let img = make_2x2_rgb();
+        assert!(resize(&img, 5, 0, ResizeMethod::Nearest).is_err());
+    }
+
+    #[test]
+    fn test_resize_bilinear_to_1x1() {
+        let data = vec![
+            0.1f32, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.0, 0.5,
+        ];
+        let img = Image::from_raw(data, 2, 2, PixelFormat::Rgb).unwrap();
+        let resized = resize_bilinear(&img, 1, 1).unwrap();
+        assert_eq!(resized.width(), 1);
+        assert_eq!(resized.height(), 1);
+    }
+
+    #[test]
+    fn test_resize_bilinear_zero_dims() {
+        let data = vec![0.0f32; 12];
+        let img = Image::from_raw(data, 2, 2, PixelFormat::Rgb).unwrap();
+        assert!(resize_bilinear(&img, 0, 5).is_err());
+        assert!(resize_bilinear(&img, 5, 0).is_err());
+    }
+
+    #[test]
+    fn test_crop_full_image() {
+        let img = make_2x2_rgb();
+        let cropped = crop(&img, 0, 0, 2, 2).unwrap();
+        assert_eq!(cropped.as_slice(), img.as_slice());
+    }
+
+    #[test]
+    fn test_crop_zero_size() {
+        let img = make_2x2_rgb();
+        assert!(crop(&img, 0, 0, 0, 1).is_err());
+        assert!(crop(&img, 0, 0, 1, 0).is_err());
+    }
+
+    #[test]
+    fn test_flip_horizontal_1x1() {
+        let img = Image::from_raw(vec![42u8], 1, 1, PixelFormat::Gray).unwrap();
+        let flipped = flip_horizontal(&img);
+        assert_eq!(flipped.as_slice(), &[42]);
+    }
+
+    #[test]
+    fn test_flip_vertical_1x1() {
+        let img = Image::from_raw(vec![42u8], 1, 1, PixelFormat::Gray).unwrap();
+        let flipped = flip_vertical(&img);
+        assert_eq!(flipped.as_slice(), &[42]);
+    }
+
+    #[test]
+    fn test_rotate90_1x1() {
+        let img = Image::from_raw(vec![7u8, 8, 9], 1, 1, PixelFormat::Rgb).unwrap();
+        let rotated = rotate90(&img);
+        assert_eq!(rotated.width(), 1);
+        assert_eq!(rotated.height(), 1);
+        assert_eq!(rotated.as_slice(), &[7, 8, 9]);
+    }
+
+    #[test]
+    fn test_rotate180_twice_identity() {
+        let img = make_2x2_rgb();
+        let r = rotate180(&rotate180(&img));
+        assert_eq!(r.as_slice(), img.as_slice());
+    }
+
+    #[test]
+    fn test_rotate270_is_three_rotate90() {
+        let img = make_2x2_rgb();
+        let r270 = rotate270(&img);
+        let r90_3 = rotate90(&rotate90(&rotate90(&img)));
+        assert_eq!(r270.as_slice(), r90_3.as_slice());
+    }
+
+    #[test]
+    fn test_pad_zero_padding() {
+        let img = Image::from_raw(vec![50u8], 1, 1, PixelFormat::Gray).unwrap();
+        let padded = pad(&img, 0, 0, 0, 0, 0);
+        assert_eq!(padded.width(), 1);
+        assert_eq!(padded.height(), 1);
+        assert_eq!(padded.as_slice(), &[50]);
     }
 }

@@ -9,6 +9,8 @@
 //! - 1-D convolution and correlation
 //! - Wavelet transforms (DWT/IDWT with Haar)
 
+/// WAV audio file reading and writing.
+pub mod audio;
 /// 1-D convolution and correlation.
 pub mod convolution;
 /// Signal processing error types.

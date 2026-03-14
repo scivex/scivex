@@ -7,6 +7,10 @@ use crate::special::erf;
 use super::Distribution;
 
 /// Normal (Gaussian) distribution with mean mu and standard deviation sigma.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Normal<T: Float> {
     mu: T,

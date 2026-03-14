@@ -9,6 +9,10 @@ pub use gradient_descent::gradient_descent;
 use scivex_core::{Float, Tensor};
 
 /// Result of a multi-dimensional minimization algorithm.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct MinimizeResult<T: Float> {
     /// The estimated minimizer.
@@ -28,6 +32,10 @@ pub struct MinimizeResult<T: Float> {
 }
 
 /// Options controlling multi-dimensional minimization.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct MinimizeOptions<T: Float> {
     /// Gradient norm tolerance for convergence.

@@ -6,6 +6,20 @@ use crate::series::AnySeries;
 
 impl DataFrame {
     /// Return a new `DataFrame` with only the named columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32, 2])
+    ///     .add_column("b", vec![3_i32, 4])
+    ///     .add_column("c", vec![5_i32, 6])
+    ///     .build()
+    ///     .unwrap();
+    /// let sub = df.select(&["c", "a"]).unwrap();
+    /// assert_eq!(sub.column_names(), vec!["c", "a"]);
+    /// ```
     pub fn select(&self, names: &[&str]) -> Result<DataFrame> {
         let mut cols: Vec<Box<dyn AnySeries>> = Vec::with_capacity(names.len());
         for &name in names {
@@ -151,5 +165,32 @@ mod tests {
         let removed = df.remove_column("b").unwrap();
         assert_eq!(removed.name(), "b");
         assert_eq!(df.ncols(), 2);
+    }
+
+    #[test]
+    fn test_drop_columns_nonexistent() {
+        let df = sample_df();
+        assert!(df.drop_columns(&["nonexistent"]).is_err());
+    }
+
+    #[test]
+    fn test_remove_column_nonexistent() {
+        let mut df = sample_df();
+        assert!(df.remove_column("nonexistent").is_err());
+    }
+
+    #[test]
+    fn test_select_empty_list() {
+        let df = sample_df();
+        let selected = df.select(&[]).unwrap();
+        assert_eq!(selected.ncols(), 0);
+    }
+
+    #[test]
+    fn test_rename_same_name() {
+        let mut df = sample_df();
+        // Renaming to the same name should succeed
+        df.rename("a", "a").unwrap();
+        assert_eq!(df.column_names()[0], "a");
     }
 }

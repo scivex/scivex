@@ -195,4 +195,103 @@ mod tests {
         let floats: Series<f64> = s.map(|v| f64::from_usize(v as usize));
         assert_eq!(floats.as_slice(), &[1.0, 2.0, 3.0]);
     }
+
+    // -- Edge-case tests -------------------------------------------------------
+
+    #[test]
+    fn test_sum_empty() {
+        let s: Series<i32> = Series::new("x", vec![]);
+        assert_eq!(s.sum(), 0);
+    }
+
+    #[test]
+    fn test_product_empty() {
+        let s: Series<i32> = Series::new("x", vec![]);
+        assert_eq!(s.product(), 1);
+    }
+
+    #[test]
+    fn test_sum_all_nulls() {
+        let s = Series::with_nulls("x", vec![0.0_f64, 0.0, 0.0], vec![true, true, true]).unwrap();
+        assert_eq!(s.sum(), 0.0);
+    }
+
+    #[test]
+    fn test_min_max_all_nulls() {
+        let s = Series::with_nulls("x", vec![0_i32, 0, 0], vec![true, true, true]).unwrap();
+        assert_eq!(s.min(), None);
+        assert_eq!(s.max(), None);
+    }
+
+    #[test]
+    fn test_mean_single_element() {
+        let s = Series::new("x", vec![7.0_f64]);
+        assert_eq!(s.mean(), 7.0);
+    }
+
+    #[test]
+    fn test_var_single_element() {
+        let s = Series::new("x", vec![7.0_f64]);
+        assert_eq!(s.var(), 0.0);
+    }
+
+    #[test]
+    fn test_median_single_element() {
+        let s = Series::new("x", vec![7.0_f64]);
+        assert_eq!(s.median(), 7.0);
+    }
+
+    #[test]
+    fn test_median_all_nulls() {
+        let s = Series::with_nulls("x", vec![0.0_f64, 0.0], vec![true, true]).unwrap();
+        assert!(s.median().is_nan());
+    }
+
+    #[test]
+    fn test_min_max_single_element() {
+        let s = Series::new("x", vec![42_i32]);
+        assert_eq!(s.min(), Some(42));
+        assert_eq!(s.max(), Some(42));
+    }
+
+    #[test]
+    fn test_var_std_empty() {
+        let s: Series<f64> = Series::new("x", vec![]);
+        assert!(s.var().is_nan());
+        assert!(s.std().is_nan());
+    }
+
+    #[test]
+    fn test_product_with_nulls() {
+        let s = Series::with_nulls("x", vec![2_i32, 0, 3], vec![false, true, false]).unwrap();
+        // null is skipped, product = 2 * 3 = 6
+        assert_eq!(s.product(), 6);
+    }
+
+    #[test]
+    fn test_apply_preserves_nulls() {
+        let s = Series::with_nulls("x", vec![1_i32, 0, 3], vec![false, true, false]).unwrap();
+        let doubled = s.apply(|v| v * 2_i32);
+        assert_eq!(doubled.get(0), Some(2));
+        assert_eq!(doubled.get(1), None); // null preserved
+        assert_eq!(doubled.get(2), Some(6));
+    }
+
+    #[test]
+    fn test_mean_all_nulls() {
+        let s = Series::with_nulls("x", vec![0.0_f64, 0.0], vec![true, true]).unwrap();
+        assert!(s.mean().is_nan());
+    }
+
+    #[test]
+    fn test_sum_single_element() {
+        let s = Series::new("x", vec![42_i32]);
+        assert_eq!(s.sum(), 42);
+    }
+
+    #[test]
+    fn test_product_single_element() {
+        let s = Series::new("x", vec![7_i32]);
+        assert_eq!(s.product(), 7);
+    }
 }

@@ -295,7 +295,8 @@ fn compute_forward<T: Float>(
         }
     }
 
-    Tensor::from_vec(nchw, vec![n, out_ch, h_out, w_out]).unwrap()
+    // SAFETY: nchw length == n * out_ch * h_out * w_out by construction
+    Tensor::from_vec(nchw, vec![n, out_ch, h_out, w_out]).expect("valid conv2d output shape")
 }
 
 /// Backward pass for Conv2d.
@@ -367,7 +368,11 @@ fn conv2d_backward<T: Float>(
                 gb[o] += g_mat[i * out_ch + o];
             }
         }
-        vec![gx, gw_t, Tensor::from_vec(gb, vec![out_ch]).unwrap()]
+        vec![
+            gx,
+            gw_t,
+            Tensor::from_vec(gb, vec![out_ch]).expect("valid bias grad shape"),
+        ]
     } else {
         vec![gx, gw_t]
     }

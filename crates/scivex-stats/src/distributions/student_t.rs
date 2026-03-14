@@ -7,6 +7,10 @@ use crate::special::{ln_gamma, regularized_beta};
 use super::{Distribution, ppf_bisection};
 
 /// Student's t-distribution with `df` degrees of freedom.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct StudentT<T: Float> {
     df: T,
@@ -71,7 +75,8 @@ impl<T: Float> Distribution<T> for StudentT<T> {
     fn sample(&self, rng: &mut Rng) -> T {
         // t = Z / sqrt(V/df) where Z ~ N(0,1), V ~ Chi2(df)
         let z = T::from_f64(rng.next_normal_f64());
-        let chi2 = super::gamma::Gamma::new(self.df / T::from_f64(2.0), T::from_f64(0.5)).unwrap();
+        let chi2 = super::gamma::Gamma::new(self.df / T::from_f64(2.0), T::from_f64(0.5))
+            .expect("df validated at construction");
         let v = chi2.sample(rng);
         z / (v / self.df).sqrt().max(T::from_f64(1e-30))
     }

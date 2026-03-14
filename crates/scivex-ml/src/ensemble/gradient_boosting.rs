@@ -7,6 +7,10 @@ use crate::tree::DecisionTreeRegressor;
 // ── Loss functions ──
 
 /// Supported loss functions for gradient boosting.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Loss {
     /// Mean squared error (L2). Gradient = -(y - F(x)).
@@ -59,6 +63,10 @@ fn negative_gradient<T: Float>(y: &[T], f: &[T], loss: Loss, delta: T) -> Vec<T>
 /// Sequentially fits decision tree regressors to the negative gradient
 /// (pseudo-residuals) of the loss function. The final prediction is the
 /// sum of the initial estimate plus learning-rate-scaled tree predictions.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct GradientBoostingRegressor<T: Float> {
     n_estimators: usize,
@@ -255,6 +263,10 @@ impl<T: Float> Predictor<T> for GradientBoostingRegressor<T> {
 /// Uses log-loss (cross-entropy) with one-vs-all for multi-class.
 /// Each class gets its own sequence of regression trees fitted to
 /// the negative gradient of the log-loss.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct GradientBoostingClassifier<T: Float> {
     n_estimators: usize,

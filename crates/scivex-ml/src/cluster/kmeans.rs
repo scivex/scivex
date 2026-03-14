@@ -3,6 +3,10 @@ use scivex_core::{Float, Tensor, random::Rng};
 use crate::error::{MlError, Result};
 
 /// K-Means clustering using Lloyd's algorithm.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct KMeans<T: Float> {
     pub(crate) n_clusters: usize,
@@ -17,6 +21,22 @@ pub struct KMeans<T: Float> {
 
 impl<T: Float> KMeans<T> {
     /// Create a new `KMeans` with the given number of clusters and hyper-parameters.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_ml::cluster::KMeans;
+    /// let x = Tensor::from_vec(
+    ///     vec![0.0_f64, 0.0, 0.1, 0.1, 10.0, 10.0, 10.1, 10.1],
+    ///     vec![4, 2],
+    /// ).unwrap();
+    /// let mut km = KMeans::new(2, 100, 1e-6, 3, 42).unwrap();
+    /// km.fit(&x).unwrap();
+    /// let labels = km.predict(&x).unwrap();
+    /// // Points in the same cluster share a label
+    /// assert!((labels.as_slice()[0] - labels.as_slice()[1]).abs() < 0.5);
+    /// ```
     pub fn new(
         n_clusters: usize,
         max_iter: usize,

@@ -235,7 +235,12 @@ impl<T: Scalar> Tensor<T> {
         // Unsqueeze each tensor along the new axis, then concat
         let expanded: Vec<Tensor<T>> = tensors
             .iter()
-            .map(|t| (*t).clone().unsqueeze(axis).unwrap())
+            // SAFETY: axis is validated above and is within bounds for all tensors.
+            .map(|t| {
+                (*t).clone()
+                    .unsqueeze(axis)
+                    .expect("axis is valid for all tensors since shapes were validated above")
+            })
             .collect();
         let refs: Vec<&Tensor<T>> = expanded.iter().collect();
         Tensor::concat(&refs, axis)

@@ -10,6 +10,10 @@ use super::Distribution;
 /// with success probability `p`.
 ///
 /// PMF: `C(k+r-1, k) * p^r * (1-p)^k` for `k = 0, 1, 2, ...`
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct NegativeBinomial<T: Float> {
     r: T,

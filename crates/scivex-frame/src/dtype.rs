@@ -1,6 +1,10 @@
 //! Runtime type identification for type-erased columns.
 
 /// Runtime representation of a column's element type.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DType {
     F64,

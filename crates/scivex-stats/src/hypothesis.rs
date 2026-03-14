@@ -8,6 +8,10 @@ use crate::error::{Result, StatsError};
 use crate::special::regularized_beta;
 
 /// Result of a hypothesis test.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct TestResult<T: Float> {
     /// The test statistic.

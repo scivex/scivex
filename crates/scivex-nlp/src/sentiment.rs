@@ -5,6 +5,10 @@ use std::collections::HashSet;
 use crate::tokenize::WordTokenizer;
 
 /// Result of sentiment analysis on a text.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct SentimentResult {
     /// Polarity score from -1.0 (most negative) to 1.0 (most positive).
@@ -15,6 +19,10 @@ pub struct SentimentResult {
     pub negative: usize,
 }
 
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 /// Bag-of-words sentiment analyzer with a built-in English lexicon.
 pub struct SentimentAnalyzer {
     positive_words: HashSet<String>,

@@ -5,6 +5,10 @@ use crate::model_selection::cross_val_score;
 use crate::traits::Predictor;
 
 /// Result of a hyperparameter search (grid or random).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct SearchResult<T: Float> {
     /// Index of the best model in the candidate list.

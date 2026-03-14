@@ -35,6 +35,10 @@ pub fn write_parquet(df: &DataFrame, path: impl AsRef<Path>) -> Result<()> {
 }
 
 /// Builder for configuring Parquet reading.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct ParquetReaderBuilder {
     batch_size: usize,
     columns: Option<Vec<String>>,
@@ -135,6 +139,10 @@ impl ParquetReaderBuilder {
 }
 
 /// Compression codec for Parquet writing.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParquetCompression {
     /// No compression.
@@ -162,6 +170,10 @@ impl ParquetCompression {
 }
 
 /// Builder for configuring Parquet writing.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct ParquetWriterBuilder {
     compression: ParquetCompression,
 }

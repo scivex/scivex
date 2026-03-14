@@ -11,6 +11,10 @@ pub use trapezoid::trapezoid;
 use scivex_core::Float;
 
 /// Result of a numerical integration.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct QuadResult<T: Float> {
     /// The estimated value of the integral.
@@ -22,6 +26,10 @@ pub struct QuadResult<T: Float> {
 }
 
 /// Options controlling numerical integration.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct QuadOptions<T: Float> {
     /// Absolute error tolerance.

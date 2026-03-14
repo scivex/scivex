@@ -9,6 +9,10 @@ use super::kernel::Kernel;
 ///
 /// Supports binary classification with arbitrary kernel functions.
 /// Multi-class is handled via one-vs-one decomposition.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct SVC<T: Float> {
     kernel: Kernel<T>,
@@ -26,6 +30,10 @@ pub struct SVC<T: Float> {
 }
 
 /// Stores one binary SVM model (for one-vs-one).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 struct BinaryModel<T: Float> {
     class_pos: T,

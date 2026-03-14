@@ -15,6 +15,10 @@ use scivex_frame::{AnySeries, DType, DataFrame, Series, StringSeries};
 use crate::error::Result;
 
 /// Behavior when writing to a table that already exists.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IfExists {
     /// Raise an error if the table exists.
@@ -278,48 +282,81 @@ pub(crate) fn extract_value(col: &dyn AnySeries, row: usize) -> SqlValue {
     }
     match col.dtype() {
         DType::I64 => {
-            let s = col.as_any().downcast_ref::<Series<i64>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<i64>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(s.as_slice()[row])
         }
         DType::I32 => {
-            let s = col.as_any().downcast_ref::<Series<i32>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<i32>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(i64::from(s.as_slice()[row]))
         }
         DType::I16 => {
-            let s = col.as_any().downcast_ref::<Series<i16>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<i16>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(i64::from(s.as_slice()[row]))
         }
         DType::I8 => {
-            let s = col.as_any().downcast_ref::<Series<i8>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<i8>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(i64::from(s.as_slice()[row]))
         }
         DType::U64 => {
-            let s = col.as_any().downcast_ref::<Series<u64>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<u64>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(s.as_slice()[row] as i64)
         }
         DType::U32 => {
-            let s = col.as_any().downcast_ref::<Series<u32>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<u32>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(i64::from(s.as_slice()[row]))
         }
         DType::U16 => {
-            let s = col.as_any().downcast_ref::<Series<u16>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<u16>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(i64::from(s.as_slice()[row]))
         }
         DType::U8 => {
-            let s = col.as_any().downcast_ref::<Series<u8>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<u8>>()
+                .expect("dtype-matched downcast");
             SqlValue::I64(i64::from(s.as_slice()[row]))
         }
         DType::F64 => {
-            let s = col.as_any().downcast_ref::<Series<f64>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<f64>>()
+                .expect("dtype-matched downcast");
             SqlValue::F64(s.as_slice()[row])
         }
         DType::F32 => {
-            let s = col.as_any().downcast_ref::<Series<f32>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<f32>>()
+                .expect("dtype-matched downcast");
             SqlValue::F64(f64::from(s.as_slice()[row]))
         }
         DType::Bool => {
             // Booleans are stored as Series<u8> (0 = false, 1 = true).
-            let s = col.as_any().downcast_ref::<Series<u8>>().unwrap();
+            let s = col
+                .as_any()
+                .downcast_ref::<Series<u8>>()
+                .expect("dtype-matched downcast");
             SqlValue::Bool(s.as_slice()[row] != 0)
         }
         DType::Str | DType::Categorical | DType::DateTime => SqlValue::Str(col.display_value(row)),

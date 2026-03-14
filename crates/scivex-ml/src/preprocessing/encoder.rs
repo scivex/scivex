@@ -3,6 +3,10 @@ use scivex_core::Float;
 use crate::error::{MlError, Result};
 
 /// Maps unique label values to contiguous integers `0..n_classes`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct LabelEncoder<T: Float> {
     classes: Option<Vec<T>>,

@@ -1,0 +1,17 @@
+[package]
+name = "scivex-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Scivex — C FFI bindings for Python, Julia, R, and other languages"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }
+scivex-stats = { path = "../scivex-stats" }
+scivex-ml = { path = "../scivex-ml" }
+
+[lints]
+workspace = true

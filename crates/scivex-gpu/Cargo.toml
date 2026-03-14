@@ -1,0 +1,15 @@
+[package]
+name = "scivex-gpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Scivex — GPU-accelerated tensor operations via wgpu"
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }
+wgpu = { version = "24", features = ["wgsl"] }
+bytemuck = { version = "1", features = ["derive"] }
+pollster = "0.4"
+
+[lints]
+workspace = true

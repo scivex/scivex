@@ -5,6 +5,10 @@ use scivex_core::{Float, Tensor};
 use crate::error::{Result, SignalError};
 
 /// Output mode for convolution and correlation.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConvolveMode {
     /// Full convolution: output length = `len(a) + len(b) - 1`.

@@ -11,3 +11,14 @@ workspace = true
 
 [dependencies]
 scivex-core = { path = "../scivex-core" }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "graph_benchmarks"
+harness = false
+
+[features]
+serde-support = ["dep:serde", "scivex-core/serde-support"]

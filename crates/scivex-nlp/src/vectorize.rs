@@ -12,6 +12,10 @@ use crate::tokenize::WordTokenizer;
 // ---------------------------------------------------------------------------
 
 /// Converts a collection of text documents into a term-count matrix.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct CountVectorizer {
     vocabulary: HashMap<String, usize>,
     fitted: bool,
@@ -103,6 +107,10 @@ impl Default for CountVectorizer {
 ///
 /// Uses the formula: `tf * log((1 + n) / (1 + df)) + 1`
 /// where `n` is the total number of documents and `df` is the document
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 /// frequency of the term.
 pub struct TfidfVectorizer {
     count_vectorizer: CountVectorizer,

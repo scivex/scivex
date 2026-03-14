@@ -46,7 +46,11 @@ impl DataFrame {
         for row in 0..nrows {
             let idx_key_parts: Vec<String> = index
                 .iter()
-                .map(|&c| self.column(c).unwrap().display_value(row))
+                .map(|&c| {
+                    self.column(c)
+                        .expect("pivot index column exists")
+                        .display_value(row)
+                })
                 .collect();
             let idx_key = idx_key_parts.join("\x00");
             let pval = pivot_col.display_value(row);
@@ -92,7 +96,8 @@ impl DataFrame {
             let has_nulls = null_mask.iter().any(|&v| v);
             if has_nulls {
                 result_cols.push(Box::new(
-                    Series::with_nulls(col_name, agg_data, null_mask).unwrap(),
+                    Series::with_nulls(col_name, agg_data, null_mask)
+                        .expect("valid pivot construction"),
                 ));
             } else {
                 result_cols.push(Box::new(Series::new(col_name, agg_data)));
@@ -177,7 +182,7 @@ impl DataFrame {
         if has_nulls {
             result_cols.push(Box::new(
                 StringSeries::with_nulls(value_col_name.to_string(), value_data, value_nulls)
-                    .unwrap(),
+                    .expect("valid pivot construction"),
             ));
         } else {
             result_cols.push(Box::new(StringSeries::new(

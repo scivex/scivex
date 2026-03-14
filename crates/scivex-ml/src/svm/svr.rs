@@ -10,6 +10,10 @@ use super::kernel::Kernel;
 /// Uses a simplified SMO-like coordinate descent algorithm with an
 /// epsilon-insensitive loss function: only errors larger than `epsilon`
 /// contribute to the loss.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct SVR<T: Float> {
     kernel: Kernel<T>,

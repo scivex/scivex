@@ -5,6 +5,10 @@ use scivex_core::{Float, Tensor};
 use crate::error::{Result, SignalError};
 
 /// Supported wavelet families.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Wavelet {
     /// Haar wavelet (Daubechies-1).

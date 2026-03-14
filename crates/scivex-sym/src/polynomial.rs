@@ -6,6 +6,10 @@ use scivex_core::Float;
 ///
 /// Coefficients are stored in ascending power order: `coeffs[i]` is the
 /// coefficient of `x^i`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Polynomial<T: Float> {
     coeffs: Vec<T>,

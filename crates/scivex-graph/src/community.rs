@@ -3,6 +3,10 @@ use scivex_core::Float;
 use crate::graph::Graph;
 
 /// Community detection result.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Communities {
     /// Label assigned to each node slot. Inactive nodes have label `usize::MAX`.

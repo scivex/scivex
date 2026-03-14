@@ -8,6 +8,10 @@ use crate::graph::Graph;
 ///
 /// Stores both outgoing and incoming adjacency lists so that in-degree queries
 /// and reverse traversals (e.g., Kosaraju's SCC) are efficient.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct DiGraph<T: Float> {
     adj: Vec<Vec<(usize, T)>>,

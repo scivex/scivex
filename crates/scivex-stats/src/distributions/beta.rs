@@ -7,6 +7,10 @@ use crate::special::{ln_beta, regularized_beta};
 use super::{Distribution, ppf_bisection};
 
 /// Beta distribution with shape parameters alpha and beta.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Beta<T: Float> {
     alpha: T,
@@ -76,8 +80,10 @@ impl<T: Float> Distribution<T> for Beta<T> {
     fn sample(&self, rng: &mut Rng) -> T {
         // Sample using gamma ratio: X = G1/(G1+G2) where G1 ~ Gamma(alpha,1), G2 ~ Gamma(beta,1)
         let one = T::from_f64(1.0);
-        let g1 = super::gamma::Gamma::new(self.alpha, one).unwrap();
-        let g2 = super::gamma::Gamma::new(self.beta_param, one).unwrap();
+        let g1 =
+            super::gamma::Gamma::new(self.alpha, one).expect("alpha validated at construction");
+        let g2 =
+            super::gamma::Gamma::new(self.beta_param, one).expect("beta validated at construction");
         let x1 = g1.sample(rng);
         let x2 = g2.sample(rng);
         x1 / (x1 + x2)

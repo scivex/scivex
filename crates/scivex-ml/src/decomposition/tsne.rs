@@ -16,6 +16,10 @@ use crate::error::{MlError, Result};
 /// 2. Initialise low-dimensional embedding randomly
 /// 3. Gradient descent to minimise the KL divergence between the high-dimensional
 ///    affinities `p_{ij}` and low-dimensional Student-t affinities `q_{ij}`
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct TSNE<T: Float> {
     n_components: usize,

@@ -51,6 +51,10 @@ pub mod parquet;
 #[cfg(feature = "arrow")]
 pub mod arrow;
 
+/// Tensor ↔ Arrow array conversions.
+#[cfg(feature = "arrow")]
+pub mod tensor_conv;
+
 pub use error::{IoError, Result};
 
 /// Glob-import convenience: `use scivex_io::prelude::*;`
@@ -95,4 +99,11 @@ pub mod prelude {
 
     #[cfg(feature = "arrow")]
     pub use crate::arrow::{read_arrow, read_arrow_stream, write_arrow, write_arrow_stream};
+
+    #[cfg(feature = "arrow")]
+    pub use crate::tensor_conv::{
+        any_arrow_to_tensor_f64, arrow_f32_to_tensor, arrow_f64_to_tensor, record_batch_to_tensor,
+        tensor_f32_to_arrow, tensor_f64_to_arrow, tensor_to_record_batch,
+        tensor_to_record_batch_named,
+    };
 }

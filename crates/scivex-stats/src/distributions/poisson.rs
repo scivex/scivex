@@ -7,6 +7,10 @@ use crate::special::{ln_gamma, regularized_gamma_q};
 use super::{Distribution, ppf_bisection};
 
 /// Poisson distribution with rate parameter lambda.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Poisson<T: Float> {
     lambda: T,
