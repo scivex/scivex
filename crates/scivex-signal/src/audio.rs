@@ -125,7 +125,7 @@ pub fn read_wav(data: &[u8]) -> Result<AudioData> {
 
         pos += 8 + chunk_size;
         // Chunks are word-aligned
-        if !chunk_size % 2 == 0 {
+        if chunk_size % 2 != 0 {
             pos += 1;
         }
     }
@@ -212,7 +212,7 @@ fn decode_samples(data: &[u8], format: u16, bits: u16) -> Result<Vec<f64>> {
             .collect()),
         // PCM 16-bit signed
         (1, 16) => {
-            if !data.len() % 2 == 0 {
+            if data.len() % 2 != 0 {
                 return Err(SignalError::InvalidParameter {
                     name: "data",
                     reason: "16-bit data not aligned",
@@ -228,7 +228,7 @@ fn decode_samples(data: &[u8], format: u16, bits: u16) -> Result<Vec<f64>> {
         }
         // PCM 32-bit signed
         (1, 32) => {
-            if !data.len() % 4 == 0 {
+            if data.len() % 4 != 0 {
                 return Err(SignalError::InvalidParameter {
                     name: "data",
                     reason: "32-bit data not aligned",
@@ -244,7 +244,7 @@ fn decode_samples(data: &[u8], format: u16, bits: u16) -> Result<Vec<f64>> {
         }
         // IEEE float 32-bit
         (3, 32) => {
-            if !data.len() % 4 == 0 {
+            if data.len() % 4 != 0 {
                 return Err(SignalError::InvalidParameter {
                     name: "data",
                     reason: "float data not aligned",

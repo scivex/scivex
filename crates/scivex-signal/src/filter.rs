@@ -157,7 +157,6 @@ impl FirFilter {
     /// `cutoff` — normalized cutoff frequency in `(0, 1)`.
     /// `num_taps` — must be odd.
     pub fn high_pass<T: Float>(cutoff: T, num_taps: usize) -> Result<Tensor<T>> {
-        #[allow(clippy::manual_is_multiple_of)]
         if num_taps % 2 == 0 {
             return Err(SignalError::InvalidParameter {
                 name: "num_taps",
@@ -182,7 +181,6 @@ impl FirFilter {
                 reason: "low must be less than high",
             });
         }
-        #[allow(clippy::manual_is_multiple_of)]
         if num_taps % 2 == 0 {
             return Err(SignalError::InvalidParameter {
                 name: "num_taps",

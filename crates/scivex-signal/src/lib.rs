@@ -1,3 +1,4 @@
+#![allow(clippy::manual_is_multiple_of)]
 //! `scivex-signal` — Signal processing, FFT, wavelets, and audio.
 //!
 //! Provides a from-scratch signal processing library with support for:
