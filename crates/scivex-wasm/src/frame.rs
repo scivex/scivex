@@ -92,7 +92,7 @@ impl WasmDataFrame {
         }
     }
 
-    /// Shape as [n_rows, n_cols].
+    /// Shape as `[n_rows, n_cols]`.
     pub fn shape(&self) -> Vec<usize> {
         vec![self.inner.nrows(), self.inner.ncols()]
     }

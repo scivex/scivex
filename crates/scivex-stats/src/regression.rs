@@ -40,7 +40,7 @@ pub struct OlsResult<T: Float> {
 
 /// Ordinary Least Squares regression.
 ///
-/// `x` is a 2-D tensor [n_obs x n_features] (without intercept — it will be
+/// `x` is a 2-D tensor `[n_obs x n_features]` (without intercept — it will be
 /// prepended automatically). `y` is a slice of `n_obs` target values.
 ///
 /// Returns the full regression summary.

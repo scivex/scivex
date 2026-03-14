@@ -27,7 +27,7 @@ impl WasmLinearRegression {
     }
 
     /// Fit the model on training data.
-    /// `x` shape: [n_samples, n_features], `y` shape: [n_samples].
+    /// `x` shape: `[n_samples, n_features]`, `y` shape: `[n_samples]`.
     pub fn fit(&mut self, x: &WasmTensor, y: &WasmTensor) -> Result<(), JsError> {
         use scivex_ml::traits::Predictor;
         self.inner
@@ -87,7 +87,7 @@ impl WasmKMeans {
         Ok(WasmKMeans { inner })
     }
 
-    /// Fit the model on data `x` (shape [n_samples, n_features]).
+    /// Fit the model on data `x` (shape `[n_samples, n_features]`).
     pub fn fit(&mut self, x: &WasmTensor) -> Result<(), JsError> {
         self.inner
             .fit(x.inner())

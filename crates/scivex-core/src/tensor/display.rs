@@ -142,7 +142,10 @@ impl<T: Scalar> Tensor<T> {
     ///
     /// Auto-detected by the evcxr kernel for rich HTML output.
     pub fn evcxr_display(&self) {
-        println!("EVCXR_BEGIN_CONTENT text/html\n{}\nEVCXR_END_CONTENT", self.to_html());
+        println!(
+            "EVCXR_BEGIN_CONTENT text/html\n{}\nEVCXR_END_CONTENT",
+            self.to_html()
+        );
     }
 }
 

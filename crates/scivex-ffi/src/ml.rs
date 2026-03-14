@@ -34,7 +34,7 @@ pub unsafe extern "C" fn scivex_linreg_free(m: *mut ScivexLinearRegression) {
     }
 }
 
-/// Fit the model. `x` has shape [n_samples, n_features], `y` has shape [n_samples].
+/// Fit the model. `x` has shape `[n_samples, n_features]`, `y` has shape `[n_samples]`.
 /// Returns 0 on success, -1 on error.
 ///
 /// # Safety
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn scivex_kmeans_free(m: *mut ScivexKMeans) {
     }
 }
 
-/// Fit the KMeans model. `x` has shape [n_samples, n_features].
+/// Fit the KMeans model. `x` has shape `[n_samples, n_features]`.
 /// Returns 0 on success, -1 on error.
 ///
 /// # Safety

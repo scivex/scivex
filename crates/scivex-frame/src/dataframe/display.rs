@@ -119,7 +119,9 @@ impl DataFrame {
 
         // Column headers
         for col in &self.columns {
-            html.push_str("<th style=\"border:1px solid #ddd;padding:4px 8px;background:#f4f4f4;\">");
+            html.push_str(
+                "<th style=\"border:1px solid #ddd;padding:4px 8px;background:#f4f4f4;\">",
+            );
             html_escape_into(&mut html, col.name());
             html.push_str("</th>");
         }
@@ -129,13 +131,17 @@ impl DataFrame {
         for &ri in &row_indices {
             html.push_str("<tr>");
             if ri == usize::MAX {
-                html.push_str("<td style=\"border:1px solid #ddd;padding:4px 8px;text-align:center;\">…</td>");
+                html.push_str(
+                    "<td style=\"border:1px solid #ddd;padding:4px 8px;text-align:center;\">…</td>",
+                );
                 for _ in 0..ncols {
                     html.push_str("<td style=\"border:1px solid #ddd;padding:4px 8px;text-align:center;\">…</td>");
                 }
             } else {
                 // Row index
-                html.push_str("<td style=\"border:1px solid #ddd;padding:4px 8px;background:#f9f9f9;\">");
+                html.push_str(
+                    "<td style=\"border:1px solid #ddd;padding:4px 8px;background:#f9f9f9;\">",
+                );
                 html.push_str(&ri.to_string());
                 html.push_str("</td>");
 
@@ -167,7 +173,10 @@ impl DataFrame {
     /// This method is auto-detected by the evcxr kernel and used to render
     /// rich HTML output in Jupyter cells.
     pub fn evcxr_display(&self) {
-        println!("EVCXR_BEGIN_CONTENT text/html\n{}\nEVCXR_END_CONTENT", self.to_html());
+        println!(
+            "EVCXR_BEGIN_CONTENT text/html\n{}\nEVCXR_END_CONTENT",
+            self.to_html()
+        );
     }
 }
 
@@ -236,9 +245,10 @@ mod tests {
 
     #[test]
     fn test_to_html_escapes() {
-        let df = DataFrame::new(vec![Box::new(
-            crate::StringSeries::from_strs("text", &["<b>bold</b>", "a & b"]),
-        ) as _])
+        let df = DataFrame::new(vec![Box::new(crate::StringSeries::from_strs(
+            "text",
+            &["<b>bold</b>", "a & b"],
+        )) as _])
         .unwrap();
         let html = df.to_html();
         assert!(html.contains("&lt;b&gt;bold&lt;/b&gt;"));
