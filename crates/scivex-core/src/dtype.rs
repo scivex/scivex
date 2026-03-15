@@ -110,6 +110,9 @@ pub trait Float: Scalar + Neg<Output = Self> {
 
     /// Convert from an `f64` literal (used for constants).
     fn from_f64(v: f64) -> Self;
+
+    /// Convert to `f64` (used for internal computations that require `f64`).
+    fn to_f64(self) -> f64;
 }
 
 /// Trait alias for real-valued floats (non-complex).
@@ -243,6 +246,11 @@ macro_rules! impl_scalar_float {
             #[inline]
             fn from_f64(v: f64) -> Self {
                 v as Self
+            }
+            #[inline]
+            #[allow(clippy::cast_lossless)]
+            fn to_f64(self) -> f64 {
+                self as f64
             }
         }
 

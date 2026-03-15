@@ -23,6 +23,8 @@ pub enum NnError {
     EmptyInput,
     /// Index out of bounds.
     IndexOutOfBounds { index: usize, len: usize },
+    /// ONNX model loading or execution error.
+    OnnxError(String),
     /// Error propagated from `scivex-core`.
     CoreError(scivex_core::CoreError),
 }
@@ -37,6 +39,7 @@ impl fmt::Display for NnError {
             Self::InvalidParameter { name, reason } => {
                 write!(f, "invalid parameter `{name}`: {reason}")
             }
+            Self::OnnxError(msg) => write!(f, "onnx: {msg}"),
             Self::EmptyInput => write!(f, "input data is empty"),
             Self::IndexOutOfBounds { index, len } => {
                 write!(f, "index {index} out of bounds for length {len}")

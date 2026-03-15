@@ -29,6 +29,8 @@ pub mod init;
 pub mod layer;
 /// Loss functions (MSE, cross-entropy, BCE).
 pub mod loss;
+/// ONNX model loading and inference.
+pub mod onnx;
 /// Differentiable tensor operations for the autograd graph.
 pub mod ops;
 /// Optimizers (SGD, Adam).
@@ -53,6 +55,10 @@ pub mod prelude {
         Sigmoid, SimpleRNN, Tanh, TransformerEncoderLayer,
     };
     pub use crate::loss::{bce_loss, cross_entropy_loss, mse_loss};
+    pub use crate::onnx::{
+        OnnxAttribute, OnnxAttributeValue, OnnxDataType, OnnxGraph, OnnxInferenceSession,
+        OnnxModel, OnnxNode, OnnxOpsetImport, OnnxTensor, OnnxValueInfo, load_onnx,
+    };
     pub use crate::ops::{add, add_bias, matmul, mean, mul, neg, pow, scalar_mul, sub, sum};
     pub use crate::optim::{
         Adam, CosineAnnealingLR, ExponentialLR, LinearLR, LrScheduler, Optimizer,
