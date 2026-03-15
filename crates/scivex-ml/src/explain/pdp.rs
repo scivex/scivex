@@ -88,8 +88,7 @@ where
         let x_tensor = Tensor::from_vec(x_mod, vec![n, p])?;
         let preds = model.predict(&x_tensor)?;
         let pred_slice = preds.as_slice();
-        let mean =
-            pred_slice.iter().copied().fold(T::zero(), |a, b| a + b) / T::from_usize(n);
+        let mean = pred_slice.iter().copied().fold(T::zero(), |a, b| a + b) / T::from_usize(n);
         avg_preds.push(mean);
     }
 
@@ -125,9 +124,7 @@ mod tests {
     fn test_pdp_monotonic() {
         // y ≈ x0, so PDP on feature 0 should be non-decreasing
         let x = Tensor::from_vec(
-            vec![
-                1.0_f64, 5.0, 2.0, 3.0, 3.0, 7.0, 4.0, 1.0, 5.0, 4.0,
-            ],
+            vec![1.0_f64, 5.0, 2.0, 3.0, 3.0, 7.0, 4.0, 1.0, 5.0, 4.0],
             vec![5, 2],
         )
         .unwrap();
@@ -144,11 +141,7 @@ mod tests {
 
     #[test]
     fn test_pdp_feature_out_of_bounds() {
-        let x = Tensor::from_vec(
-            vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0],
-            vec![3, 2],
-        )
-        .unwrap();
+        let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2]).unwrap();
         let y = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
 
         let mut model = DecisionTreeRegressor::new(Some(3), 1);

@@ -189,13 +189,7 @@ fn binomial_coeff(n: usize, k: usize) -> f64 {
     result
 }
 
-fn weighted_least_squares<T: Float>(
-    z: &[T],
-    y: &[T],
-    w: &[T],
-    n: usize,
-    p: usize,
-) -> Vec<T> {
+fn weighted_least_squares<T: Float>(z: &[T], y: &[T], w: &[T], n: usize, p: usize) -> Vec<T> {
     let mut zt_wz = vec![T::zero(); p * p];
     let mut zt_wy = vec![T::zero(); p];
 
@@ -275,11 +269,8 @@ mod tests {
 
     #[test]
     fn test_kernel_shap_shape() {
-        let x_bg = Tensor::from_vec(
-            vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
-            vec![4, 2],
-        )
-        .unwrap();
+        let x_bg =
+            Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], vec![4, 2]).unwrap();
         let y = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
 
         let mut model = DecisionTreeRegressor::new(Some(3), 1);
@@ -293,9 +284,7 @@ mod tests {
     #[test]
     fn test_kernel_shap_sum_property() {
         let x = Tensor::from_vec(
-            vec![
-                1.0_f64, 0.5, 2.0, 1.5, 3.0, 2.5, 4.0, 3.5, 5.0, 4.5,
-            ],
+            vec![1.0_f64, 0.5, 2.0, 1.5, 3.0, 2.5, 4.0, 3.5, 5.0, 4.5],
             vec![5, 2],
         )
         .unwrap();
@@ -313,11 +302,7 @@ mod tests {
 
     #[test]
     fn test_kernel_shap_dimension_mismatch() {
-        let x_bg = Tensor::from_vec(
-            vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0],
-            vec![3, 2],
-        )
-        .unwrap();
+        let x_bg = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2]).unwrap();
         let y = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
 
         let mut model = DecisionTreeRegressor::new(Some(3), 1);

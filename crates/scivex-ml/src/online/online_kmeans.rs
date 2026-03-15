@@ -124,7 +124,10 @@ impl<T: Float> OnlineKMeans<T> {
             });
         }
 
-        let centroids = self.centroids.as_mut().expect("centroids initialised above");
+        let centroids = self
+            .centroids
+            .as_mut()
+            .expect("centroids initialised above");
 
         // For each sample, find nearest centroid and update with running mean.
         for i in 0..n {
@@ -183,8 +186,8 @@ mod tests {
     fn two_cluster_data() -> Tensor<f64> {
         Tensor::from_vec(
             vec![
-                0.0, 0.0, 0.1, 0.1, -0.1, 0.0, 0.0, 0.1, 10.0, 10.0, 10.1, 10.1, 9.9, 10.0,
-                10.0, 9.9,
+                0.0, 0.0, 0.1, 0.1, -0.1, 0.0, 0.0, 0.1, 10.0, 10.0, 10.1, 10.1, 9.9, 10.0, 10.0,
+                9.9,
             ],
             vec![8, 2],
         )
@@ -221,16 +224,10 @@ mod tests {
     fn test_online_kmeans_multiple_batches() {
         let mut km = OnlineKMeans::<f64>::new(2, 42).unwrap();
 
-        let batch1 = Tensor::from_vec(
-            vec![0.0, 0.0, 0.1, 0.1, 10.0, 10.0, 10.1, 10.1],
-            vec![4, 2],
-        )
-        .unwrap();
-        let batch2 = Tensor::from_vec(
-            vec![-0.1, 0.0, 0.0, -0.1, 9.9, 10.0, 10.0, 9.9],
-            vec![4, 2],
-        )
-        .unwrap();
+        let batch1 =
+            Tensor::from_vec(vec![0.0, 0.0, 0.1, 0.1, 10.0, 10.0, 10.1, 10.1], vec![4, 2]).unwrap();
+        let batch2 =
+            Tensor::from_vec(vec![-0.1, 0.0, 0.0, -0.1, 9.9, 10.0, 10.0, 9.9], vec![4, 2]).unwrap();
         let batch3 = Tensor::from_vec(
             vec![0.05, 0.05, -0.05, -0.05, 10.05, 10.05, 9.95, 9.95],
             vec![4, 2],

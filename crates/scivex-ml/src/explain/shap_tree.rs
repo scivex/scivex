@@ -13,10 +13,7 @@ use crate::tree::decision_tree::{DecisionTreeRegressor, Node};
 /// Returns a tensor of shape `[n_samples, n_features]` where each value
 /// represents the contribution of that feature to the prediction (relative
 /// to the expected value over the training data).
-pub fn tree_shap<T: Float>(
-    tree: &DecisionTreeRegressor<T>,
-    x: &Tensor<T>,
-) -> Result<Tensor<T>> {
+pub fn tree_shap<T: Float>(tree: &DecisionTreeRegressor<T>, x: &Tensor<T>) -> Result<Tensor<T>> {
     let root = tree.root.as_ref().ok_or(MlError::NotFitted)?;
     let shape = x.shape();
     if shape.len() != 2 {

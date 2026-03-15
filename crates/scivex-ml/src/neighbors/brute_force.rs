@@ -102,9 +102,7 @@ impl<T: Float> BruteForceIndex<T> {
             if heap.len() < k {
                 heap.push(DistIdx { dist, idx: i });
             } else {
-                let should_insert = heap
-                    .peek()
-                    .is_some_and(|top| dist < top.dist);
+                let should_insert = heap.peek().is_some_and(|top| dist < top.dist);
                 if should_insert {
                     heap.pop();
                     heap.push(DistIdx { dist, idx: i });
@@ -113,7 +111,11 @@ impl<T: Float> BruteForceIndex<T> {
         }
 
         let mut results: Vec<DistIdx<T>> = heap.into_sorted_vec();
-        results.sort_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            a.dist
+                .partial_cmp(&b.dist)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let indices = results.iter().map(|r| r.idx).collect();
         let distances = results.iter().map(|r| r.dist).collect();
@@ -206,11 +208,7 @@ mod tests {
 
     fn make_points() -> Tensor<f64> {
         // 4 points in 2D
-        Tensor::from_vec(
-            vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0],
-            vec![4, 2],
-        )
-        .unwrap()
+        Tensor::from_vec(vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0], vec![4, 2]).unwrap()
     }
 
     #[test]
@@ -235,8 +233,7 @@ mod tests {
     fn test_brute_force_batch() {
         let mut idx = BruteForceIndex::new(DistanceMetric::L2);
         idx.add(&make_points()).unwrap();
-        let queries =
-            Tensor::from_vec(vec![0.1_f64, 0.1, 0.9, 0.9], vec![2, 2]).unwrap();
+        let queries = Tensor::from_vec(vec![0.1_f64, 0.1, 0.9, 0.9], vec![2, 2]).unwrap();
         let results = idx.batch_search(&queries, 1).unwrap();
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].indices[0], 0);
@@ -246,10 +243,8 @@ mod tests {
     #[test]
     fn test_brute_force_add_incremental() {
         let mut idx = BruteForceIndex::new(DistanceMetric::L2);
-        let first =
-            Tensor::from_vec(vec![0.0_f64, 0.0, 1.0, 0.0], vec![2, 2]).unwrap();
-        let second =
-            Tensor::from_vec(vec![10.0_f64, 10.0], vec![1, 2]).unwrap();
+        let first = Tensor::from_vec(vec![0.0_f64, 0.0, 1.0, 0.0], vec![2, 2]).unwrap();
+        let second = Tensor::from_vec(vec![10.0_f64, 10.0], vec![1, 2]).unwrap();
         idx.add(&first).unwrap();
         idx.add(&second).unwrap();
         assert_eq!(idx.len(), 3);

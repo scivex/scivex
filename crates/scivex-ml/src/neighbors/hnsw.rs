@@ -155,15 +155,10 @@ impl<T: Float> HnswIndex<T> {
 
             for level in (0..=insert_top).rev() {
                 let m_max = if level == 0 { self.m_max0 } else { self.m };
-                let found =
-                    self.search_layer(vector, &entry_points, self.ef_construction, level);
+                let found = self.search_layer(vector, &entry_points, self.ef_construction, level);
 
                 // Select top-M neighbours
-                let neighbours: Vec<usize> = found
-                    .iter()
-                    .take(self.m)
-                    .map(|di| di.idx)
-                    .collect();
+                let neighbours: Vec<usize> = found.iter().take(self.m).map(|di| di.idx).collect();
 
                 // Connect the new node to neighbours
                 self.nodes[node_id].connections[level].clone_from(&neighbours);
@@ -337,9 +332,7 @@ impl<T: Float> HnswIndex<T> {
         }
 
         while let Some(std::cmp::Reverse(closest)) = candidates.pop() {
-            let farthest_dist = results
-                .peek()
-                .map_or(T::infinity(), |r| r.dist);
+            let farthest_dist = results.peek().map_or(T::infinity(), |r| r.dist);
             if closest.dist > farthest_dist {
                 break;
             }
@@ -354,9 +347,7 @@ impl<T: Float> HnswIndex<T> {
                     visited.push(nb);
 
                     let d = self.dist_to_node(query, nb);
-                    let farthest_dist = results
-                        .peek()
-                        .map_or(T::infinity(), |r| r.dist);
+                    let farthest_dist = results.peek().map_or(T::infinity(), |r| r.dist);
 
                     if results.len() < ef {
                         candidates.push(std::cmp::Reverse(DistIdx { dist: d, idx: nb }));
@@ -372,7 +363,11 @@ impl<T: Float> HnswIndex<T> {
 
         // Sort results by distance
         let mut sorted: Vec<DistIdx<T>> = results.into_vec();
-        sorted.sort_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap_or(std::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| {
+            a.dist
+                .partial_cmp(&b.dist)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         sorted
     }
 
@@ -388,7 +383,11 @@ impl<T: Float> HnswIndex<T> {
             })
             .collect();
 
-        dists.sort_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap_or(std::cmp::Ordering::Equal));
+        dists.sort_by(|a, b| {
+            a.dist
+                .partial_cmp(&b.dist)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         dists.truncate(m_max);
 
         self.nodes[node_id].connections[level] = dists.into_iter().map(|d| d.idx).collect();
@@ -479,10 +478,7 @@ mod tests {
         }
 
         let avg_recall = total_recall / 10.0;
-        assert!(
-            avg_recall >= 0.8,
-            "recall {avg_recall} is below 0.8"
-        );
+        assert!(avg_recall >= 0.8, "recall {avg_recall} is below 0.8");
     }
 
     #[test]
@@ -530,8 +526,7 @@ mod tests {
 
     #[test]
     fn test_hnsw_empty() {
-        let index: HnswIndex<f64> =
-            HnswIndex::new(4, DistanceMetric::L2).unwrap();
+        let index: HnswIndex<f64> = HnswIndex::new(4, DistanceMetric::L2).unwrap();
         let result = index.search(&[1.0, 2.0, 3.0, 4.0], 1);
         assert!(result.is_err());
     }

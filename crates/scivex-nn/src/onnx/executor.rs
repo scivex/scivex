@@ -41,7 +41,10 @@ impl<T: Float> OnnxInferenceSession<T> {
         for init in &graph.initializers {
             let f32_data = init.to_f32_vec();
             let shape = init.dims_usize();
-            let data: Vec<T> = f32_data.iter().map(|&v| T::from_f64(f64::from(v))).collect();
+            let data: Vec<T> = f32_data
+                .iter()
+                .map(|&v| T::from_f64(f64::from(v)))
+                .collect();
             let numel: usize = shape.iter().product();
             if data.len() != numel {
                 return Err(NnError::OnnxError(format!(
@@ -51,9 +54,8 @@ impl<T: Float> OnnxInferenceSession<T> {
                     numel,
                 )));
             }
-            let tensor = Tensor::from_vec(data, shape).map_err(|e| {
-                NnError::OnnxError(format!("initializer '{}': {e}", init.name))
-            })?;
+            let tensor = Tensor::from_vec(data, shape)
+                .map_err(|e| NnError::OnnxError(format!("initializer '{}': {e}", init.name)))?;
             initializers.insert(init.name.clone(), tensor);
         }
 
@@ -159,21 +161,14 @@ fn topo_sort(graph: &OnnxGraph) -> Result<Vec<usize>> {
 // -----------------------------------------------------------------------
 
 #[allow(clippy::too_many_lines)]
-fn execute_node<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn execute_node<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     match node.op_type.as_str() {
         "Add" => binary_elementwise(node, env, |a, b| a + b),
         "Sub" => binary_elementwise(node, env, |a, b| a - b),
         "Mul" => binary_elementwise(node, env, |a, b| a * b),
         "Div" => binary_elementwise(node, env, |a, b| a / b),
-        "Relu" => unary_elementwise(node, env, |x| {
-            if x > T::zero() { x } else { T::zero() }
-        }),
-        "Sigmoid" => unary_elementwise(node, env, |x| {
-            T::one() / (T::one() + (-x).exp())
-        }),
+        "Relu" => unary_elementwise(node, env, |x| if x > T::zero() { x } else { T::zero() }),
+        "Sigmoid" => unary_elementwise(node, env, |x| T::one() / (T::one() + (-x).exp())),
         "Tanh" => unary_elementwise(node, env, |x| {
             let e2x = (x + x).exp();
             (e2x - T::one()) / (e2x + T::one())
@@ -208,10 +203,7 @@ fn get_input<T: Float>(
     index: usize,
 ) -> Result<Tensor<T>> {
     let name = node.inputs.get(index).ok_or_else(|| {
-        NnError::OnnxError(format!(
-            "{}: missing input at index {index}",
-            node.op_type
-        ))
+        NnError::OnnxError(format!("{}: missing input at index {index}", node.op_type))
     })?;
     env.get(name).cloned().ok_or_else(|| {
         NnError::OnnxError(format!(
@@ -228,10 +220,7 @@ fn set_output<T: Float>(
     tensor: Tensor<T>,
 ) -> Result<()> {
     let name = node.outputs.get(index).ok_or_else(|| {
-        NnError::OnnxError(format!(
-            "{}: missing output at index {index}",
-            node.op_type
-        ))
+        NnError::OnnxError(format!("{}: missing output at index {index}", node.op_type))
     })?;
     env.insert(name.clone(), tensor);
     Ok(())
@@ -246,8 +235,16 @@ fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>> {
     let mut result = vec![0usize; ndim];
 
     for i in 0..ndim {
-        let da = if i < ndim - a.len() { 1 } else { a[i - (ndim - a.len())] };
-        let db = if i < ndim - b.len() { 1 } else { b[i - (ndim - b.len())] };
+        let da = if i < ndim - a.len() {
+            1
+        } else {
+            a[i - (ndim - a.len())]
+        };
+        let db = if i < ndim - b.len() {
+            1
+        } else {
+            b[i - (ndim - b.len())]
+        };
         if da == db {
             result[i] = da;
         } else if da == 1 {
@@ -263,7 +260,12 @@ fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>> {
     Ok(result)
 }
 
-fn broadcast_flat_index(shape: &[usize], strides: &[usize], nd_index: &[usize], ndim: usize) -> usize {
+fn broadcast_flat_index(
+    shape: &[usize],
+    strides: &[usize],
+    nd_index: &[usize],
+    ndim: usize,
+) -> usize {
     let offset = ndim - shape.len();
     let mut flat = 0;
     for i in 0..shape.len() {
@@ -346,10 +348,7 @@ fn unary_elementwise<T: Float, F: Fn(T) -> T>(
     set_output(node, env, 0, result)
 }
 
-fn exec_softmax<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_softmax<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let axis = node.get_int_attr("axis", -1);
     let shape = x.shape().to_vec();
@@ -402,10 +401,7 @@ fn exec_softmax<T: Float>(
     set_output(node, env, 0, out)
 }
 
-fn exec_matmul<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_matmul<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let a = get_input(node, env, 0)?;
     let b = get_input(node, env, 1)?;
 
@@ -443,15 +439,13 @@ fn exec_matmul<T: Float>(
         }
     }
 
-    let result = Tensor::from_vec(out, vec![m, n]).map_err(|e| NnError::OnnxError(format!("{e}")))?;
+    let result =
+        Tensor::from_vec(out, vec![m, n]).map_err(|e| NnError::OnnxError(format!("{e}")))?;
     set_output(node, env, 0, result)
 }
 
 #[allow(clippy::too_many_lines)]
-fn exec_gemm<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_gemm<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let a_in = get_input(node, env, 0)?;
     let b_in = get_input(node, env, 1)?;
 
@@ -461,12 +455,14 @@ fn exec_gemm<T: Float>(
     let trans_b = node.get_int_attr("transB", 0) != 0;
 
     let a = if trans_a {
-        a_in.transpose().map_err(|e| NnError::OnnxError(format!("{e}")))?
+        a_in.transpose()
+            .map_err(|e| NnError::OnnxError(format!("{e}")))?
     } else {
         a_in
     };
     let b = if trans_b {
-        b_in.transpose().map_err(|e| NnError::OnnxError(format!("{e}")))?
+        b_in.transpose()
+            .map_err(|e| NnError::OnnxError(format!("{e}")))?
     } else {
         b_in
     };
@@ -521,14 +517,12 @@ fn exec_gemm<T: Float>(
         }
     }
 
-    let result = Tensor::from_vec(out, vec![m, n]).map_err(|e| NnError::OnnxError(format!("{e}")))?;
+    let result =
+        Tensor::from_vec(out, vec![m, n]).map_err(|e| NnError::OnnxError(format!("{e}")))?;
     set_output(node, env, 0, result)
 }
 
-fn exec_reshape<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_reshape<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let shape_tensor = get_input(node, env, 1)?;
 
@@ -570,33 +564,31 @@ fn exec_reshape<T: Float>(
     #[allow(clippy::cast_sign_loss)]
     let final_shape: Vec<usize> = new_shape.iter().map(|&d| d as usize).collect();
 
-    let result = x.reshape(final_shape).map_err(|e| NnError::OnnxError(format!("{e}")))?;
+    let result = x
+        .reshape(final_shape)
+        .map_err(|e| NnError::OnnxError(format!("{e}")))?;
     set_output(node, env, 0, result)
 }
 
-fn exec_transpose<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_transpose<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let perm = node.get_ints_attr("perm");
 
     let result = if perm.is_empty() {
         let axes: Vec<usize> = (0..x.ndim()).rev().collect();
-        x.permute(&axes).map_err(|e| NnError::OnnxError(format!("{e}")))?
+        x.permute(&axes)
+            .map_err(|e| NnError::OnnxError(format!("{e}")))?
     } else {
         #[allow(clippy::cast_sign_loss)]
         let axes: Vec<usize> = perm.iter().map(|&p| p as usize).collect();
-        x.permute(&axes).map_err(|e| NnError::OnnxError(format!("{e}")))?
+        x.permute(&axes)
+            .map_err(|e| NnError::OnnxError(format!("{e}")))?
     };
 
     set_output(node, env, 0, result)
 }
 
-fn exec_flatten<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_flatten<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let axis = node.get_int_attr("axis", 1);
 
@@ -617,14 +609,13 @@ fn exec_flatten<T: Float>(
     };
     let inner: usize = shape[axis_usize..].iter().product();
 
-    let result = x.reshape(vec![outer, inner]).map_err(|e| NnError::OnnxError(format!("{e}")))?;
+    let result = x
+        .reshape(vec![outer, inner])
+        .map_err(|e| NnError::OnnxError(format!("{e}")))?;
     set_output(node, env, 0, result)
 }
 
-fn exec_concat<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_concat<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let axis = node.get_int_attr("axis", 0);
 
     let mut tensors = Vec::new();
@@ -645,14 +636,12 @@ fn exec_concat<T: Float>(
     };
 
     let refs: Vec<&Tensor<T>> = tensors.iter().collect();
-    let result = Tensor::concat(&refs, axis_usize).map_err(|e| NnError::OnnxError(format!("{e}")))?;
+    let result =
+        Tensor::concat(&refs, axis_usize).map_err(|e| NnError::OnnxError(format!("{e}")))?;
     set_output(node, env, 0, result)
 }
 
-fn exec_batchnorm<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_batchnorm<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let scale = get_input(node, env, 1)?;
     let bias = get_input(node, env, 2)?;
@@ -699,24 +688,22 @@ fn exec_batchnorm<T: Float>(
     set_output(node, env, 0, result)
 }
 
-fn exec_dropout<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_dropout<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     set_output(node, env, 0, x)
 }
 
-fn exec_unsqueeze<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_unsqueeze<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
 
     let axes: Vec<i64> = if node.inputs.len() > 1 {
         if let Ok(axes_tensor) = get_input::<T>(node, env, 1) {
             #[allow(clippy::cast_possible_truncation)]
-            let v: Vec<i64> = axes_tensor.as_slice().iter().map(|&v| v.to_f64() as i64).collect();
+            let v: Vec<i64> = axes_tensor
+                .as_slice()
+                .iter()
+                .map(|&v| v.to_f64() as i64)
+                .collect();
             v
         } else {
             node.get_ints_attr("axes")
@@ -739,20 +726,23 @@ fn exec_unsqueeze<T: Float>(
         shape.insert(a, 1);
     }
 
-    let result = x.reshape(shape).map_err(|e| NnError::OnnxError(format!("{e}")))?;
+    let result = x
+        .reshape(shape)
+        .map_err(|e| NnError::OnnxError(format!("{e}")))?;
     set_output(node, env, 0, result)
 }
 
-fn exec_squeeze<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_squeeze<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
 
     let axes: Vec<i64> = if node.inputs.len() > 1 {
         if let Ok(axes_tensor) = get_input::<T>(node, env, 1) {
             #[allow(clippy::cast_possible_truncation)]
-            let v: Vec<i64> = axes_tensor.as_slice().iter().map(|&v| v.to_f64() as i64).collect();
+            let v: Vec<i64> = axes_tensor
+                .as_slice()
+                .iter()
+                .map(|&v| v.to_f64() as i64)
+                .collect();
             v
         } else {
             node.get_ints_attr("axes")
@@ -767,9 +757,16 @@ fn exec_squeeze<T: Float>(
     } else {
         let ndim = shape.len();
         #[allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)]
-        let mut indices: Vec<usize> = axes.iter().map(|&a| {
-            if a < 0 { (ndim as i64 + a) as usize } else { a as usize }
-        }).collect();
+        let mut indices: Vec<usize> = axes
+            .iter()
+            .map(|&a| {
+                if a < 0 {
+                    (ndim as i64 + a) as usize
+                } else {
+                    a as usize
+                }
+            })
+            .collect();
         indices.sort_unstable();
         indices.reverse();
         for i in indices {
@@ -783,15 +780,14 @@ fn exec_squeeze<T: Float>(
         shape.push(1);
     }
 
-    let result = x.reshape(shape).map_err(|e| NnError::OnnxError(format!("{e}")))?;
+    let result = x
+        .reshape(shape)
+        .map_err(|e| NnError::OnnxError(format!("{e}")))?;
     set_output(node, env, 0, result)
 }
 
 #[allow(clippy::too_many_lines)]
-fn exec_conv<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_conv<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let w = get_input(node, env, 1)?;
 
@@ -816,9 +812,17 @@ fn exec_conv<T: Float>(
 
     let strides_attr = node.get_ints_attr("strides");
     #[allow(clippy::cast_sign_loss)]
-    let sh = if strides_attr.len() >= 2 { strides_attr[0] as usize } else { 1 };
+    let sh = if strides_attr.len() >= 2 {
+        strides_attr[0] as usize
+    } else {
+        1
+    };
     #[allow(clippy::cast_sign_loss)]
-    let sw = if strides_attr.len() >= 2 { strides_attr[1] as usize } else { 1 };
+    let sw = if strides_attr.len() >= 2 {
+        strides_attr[1] as usize
+    } else {
+        1
+    };
 
     let pads_attr = node.get_ints_attr("pads");
     #[allow(clippy::cast_sign_loss)]
@@ -889,7 +893,8 @@ fn exec_conv<T: Float>(
                 for (c, &bval) in bias_data.iter().enumerate().take(c_out) {
                     for h in 0..h_out {
                         for w_i in 0..w_out {
-                            let idx = b * c_out * h_out * w_out + c * h_out * w_out + h * w_out + w_i;
+                            let idx =
+                                b * c_out * h_out * w_out + c * h_out * w_out + h * w_out + w_i;
                             out[idx] += bval;
                         }
                     }
@@ -904,10 +909,7 @@ fn exec_conv<T: Float>(
 }
 
 #[allow(clippy::too_many_lines)]
-fn exec_maxpool<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_maxpool<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let x_shape = x.shape().to_vec();
 
@@ -931,9 +933,17 @@ fn exec_maxpool<T: Float>(
 
     let strides_attr = node.get_ints_attr("strides");
     #[allow(clippy::cast_sign_loss)]
-    let sh = if strides_attr.len() >= 2 { strides_attr[0] as usize } else { 1 };
+    let sh = if strides_attr.len() >= 2 {
+        strides_attr[0] as usize
+    } else {
+        1
+    };
     #[allow(clippy::cast_sign_loss)]
-    let sw = if strides_attr.len() >= 2 { strides_attr[1] as usize } else { 1 };
+    let sw = if strides_attr.len() >= 2 {
+        strides_attr[1] as usize
+    } else {
+        1
+    };
 
     let pads_attr = node.get_ints_attr("pads");
     #[allow(clippy::cast_sign_loss)]
@@ -989,10 +999,7 @@ fn exec_maxpool<T: Float>(
 }
 
 #[allow(clippy::too_many_lines)]
-fn exec_avgpool<T: Float>(
-    node: &OnnxNode,
-    env: &mut HashMap<String, Tensor<T>>,
-) -> Result<()> {
+fn exec_avgpool<T: Float>(node: &OnnxNode, env: &mut HashMap<String, Tensor<T>>) -> Result<()> {
     let x = get_input(node, env, 0)?;
     let x_shape = x.shape().to_vec();
 
@@ -1016,9 +1023,17 @@ fn exec_avgpool<T: Float>(
 
     let strides_attr = node.get_ints_attr("strides");
     #[allow(clippy::cast_sign_loss)]
-    let sh = if strides_attr.len() >= 2 { strides_attr[0] as usize } else { 1 };
+    let sh = if strides_attr.len() >= 2 {
+        strides_attr[0] as usize
+    } else {
+        1
+    };
     #[allow(clippy::cast_sign_loss)]
-    let sw = if strides_attr.len() >= 2 { strides_attr[1] as usize } else { 1 };
+    let sw = if strides_attr.len() >= 2 {
+        strides_attr[1] as usize
+    } else {
+        1
+    };
 
     let pads_attr = node.get_ints_attr("pads");
     #[allow(clippy::cast_sign_loss)]

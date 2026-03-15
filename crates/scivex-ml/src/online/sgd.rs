@@ -333,11 +333,8 @@ mod tests {
         // Class 0: x[0] < 0, Class 1: x[0] > 0
         let mut clf = SGDClassifier::<f64>::new(0.1).unwrap();
         for _ in 0..100 {
-            let x = Tensor::from_vec(
-                vec![-3.0, -2.0, -1.0, -0.5, 0.5, 1.0, 2.0, 3.0],
-                vec![8, 1],
-            )
-            .unwrap();
+            let x = Tensor::from_vec(vec![-3.0, -2.0, -1.0, -0.5, 0.5, 1.0, 2.0, 3.0], vec![8, 1])
+                .unwrap();
             let y =
                 Tensor::from_vec(vec![0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0], vec![8]).unwrap();
             clf.partial_fit(&x, &y).unwrap();

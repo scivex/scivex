@@ -72,8 +72,7 @@ where
     let mut stds = vec![T::zero(); p];
     for feat in 0..p {
         let slice = &raw[feat * n_repeats..(feat + 1) * n_repeats];
-        let mean = slice.iter().copied().fold(T::zero(), |a, b| a + b)
-            / T::from_usize(n_repeats);
+        let mean = slice.iter().copied().fold(T::zero(), |a, b| a + b) / T::from_usize(n_repeats);
         means[feat] = mean;
         let var = slice
             .iter()
@@ -142,11 +141,8 @@ mod tests {
 
     #[test]
     fn test_permutation_importance_shape() {
-        let x = Tensor::from_vec(
-            vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
-            vec![4, 2],
-        )
-        .unwrap();
+        let x =
+            Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], vec![4, 2]).unwrap();
         let y = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
 
         let mut model = crate::tree::DecisionTreeRegressor::new(Some(3), 1);

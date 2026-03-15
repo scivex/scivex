@@ -313,11 +313,7 @@ impl<T: Float> HistGradientBoostingRegressor<T> {
     /// # Errors
     ///
     /// Returns `MlError::InvalidParameter` if any parameter is out of range.
-    pub fn new(
-        n_estimators: usize,
-        learning_rate: f64,
-        max_leaf_nodes: usize,
-    ) -> Result<Self> {
+    pub fn new(n_estimators: usize, learning_rate: f64, max_leaf_nodes: usize) -> Result<Self> {
         if n_estimators == 0 {
             return Err(MlError::InvalidParameter {
                 name: "n_estimators",
@@ -508,8 +504,16 @@ fn find_best_split<T: Float>(
     for (feat, hist) in histograms.iter().enumerate().take(p) {
         let n_bins = bin_mapper.n_bins_per_feature[feat];
 
-        let total_g: T = hist.sum_gradients.iter().copied().fold(T::zero(), |a, b| a + b);
-        let total_h: T = hist.sum_hessians.iter().copied().fold(T::zero(), |a, b| a + b);
+        let total_g: T = hist
+            .sum_gradients
+            .iter()
+            .copied()
+            .fold(T::zero(), |a, b| a + b);
+        let total_h: T = hist
+            .sum_hessians
+            .iter()
+            .copied()
+            .fold(T::zero(), |a, b| a + b);
         let total_count: u32 = hist.counts.iter().sum();
 
         let mut cum_g = T::zero();
@@ -522,8 +526,7 @@ fn find_best_split<T: Float>(
             cum_count += hist.counts[bin];
 
             let right_count = total_count - cum_count;
-            if (cum_count as usize) < min_samples_leaf
-                || (right_count as usize) < min_samples_leaf
+            if (cum_count as usize) < min_samples_leaf || (right_count as usize) < min_samples_leaf
             {
                 continue;
             }
@@ -532,8 +535,7 @@ fn find_best_split<T: Float>(
             let right_h = total_h - cum_h;
 
             let gain = half
-                * (cum_g * cum_g / (cum_h + lambda)
-                    + right_g * right_g / (right_h + lambda)
+                * (cum_g * cum_g / (cum_h + lambda) + right_g * right_g / (right_h + lambda)
                     - total_g * total_g / (total_h + lambda));
 
             if gain > min_gain_to_split {
@@ -559,7 +561,7 @@ fn find_best_split<T: Float>(
 fn assemble_tree<T: Float>(
     node_id: usize,
     split_info: &[(usize, usize, usize, T)], // (node_id, feature, bin, threshold)
-    child_map: &[(usize, usize)],             // (parent_id, first_child_id)
+    child_map: &[(usize, usize)],            // (parent_id, first_child_id)
     leaves: &[PendingLeaf<T>],
     lambda: T,
 ) -> HistNode<T> {
@@ -568,8 +570,7 @@ fn assemble_tree<T: Float>(
         if parent == node_id {
             let (_, feature, _bin, threshold) = split_info[map_idx];
             let left = assemble_tree(children_start, split_info, child_map, leaves, lambda);
-            let right =
-                assemble_tree(children_start + 1, split_info, child_map, leaves, lambda);
+            let right = assemble_tree(children_start + 1, split_info, child_map, leaves, lambda);
             return HistNode::Split {
                 feature,
                 threshold,
@@ -636,11 +637,23 @@ fn build_hist_tree<T: Float>(
     let mut heap: BinaryHeap<HeapEntry<T>> = BinaryHeap::new();
 
     // Build histograms for root and find best split.
-    let root_histograms =
-        build_histograms(binned, gradients, hessians, n, p, bin_mapper, sample_indices);
-    if let Some(best) =
-        find_best_split(&root_histograms, p, bin_mapper, lambda, min_gain_to_split, min_samples_leaf)
-    {
+    let root_histograms = build_histograms(
+        binned,
+        gradients,
+        hessians,
+        n,
+        p,
+        bin_mapper,
+        sample_indices,
+    );
+    if let Some(best) = find_best_split(
+        &root_histograms,
+        p,
+        bin_mapper,
+        lambda,
+        min_gain_to_split,
+        min_samples_leaf,
+    ) {
         heap.push(HeapEntry {
             split: best,
             leaf_id: 0,
@@ -705,15 +718,30 @@ fn build_hist_tree<T: Float>(
             (&right_indices, &left_indices)
         };
 
-        let smaller_hists =
-            build_histograms(binned, gradients, hessians, n, p, bin_mapper, smaller_indices);
+        let smaller_hists = build_histograms(
+            binned,
+            gradients,
+            hessians,
+            n,
+            p,
+            bin_mapper,
+            smaller_indices,
+        );
         let larger_hists = if let Some(ref ph) = parent_hists {
             ph.iter()
                 .zip(smaller_hists.iter())
                 .map(|(par, small)| par.subtract(small))
                 .collect::<Vec<_>>()
         } else {
-            build_histograms(binned, gradients, hessians, n, p, bin_mapper, larger_indices)
+            build_histograms(
+                binned,
+                gradients,
+                hessians,
+                n,
+                p,
+                bin_mapper,
+                larger_indices,
+            )
         };
 
         let (left_hists, right_hists) = if left_is_smaller {
@@ -977,11 +1005,7 @@ impl<T: Float> HistGradientBoostingClassifier<T> {
     /// # Errors
     ///
     /// Returns `MlError::InvalidParameter` if any parameter is out of range.
-    pub fn new(
-        n_estimators: usize,
-        learning_rate: f64,
-        max_leaf_nodes: usize,
-    ) -> Result<Self> {
+    pub fn new(n_estimators: usize, learning_rate: f64, max_leaf_nodes: usize) -> Result<Self> {
         if n_estimators == 0 {
             return Err(MlError::InvalidParameter {
                 name: "n_estimators",
@@ -1321,17 +1345,13 @@ mod tests {
         // y = 2*x0 + x1
         let x = Tensor::from_vec(
             vec![
-                1.0_f64, 0.5, 2.0, 1.0, 3.0, 1.5, 4.0, 2.0, 5.0, 2.5, 6.0, 3.0, 7.0, 3.5, 8.0,
-                4.0,
+                1.0_f64, 0.5, 2.0, 1.0, 3.0, 1.5, 4.0, 2.0, 5.0, 2.5, 6.0, 3.0, 7.0, 3.5, 8.0, 4.0,
             ],
             vec![8, 2],
         )
         .unwrap();
-        let y = Tensor::from_vec(
-            vec![2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0],
-            vec![8],
-        )
-        .unwrap();
+        let y =
+            Tensor::from_vec(vec![2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0], vec![8]).unwrap();
 
         let mut model = HistGradientBoostingRegressor::new(100, 0.1, 8).unwrap();
         model.fit(&x, &y).unwrap();
@@ -1410,10 +1430,7 @@ mod tests {
             .zip(y.as_slice())
             .filter(|(a, b)| (**a - **b).abs() < 0.5)
             .count();
-        assert!(
-            correct >= 4,
-            "expected at least 4/6 correct, got {correct}"
-        );
+        assert!(correct >= 4, "expected at least 4/6 correct, got {correct}");
     }
 
     #[test]
@@ -1458,17 +1475,13 @@ mod tests {
         // Feature 0 is predictive; feature 1 is constant.
         let x = Tensor::from_vec(
             vec![
-                1.0_f64, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0, 5.0, 0.0, 6.0, 0.0, 7.0, 0.0, 8.0,
-                0.0,
+                1.0_f64, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0, 5.0, 0.0, 6.0, 0.0, 7.0, 0.0, 8.0, 0.0,
             ],
             vec![8, 2],
         )
         .unwrap();
-        let y = Tensor::from_vec(
-            vec![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0],
-            vec![8],
-        )
-        .unwrap();
+        let y =
+            Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0], vec![8]).unwrap();
 
         let mut model = HistGradientBoostingRegressor::new(50, 0.1, 8).unwrap();
         model.fit(&x, &y).unwrap();
@@ -1482,17 +1495,13 @@ mod tests {
     fn test_hist_gb_feature_importances_split() {
         let x = Tensor::from_vec(
             vec![
-                1.0_f64, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0, 5.0, 0.0, 6.0, 0.0, 7.0, 0.0, 8.0,
-                0.0,
+                1.0_f64, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0, 5.0, 0.0, 6.0, 0.0, 7.0, 0.0, 8.0, 0.0,
             ],
             vec![8, 2],
         )
         .unwrap();
-        let y = Tensor::from_vec(
-            vec![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0],
-            vec![8],
-        )
-        .unwrap();
+        let y =
+            Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0], vec![8]).unwrap();
 
         let mut model = HistGradientBoostingRegressor::new(20, 0.1, 4).unwrap();
         model.fit(&x, &y).unwrap();
@@ -1506,16 +1515,10 @@ mod tests {
 
     #[test]
     fn test_hist_gb_subsample() {
-        let x = Tensor::from_vec(
-            vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
-            vec![8, 1],
-        )
-        .unwrap();
-        let y = Tensor::from_vec(
-            vec![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0],
-            vec![8],
-        )
-        .unwrap();
+        let x =
+            Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], vec![8, 1]).unwrap();
+        let y =
+            Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0], vec![8]).unwrap();
 
         let mut model = HistGradientBoostingRegressor::new(50, 0.1, 4).unwrap();
         model.set_subsample(0.5).set_seed(123);

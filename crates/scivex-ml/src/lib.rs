@@ -45,10 +45,10 @@ pub mod metrics;
 pub mod model_selection;
 /// Naive Bayes classifiers.
 pub mod naive_bayes;
-/// Online / streaming ML algorithms.
-pub mod online;
 /// K-nearest neighbors classifiers and regressors.
 pub mod neighbors;
+/// Online / streaming ML algorithms.
+pub mod online;
 /// Model persistence: save and load trained models.
 pub mod persist;
 /// Pipeline composition: chaining transformers and predictors.

@@ -47,7 +47,8 @@ impl<T: Float> ProductQuantizer<T> {
                 reason: "must be at least 1",
             });
         }
-        if !dim.is_multiple_of(n_subvectors) {
+        #[allow(clippy::manual_is_multiple_of)]
+        if dim % n_subvectors != 0 {
             return Err(MlError::InvalidParameter {
                 name: "n_subvectors",
                 reason: "dim must be divisible by n_subvectors",
@@ -120,22 +121,18 @@ impl<T: Float> ProductQuantizer<T> {
                 sub_data.extend_from_slice(&data[row_start..row_start + self.sub_dim]);
             }
 
-            let sub_tensor =
-                Tensor::from_vec(sub_data, vec![n, self.sub_dim])?;
+            let sub_tensor = Tensor::from_vec(sub_data, vec![n, self.sub_dim])?;
 
             let mut km = KMeans::new(
                 self.n_centroids,
-                100,    // max_iter
+                100, // max_iter
                 T::from_f64(1e-6),
-                1,      // n_init
+                1, // n_init
                 self.seed.wrapping_add(sv as u64),
             )?;
             km.fit(&sub_tensor)?;
 
-            let centroids = km
-                .centroids()
-                .ok_or(MlError::NotFitted)?
-                .to_vec();
+            let centroids = km.centroids().ok_or(MlError::NotFitted)?.to_vec();
             codebooks.push(centroids);
         }
 
@@ -216,8 +213,7 @@ impl<T: Float> ProductQuantizer<T> {
             let query_sub = &query[offset..offset + self.sub_dim];
             let cb = &codebooks[sv];
             for c in 0..self.n_centroids {
-                let centroid =
-                    &cb[c * self.sub_dim..(c + 1) * self.sub_dim];
+                let centroid = &cb[c * self.sub_dim..(c + 1) * self.sub_dim];
                 dist_table[sv][c] = compute_distance(query_sub, centroid, self.metric);
             }
         }
@@ -234,9 +230,7 @@ impl<T: Float> ProductQuantizer<T> {
             if heap.len() < k {
                 heap.push(PqDistIdx { dist, idx: i });
             } else {
-                let should_insert = heap
-                    .peek()
-                    .is_some_and(|top| dist < top.dist);
+                let should_insert = heap.peek().is_some_and(|top| dist < top.dist);
                 if should_insert {
                     heap.pop();
                     heap.push(PqDistIdx { dist, idx: i });
@@ -245,7 +239,11 @@ impl<T: Float> ProductQuantizer<T> {
         }
 
         let mut results: Vec<PqDistIdx<T>> = heap.into_vec();
-        results.sort_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            a.dist
+                .partial_cmp(&b.dist)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let indices = results.iter().map(|r| r.idx).collect();
         let distances = results.iter().map(|r| r.dist).collect();
@@ -257,8 +255,7 @@ impl<T: Float> ProductQuantizer<T> {
         let mut best = 0;
         let mut best_dist = T::infinity();
         for c in 0..self.n_centroids {
-            let centroid =
-                &codebook[c * self.sub_dim..(c + 1) * self.sub_dim];
+            let centroid = &codebook[c * self.sub_dim..(c + 1) * self.sub_dim];
             let d = compute_distance(sub_vec, centroid, self.metric);
             if d < best_dist {
                 best_dist = d;

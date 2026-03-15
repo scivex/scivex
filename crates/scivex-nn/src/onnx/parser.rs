@@ -9,8 +9,8 @@ use crate::onnx::ir::{
     OnnxOpsetImport, OnnxTensor, OnnxValueInfo,
 };
 use crate::onnx::proto::{
-    self, decode_packed_varints, get_all_bytes, get_all_strings, get_bytes, get_string, get_varint,
-    FieldValue,
+    self, FieldValue, decode_packed_varints, get_all_bytes, get_all_strings, get_bytes, get_string,
+    get_varint,
 };
 
 // -----------------------------------------------------------------------
@@ -122,7 +122,9 @@ fn parse_model(fields: &[proto::Field<'_>]) -> Result<OnnxModel> {
         let domain = get_string(&opset_fields, OPSET_DOMAIN).unwrap_or_default();
         #[allow(clippy::cast_possible_wrap)]
         let version = get_varint(&opset_fields, OPSET_VERSION).unwrap_or(0) as i64;
-        model.opset_imports.push(OnnxOpsetImport { domain, version });
+        model
+            .opset_imports
+            .push(OnnxOpsetImport { domain, version });
     }
 
     // Graph
