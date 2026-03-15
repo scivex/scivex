@@ -60,15 +60,17 @@ impl<T> Bounds<T> {
 /// Project `x` onto the feasible box defined by `bounds`.
 fn project<T: Float>(x: &mut [T], bounds: &[Bounds<T>]) {
     for (xi, b) in x.iter_mut().zip(bounds.iter()) {
-        if let Some(lb) = b.lower
-            && *xi < lb
-        {
-            *xi = lb;
+        #[allow(clippy::collapsible_if)]
+        if let Some(lb) = b.lower {
+            if *xi < lb {
+                *xi = lb;
+            }
         }
-        if let Some(ub) = b.upper
-            && *xi > ub
-        {
-            *xi = ub;
+        #[allow(clippy::collapsible_if)]
+        if let Some(ub) = b.upper {
+            if *xi > ub {
+                *xi = ub;
+            }
         }
     }
 }

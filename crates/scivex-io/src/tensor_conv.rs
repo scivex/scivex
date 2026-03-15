@@ -54,13 +54,13 @@ pub fn tensor_to_record_batch_named(
     let (n_rows, n_cols) = (shape[0], shape[1]);
     let data = tensor.as_slice();
 
-    if let Some(ns) = names
-        && ns.len() != n_cols
-    {
-        return Err(IoError::ArrowError(format!(
-            "expected {n_cols} column names, got {}",
-            ns.len()
-        )));
+    if let Some(ns) = names {
+        if ns.len() != n_cols {
+            return Err(IoError::ArrowError(format!(
+                "expected {n_cols} column names, got {}",
+                ns.len()
+            )));
+        }
     }
 
     let mut fields = Vec::with_capacity(n_cols);

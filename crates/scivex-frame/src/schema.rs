@@ -236,14 +236,15 @@ fn check_range(
         if col.is_null(i) {
             continue;
         }
-        if let Ok(v) = col.display_value(i).parse::<f64>()
-            && (v < min || v > max)
-        {
-            errors.push(ValidationError {
-                column: col_name.to_string(),
-                reason: format!("value {v} out of range [{min}, {max}]"),
-            });
-            return;
+        #[allow(clippy::collapsible_if)]
+        if let Ok(v) = col.display_value(i).parse::<f64>() {
+            if v < min || v > max {
+                errors.push(ValidationError {
+                    column: col_name.to_string(),
+                    reason: format!("value {v} out of range [{min}, {max}]"),
+                });
+                return;
+            }
         }
     }
 }
