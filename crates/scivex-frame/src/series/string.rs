@@ -224,6 +224,55 @@ impl StringSeries {
         })?;
         Ok(self.data.iter().map(|s| re.find_iter(s).count()).collect())
     }
+
+    /// Convert to a [`CategoricalSeries`](crate::CategoricalSeries) using
+    /// dictionary encoding.
+    ///
+    /// Each unique string value is stored once in a dictionary and referenced
+    /// by an integer code, reducing memory for columns with repeated values.
+    pub fn to_categorical(&self) -> crate::series::categorical::CategoricalSeries {
+        use std::collections::HashMap;
+        let mut categories: Vec<String> = Vec::new();
+        let mut cat_map: HashMap<String, u32> = HashMap::new();
+        let mut codes = Vec::with_capacity(self.data.len());
+
+        for s in &self.data {
+            let code = if let Some(&c) = cat_map.get(s) {
+                c
+            } else {
+                let c = categories.len() as u32;
+                cat_map.insert(s.clone(), c);
+                categories.push(s.clone());
+                c
+            };
+            codes.push(code);
+        }
+        if let Some(ref mask) = self.null_mask {
+            crate::series::categorical::CategoricalSeries::with_nulls(
+                self.name.clone(),
+                categories,
+                codes,
+                mask.clone(),
+            )
+            .expect("valid construction")
+        } else {
+            crate::series::categorical::CategoricalSeries::new(self.name.clone(), categories, codes)
+                .expect("valid construction")
+        }
+    }
+
+    /// Number of unique non-null values.
+    pub fn n_unique(&self) -> usize {
+        use std::collections::HashSet;
+        let set: HashSet<&str> = self
+            .data
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| !self.is_null_at(*i))
+            .map(|(_, s)| s.as_str())
+            .collect();
+        set.len()
+    }
 }
 
 impl fmt::Display for StringSeries {
@@ -590,5 +639,50 @@ mod tests {
     fn test_regex_invalid_pattern() {
         let s = StringSeries::from_strs("x", &["hello"]);
         assert!(s.regex_contains(r"[invalid").is_err());
+    }
+
+    #[test]
+    fn test_to_categorical() {
+        let s = StringSeries::from_strs("color", &["red", "blue", "red", "green", "blue"]);
+        let cat = s.to_categorical();
+        assert_eq!(cat.n_categories(), 3);
+        assert_eq!(cat.len(), 5);
+        assert_eq!(cat.get(0), Some("red"));
+        assert_eq!(cat.get(1), Some("blue"));
+        assert_eq!(cat.get(2), Some("red"));
+        assert_eq!(cat.get(3), Some("green"));
+        assert_eq!(cat.get(4), Some("blue"));
+    }
+
+    #[test]
+    fn test_to_categorical_preserves_nulls() {
+        let s = StringSeries::with_nulls(
+            "x",
+            vec!["a".into(), "b".into(), "a".into()],
+            vec![false, true, false],
+        )
+        .unwrap();
+        let cat = s.to_categorical();
+        assert_eq!(cat.null_count(), 1);
+        assert_eq!(cat.get(0), Some("a"));
+        assert_eq!(cat.get(1), None);
+        assert_eq!(cat.get(2), Some("a"));
+    }
+
+    #[test]
+    fn test_n_unique() {
+        let s = StringSeries::from_strs("x", &["a", "b", "a", "c", "b"]);
+        assert_eq!(s.n_unique(), 3);
+    }
+
+    #[test]
+    fn test_n_unique_with_nulls() {
+        let s = StringSeries::with_nulls(
+            "x",
+            vec!["a".into(), "b".into(), "a".into()],
+            vec![false, true, false],
+        )
+        .unwrap();
+        assert_eq!(s.n_unique(), 1); // only "a" is non-null
     }
 }

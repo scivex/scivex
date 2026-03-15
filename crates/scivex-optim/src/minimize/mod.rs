@@ -2,9 +2,13 @@
 
 mod bfgs;
 mod gradient_descent;
+mod lbfgsb;
+mod nelder_mead;
 
 pub use bfgs::bfgs;
 pub use gradient_descent::gradient_descent;
+pub use lbfgsb::{Bounds, lbfgsb};
+pub use nelder_mead::nelder_mead;
 
 use scivex_core::{Float, Tensor};
 

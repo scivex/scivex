@@ -30,6 +30,10 @@ pub mod dtype;
 pub mod error;
 /// Group-by split-apply-combine aggregation.
 pub mod groupby;
+/// Lazy evaluation with expression trees and logical plans.
+pub mod lazy;
+/// DataFrame schema validation.
+pub mod schema;
 /// Typed series (columns) and type-erased column trait.
 pub mod series;
 
@@ -39,6 +43,7 @@ pub use dataframe::{DataFrame, DataFrameBuilder};
 pub use dtype::DType;
 pub use error::{FrameError, Result};
 pub use groupby::{AggFunc, GroupBy};
+pub use lazy::LazyFrame;
 pub use series::categorical::CategoricalSeries;
 pub use series::datetime::{DateTime, DateTimeSeries, Duration};
 pub use series::string::StringSeries;
@@ -52,6 +57,7 @@ pub mod prelude {
     pub use crate::dtype::DType;
     pub use crate::error::{FrameError, Result};
     pub use crate::groupby::{AggFunc, GroupBy};
+    pub use crate::lazy::LazyFrame;
     pub use crate::series::categorical::CategoricalSeries;
     pub use crate::series::datetime::{DateTime, DateTimeSeries, Duration};
     pub use crate::series::string::StringSeries;

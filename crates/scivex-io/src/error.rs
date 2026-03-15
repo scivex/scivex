@@ -36,6 +36,9 @@ pub enum IoError {
 
     /// An Arrow/Parquet error.
     ArrowError(String),
+
+    /// A file format error (invalid magic bytes, corrupt header, etc.).
+    FormatError(String),
 }
 
 impl fmt::Display for IoError {
@@ -60,6 +63,7 @@ impl fmt::Display for IoError {
             Self::CoreError(e) => write!(f, "core error: {e}"),
             Self::SqlError(msg) => write!(f, "SQL error: {msg}"),
             Self::ArrowError(msg) => write!(f, "Arrow/Parquet error: {msg}"),
+            Self::FormatError(msg) => write!(f, "format error: {msg}"),
         }
     }
 }
@@ -76,7 +80,8 @@ impl std::error::Error for IoError {
             | Self::EmptyInput
             | Self::InvalidHeader { .. }
             | Self::SqlError(_)
-            | Self::ArrowError(_) => None,
+            | Self::ArrowError(_)
+            | Self::FormatError(_) => None,
         }
     }
 }
