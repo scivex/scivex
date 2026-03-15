@@ -1,6 +1,6 @@
 //! DataFrame schema validation.
 //!
-//! A [`Schema`] describes the expected structure of a [`DataFrame`]: column
+//! A `Schema` describes the expected structure of a [`DataFrame`]: column
 //! names, data types, nullability, and value constraints. Use
 //! [`DataFrame::validate`] to check conformance.
 //!

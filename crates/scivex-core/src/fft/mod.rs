@@ -47,7 +47,7 @@ fn factor_small(mut n: usize) -> Option<Vec<usize>> {
     }
     let mut factors = Vec::new();
     for &p in &SMALL_PRIMES {
-        while n.is_multiple_of(p) {
+        while n % p == 0 {
             factors.push(p);
             n /= p;
         }

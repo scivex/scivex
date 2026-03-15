@@ -1,6 +1,6 @@
 //! Curve fitting via non-linear least squares.
 //!
-//! Provides the [`levenberg_marquardt`] algorithm and a high-level [`curve_fit`]
+//! Provides the [`levenberg_marquardt`] algorithm and a high-level [`curve_fit()`]
 //! convenience function.
 
 mod levenberg_marquardt;
