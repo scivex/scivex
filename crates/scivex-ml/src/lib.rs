@@ -35,6 +35,8 @@ pub mod decomposition;
 pub mod ensemble;
 /// ML error types.
 pub mod error;
+/// Model explainability: feature importance, SHAP, partial dependence.
+pub mod explain;
 /// Linear models (regression, ridge, logistic).
 pub mod linear;
 /// Evaluation metrics for classification and regression.
@@ -43,6 +45,8 @@ pub mod metrics;
 pub mod model_selection;
 /// Naive Bayes classifiers.
 pub mod naive_bayes;
+/// Online / streaming ML algorithms.
+pub mod online;
 /// K-nearest neighbors classifiers and regressors.
 pub mod neighbors;
 /// Model persistence: save and load trained models.
@@ -61,6 +65,7 @@ pub mod traits;
 pub mod tree;
 
 pub use error::{MlError, Result};
+pub use online::IncrementalPredictor;
 pub use traits::{Classifier, Predictor, Transformer};
 
 /// Convenience re-exports.
@@ -76,8 +81,9 @@ pub mod prelude {
 
     // Trees & ensembles
     pub use crate::ensemble::{
-        GBLoss, GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier,
-        RandomForestRegressor,
+        GBLoss, GradientBoostingClassifier, GradientBoostingRegressor,
+        HistGradientBoostingClassifier, HistGradientBoostingRegressor, ImportanceType,
+        RandomForestClassifier, RandomForestRegressor,
     };
     pub use crate::tree::{DecisionTreeClassifier, DecisionTreeRegressor};
 
@@ -85,7 +91,10 @@ pub mod prelude {
     pub use crate::svm::{Kernel, SVC, SVR};
 
     // Neighbors
-    pub use crate::neighbors::{KNNClassifier, KNNRegressor};
+    pub use crate::neighbors::{
+        BruteForceIndex, DistanceMetric, HnswIndex, KNNClassifier, KNNRegressor,
+        NearestNeighborResult, ProductQuantizer,
+    };
 
     // Clustering
     pub use crate::cluster::{DBSCAN, KMeans};
@@ -107,4 +116,16 @@ pub mod prelude {
 
     // Persistence
     pub use crate::persist::Persistable;
+
+    // Explainability
+    pub use crate::explain::{
+        PartialDependence, PermutationImportanceResult, kernel_shap, partial_dependence,
+        permutation_importance, tree_shap,
+    };
+
+    // Online / streaming
+    pub use crate::online::{
+        IncrementalPredictor, OnlineKMeans, SGDClassifier, SGDRegressor, StreamingMean,
+        StreamingVariance,
+    };
 }
