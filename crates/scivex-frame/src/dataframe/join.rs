@@ -7,6 +7,10 @@ use crate::error::{FrameError, Result};
 use crate::series::AnySeries;
 
 /// Type of join to perform.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinType {
     /// Keep only rows with matching keys in both data frames.
@@ -139,7 +143,7 @@ impl DataFrame {
 /// Build a composite string key from multiple columns at a given row.
 fn composite_key(df: &DataFrame, cols: &[&str], row: usize) -> String {
     cols.iter()
-        .map(|&c| df.column(c).unwrap().display_value(row))
+        .map(|&c| df.column(c).expect("join column exists").display_value(row))
         .collect::<Vec<_>>()
         .join("\x00")
 }
@@ -271,5 +275,66 @@ mod tests {
         let right = right_df();
         let result = left.join(&right, &["key"], JoinType::Inner).unwrap();
         assert_eq!(result.nrows(), 0);
+    }
+
+    #[test]
+    fn test_inner_join_no_matching_keys() {
+        let left = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("key", &["x", "y", "z"])),
+            Box::new(Series::new("lval", vec![1_i32, 2, 3])),
+        ])
+        .unwrap();
+        let right = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("key", &["a", "b"])),
+            Box::new(Series::new("rval", vec![10_i32, 20])),
+        ])
+        .unwrap();
+        let result = left.join(&right, &["key"], JoinType::Inner).unwrap();
+        assert_eq!(result.nrows(), 0);
+    }
+
+    #[test]
+    fn test_join_all_matching_keys_repeated() {
+        let left = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("key", &["a", "a", "a"])),
+            Box::new(Series::new("lval", vec![1_i32, 2, 3])),
+        ])
+        .unwrap();
+        let right = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("key", &["a", "a"])),
+            Box::new(Series::new("rval", vec![10_i32, 20])),
+        ])
+        .unwrap();
+        let result = left.join(&right, &["key"], JoinType::Inner).unwrap();
+        // 3 left * 2 right = 6 rows (cross-join on matching key)
+        assert_eq!(result.nrows(), 6);
+    }
+
+    #[test]
+    fn test_left_join_no_matching_keys() {
+        let left = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("key", &["x", "y"])),
+            Box::new(Series::new("lval", vec![1_i32, 2])),
+        ])
+        .unwrap();
+        let right = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("key", &["a"])),
+            Box::new(Series::new("rval", vec![10_i32])),
+        ])
+        .unwrap();
+        let result = left.join(&right, &["key"], JoinType::Left).unwrap();
+        assert_eq!(result.nrows(), 2);
+        // rval should be null for both rows
+        let rval = result.column("rval").unwrap();
+        assert!(rval.is_null(0));
+        assert!(rval.is_null(1));
+    }
+
+    #[test]
+    fn test_join_key_mismatch_error() {
+        let left = left_df();
+        let right = right_df();
+        let result = left.join_on(&right, &["key"], &["key", "rval"], JoinType::Inner);
+        assert!(result.is_err());
     }
 }

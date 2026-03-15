@@ -6,6 +6,10 @@ use crate::error::Result;
 use crate::graph::Graph;
 
 /// Minimum spanning tree result.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Mst<T> {
     /// The edges in the minimum spanning tree as `(u, v, weight)` triples.

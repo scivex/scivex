@@ -1,3 +1,4 @@
+#![allow(clippy::manual_is_multiple_of)]
 //! `scivex-signal` — Signal processing, FFT, wavelets, and audio.
 //!
 //! Provides a from-scratch signal processing library with support for:
@@ -9,6 +10,8 @@
 //! - 1-D convolution and correlation
 //! - Wavelet transforms (DWT/IDWT with Haar)
 
+/// WAV audio file reading and writing.
+pub mod audio;
 /// 1-D convolution and correlation.
 pub mod convolution;
 /// Signal processing error types.

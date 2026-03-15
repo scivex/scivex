@@ -11,7 +11,7 @@
 //! | [`ops`] | Differentiable operations (add, mul, matmul, etc.) |
 //! | [`functional`] | Activation functions (relu, sigmoid, tanh, softmax) |
 //! | [`layer`] | `Layer` trait, `Linear`, `Conv1d/2d`, pooling, RNN/LSTM/GRU, attention, `Sequential` |
-//! | [`optim`] | `Optimizer` trait, `SGD`, `Adam` |
+//! | [`optim`] | `Optimizer` trait, `SGD`, `Adam`, LR schedulers |
 //! | [`loss`] | Loss functions (MSE, cross-entropy, BCE) |
 //! | [`init`] | Weight initialization (Xavier, Kaiming) |
 //! | [`persist`] | `save_weights`, `load_weights` — binary weight persistence |
@@ -54,7 +54,10 @@ pub mod prelude {
     };
     pub use crate::loss::{bce_loss, cross_entropy_loss, mse_loss};
     pub use crate::ops::{add, add_bias, matmul, mean, mul, neg, pow, scalar_mul, sub, sum};
-    pub use crate::optim::{Adam, Optimizer, SGD};
+    pub use crate::optim::{
+        Adam, CosineAnnealingLR, ExponentialLR, LinearLR, LrScheduler, Optimizer,
+        ReduceLROnPlateau, SGD, StepLR, WarmupCosineDecay,
+    };
     pub use crate::persist::{load_weights, save_weights};
     pub use crate::variable::Variable;
 }

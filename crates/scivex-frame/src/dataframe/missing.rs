@@ -84,4 +84,28 @@ mod tests {
         let counts = df.null_count_per_column();
         assert_eq!(counts, vec![("a", 1), ("b", 0)]);
     }
+
+    #[test]
+    fn test_drop_nulls_no_nulls() {
+        let df = DataFrame::new(vec![
+            Box::new(Series::new("a", vec![1_i32, 2, 3])),
+            Box::new(Series::new("b", vec![4_i32, 5, 6])),
+        ])
+        .unwrap();
+        let result = df.drop_nulls().unwrap();
+        assert_eq!(result.nrows(), 3);
+    }
+
+    #[test]
+    fn test_drop_nulls_empty_df() {
+        let df = DataFrame::new(vec![Box::new(Series::new("a", Vec::<i32>::new()))]).unwrap();
+        let result = df.drop_nulls().unwrap();
+        assert_eq!(result.nrows(), 0);
+    }
+
+    #[test]
+    fn test_drop_nulls_subset_nonexistent_column() {
+        let df = DataFrame::new(vec![Box::new(Series::new("a", vec![1_i32, 2]))]).unwrap();
+        assert!(df.drop_nulls_subset(&["nonexistent"]).is_err());
+    }
 }

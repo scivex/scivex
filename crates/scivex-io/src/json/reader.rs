@@ -12,6 +12,10 @@ use crate::common::is_null_sentinel;
 use crate::error::{IoError, Result};
 
 /// Orientation of JSON data.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JsonOrientation {
     /// Array of row objects: `[{"col": val}, ...]`
@@ -32,6 +36,10 @@ pub enum JsonOrientation {
 ///     .read(json.as_bytes())
 ///     .unwrap();
 /// ```
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct JsonReaderBuilder {
     orientation: JsonOrientation,

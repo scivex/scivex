@@ -3,6 +3,10 @@ use scivex_core::{Scalar, Tensor};
 use crate::error::{ImageError, Result};
 
 /// Pixel format describing how channels are interpreted.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PixelFormat {
     /// Single-channel grayscale.
@@ -29,6 +33,10 @@ impl PixelFormat {
 }
 
 /// A 2-D image backed by a [`Tensor<T>`] with shape `[height, width, channels]`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Image<T: Scalar> {
     data: Tensor<T>,
@@ -382,5 +390,55 @@ mod tests {
         assert_eq!(p[0], 0);
         assert_eq!(p[1], 255);
         assert_eq!(p[2], 128);
+    }
+
+    #[test]
+    fn test_1x1_rgb_image() {
+        let img = Image::<u8>::new(1, 1, PixelFormat::Rgb).unwrap();
+        assert_eq!(img.width(), 1);
+        assert_eq!(img.height(), 1);
+        assert_eq!(img.channels(), 3);
+        assert_eq!(img.as_slice(), &[0, 0, 0]);
+    }
+
+    #[test]
+    fn test_2x2_rgba_image() {
+        let img = Image::<u8>::new(2, 2, PixelFormat::Rgba).unwrap();
+        assert_eq!(img.width(), 2);
+        assert_eq!(img.height(), 2);
+        assert_eq!(img.channels(), 4);
+        assert_eq!(img.as_slice().len(), 2 * 2 * 4);
+        // All zeros
+        assert!(img.as_slice().iter().all(|&v| v == 0));
+    }
+
+    #[test]
+    fn test_image_all_same_pixel_values() {
+        let data = vec![42u8; 3 * 3 * 3]; // 3x3 RGB, all 42
+        let img = Image::from_raw(data, 3, 3, PixelFormat::Rgb).unwrap();
+        for row in 0..3 {
+            for col in 0..3 {
+                assert_eq!(img.get_pixel(row, col).unwrap(), vec![42, 42, 42]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_new_zero_width_and_zero_height() {
+        assert!(Image::<u8>::new(0, 0, PixelFormat::Rgb).is_err());
+    }
+
+    #[test]
+    fn test_from_raw_zero_dims_both() {
+        let data: Vec<u8> = vec![];
+        assert!(Image::from_raw(data, 0, 0, PixelFormat::Gray).is_err());
+    }
+
+    #[test]
+    fn test_map_pixels_identity() {
+        let data = vec![10u8, 20, 30];
+        let img = Image::from_raw(data.clone(), 1, 1, PixelFormat::Rgb).unwrap();
+        let same = img.map_pixels(|v| v);
+        assert_eq!(same.as_slice(), &data);
     }
 }

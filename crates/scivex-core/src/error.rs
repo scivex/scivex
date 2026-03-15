@@ -1,6 +1,10 @@
 use core::fmt;
 
 /// All errors returned by `scivex-core`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreError {
     /// Operand shapes do not match the required layout.

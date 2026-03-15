@@ -11,6 +11,10 @@ pub use golden::golden_section;
 use scivex_core::Float;
 
 /// Result of a 1-D minimization algorithm.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Minimize1dResult<T: Float> {
     /// The estimated minimizer.

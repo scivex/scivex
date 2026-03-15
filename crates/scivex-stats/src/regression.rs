@@ -8,6 +8,10 @@ use crate::distributions::{Distribution, StudentT};
 use crate::error::{Result, StatsError};
 
 /// Results of an OLS regression.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct OlsResult<T: Float> {
     /// Estimated coefficients (including intercept at index 0).
@@ -36,7 +40,7 @@ pub struct OlsResult<T: Float> {
 
 /// Ordinary Least Squares regression.
 ///
-/// `x` is a 2-D tensor [n_obs x n_features] (without intercept — it will be
+/// `x` is a 2-D tensor `[n_obs x n_features]` (without intercept — it will be
 /// prepended automatically). `y` is a slice of `n_obs` target values.
 ///
 /// Returns the full regression summary.

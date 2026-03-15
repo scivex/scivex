@@ -38,6 +38,10 @@ use scivex_core::Float;
 use crate::error::Result;
 
 /// Result of an ODE integration.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct OdeResult<T: Float> {
     /// Time values at each accepted step.
@@ -83,6 +87,10 @@ impl<T: Float> Default for OdeOptions<T> {
 }
 
 /// Available ODE solver methods.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OdeMethod {
     /// Forward Euler — first-order, fixed step. Simple but inaccurate.

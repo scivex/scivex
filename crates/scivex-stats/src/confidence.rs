@@ -9,6 +9,10 @@ use crate::distributions::{Distribution, Normal, StudentT};
 use crate::error::{Result, StatsError};
 
 /// A confidence interval with lower and upper bounds.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct ConfidenceInterval<T: Float> {
     /// Lower bound of the interval.

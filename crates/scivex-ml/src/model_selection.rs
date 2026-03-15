@@ -67,6 +67,10 @@ pub fn train_test_split<T: Float>(
 }
 
 /// K-Fold cross-validation index generator.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct KFold {
     n_folds: usize,
     n_samples: usize,

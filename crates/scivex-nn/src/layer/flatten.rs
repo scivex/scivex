@@ -14,6 +14,10 @@ use super::Layer;
 ///
 /// Commonly placed between convolutional/pooling layers and fully-connected
 /// layers.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct Flatten;
 
 impl Flatten {

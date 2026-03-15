@@ -11,6 +11,10 @@ use crate::error::{CoreError, Result};
 use crate::tensor::Tensor;
 
 /// Result of an eigendecomposition for symmetric matrices.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct EigDecomposition<T: Float> {
     /// Eigenvalues in descending order of absolute value.
@@ -160,12 +164,16 @@ impl<T: Float> EigDecomposition<T> {
 
     /// The eigenvalues as a 1-D tensor.
     pub fn eigenvalues_tensor(&self) -> Tensor<T> {
-        Tensor::from_vec(self.eigenvalues.clone(), vec![self.n]).unwrap()
+        // SAFETY: eigenvalues always has exactly n elements, matching shape [n].
+        Tensor::from_vec(self.eigenvalues.clone(), vec![self.n])
+            .expect("eigenvalues length equals n by construction")
     }
 
     /// The eigenvector matrix `V` (n x n, columns are eigenvectors).
     pub fn eigenvectors(&self) -> Tensor<T> {
-        Tensor::from_vec(self.eigenvectors.clone(), vec![self.n, self.n]).unwrap()
+        // SAFETY: eigenvectors always has exactly n*n elements, matching shape [n, n].
+        Tensor::from_vec(self.eigenvectors.clone(), vec![self.n, self.n])
+            .expect("eigenvectors length equals n*n by construction")
     }
 }
 

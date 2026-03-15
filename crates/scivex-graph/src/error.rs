@@ -1,6 +1,10 @@
 use std::fmt;
 
 /// Errors that can occur during graph operations.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum GraphError {
     /// A referenced node does not exist or has been removed.

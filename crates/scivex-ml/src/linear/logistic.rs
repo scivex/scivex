@@ -4,6 +4,10 @@ use crate::error::{MlError, Result};
 use crate::traits::{Classifier, Predictor};
 
 /// Binary logistic regression trained via gradient descent.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct LogisticRegression<T: Float> {
     learning_rate: T,

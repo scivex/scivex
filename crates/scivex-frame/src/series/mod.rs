@@ -88,6 +88,10 @@ impl Clone for Box<dyn AnySeries> {
 // ---------------------------------------------------------------------------
 
 /// A named, typed columnar array with optional null tracking.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Series<T: Scalar> {
     pub(crate) name: String,
@@ -288,7 +292,11 @@ impl<T: Scalar + HasDType + 'static> AnySeries for Series<T> {
             if keep && i < self.data.len() {
                 data.push(self.data[i]);
                 if let Some(ref mut nm) = new_nulls {
-                    nm.push(self.null_mask.as_ref().unwrap()[i]);
+                    nm.push(
+                        self.null_mask
+                            .as_ref()
+                            .expect("null_mask present when has_nulls is true")[i],
+                    );
                 }
             }
         }
@@ -333,7 +341,10 @@ impl<T: Scalar + HasDType + 'static> AnySeries for Series<T> {
         if self.null_mask.is_none() {
             return self.clone_box();
         }
-        let mask = self.null_mask.as_ref().unwrap();
+        let mask = self
+            .null_mask
+            .as_ref()
+            .expect("null_mask present when has_nulls is true");
         let keep: Vec<bool> = mask.iter().map(|&is_null| !is_null).collect();
         self.filter_mask(&keep)
     }
@@ -485,5 +496,148 @@ mod tests {
         let sliced = boxed.slice(1, 3);
         let downcasted = sliced.as_any().downcast_ref::<Series<i32>>().unwrap();
         assert_eq!(downcasted.as_slice(), &[20, 30, 40]);
+    }
+
+    // -- Edge-case tests -------------------------------------------------------
+
+    #[test]
+    fn test_empty_series() {
+        let s: Series<f64> = Series::new("empty", vec![]);
+        assert!(s.is_empty());
+        assert_eq!(s.len(), 0);
+        assert_eq!(s.get(0), None);
+        assert_eq!(s.null_count(), 0);
+        assert_eq!(s.count(), 0);
+    }
+
+    #[test]
+    fn test_single_element_series() {
+        let s = Series::new("one", vec![42_i32]);
+        assert_eq!(s.len(), 1);
+        assert!(!s.is_empty());
+        assert_eq!(s.get(0), Some(42));
+        assert_eq!(s.get(1), None);
+    }
+
+    #[test]
+    fn test_series_all_nulls() {
+        let s =
+            Series::with_nulls("nulls", vec![0.0_f64, 0.0, 0.0], vec![true, true, true]).unwrap();
+        assert_eq!(s.null_count(), 3);
+        assert_eq!(s.count(), 0);
+        assert_eq!(s.get(0), None);
+        assert_eq!(s.get(1), None);
+        assert_eq!(s.get(2), None);
+    }
+
+    #[test]
+    fn test_push_null_creates_mask() {
+        let mut s = Series::new("x", vec![1_i32, 2]);
+        assert_eq!(s.null_count(), 0);
+        s.push_null();
+        assert_eq!(s.len(), 3);
+        assert!(s.is_null_at(2));
+        assert!(!s.is_null_at(0));
+        assert!(!s.is_null_at(1));
+    }
+
+    #[test]
+    fn test_set_out_of_bounds() {
+        let mut s = Series::new("x", vec![1_i32]);
+        assert!(s.set(5, 99).is_err());
+    }
+
+    #[test]
+    fn test_set_clears_null() {
+        let mut s = Series::with_nulls("x", vec![0_i32, 0], vec![true, true]).unwrap();
+        assert!(s.is_null_at(0));
+        s.set(0, 42).unwrap();
+        assert!(!s.is_null_at(0));
+        assert_eq!(s.get(0), Some(42));
+    }
+
+    #[test]
+    fn test_any_series_drop_nulls() {
+        let s = Series::with_nulls("x", vec![1_i32, 0, 3], vec![false, true, false]).unwrap();
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let dropped = boxed.drop_nulls();
+        assert_eq!(dropped.len(), 2);
+        assert_eq!(dropped.null_count(), 0);
+    }
+
+    #[test]
+    fn test_any_series_rename_box() {
+        let s = Series::new("old", vec![1_i32]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let renamed = boxed.rename_box("new");
+        assert_eq!(renamed.name(), "new");
+    }
+
+    #[test]
+    fn test_any_series_null_series() {
+        let s = Series::new("x", vec![1_i32]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let null_s = boxed.null_series("nullcol", 3);
+        assert_eq!(null_s.len(), 3);
+        assert_eq!(null_s.null_count(), 3);
+        assert_eq!(null_s.name(), "nullcol");
+    }
+
+    #[test]
+    fn test_any_series_take_optional_with_nones() {
+        let s = Series::new("x", vec![10_i32, 20, 30]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let result = boxed.take_optional(&[Some(0), None, Some(2)]);
+        assert_eq!(result.len(), 3);
+        assert!(!result.is_null(0));
+        assert!(result.is_null(1));
+        assert!(!result.is_null(2));
+    }
+
+    #[test]
+    fn test_null_mask_vec_no_nulls() {
+        let s = Series::new("x", vec![1_i32, 2, 3]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        assert_eq!(boxed.null_mask_vec(), vec![false, false, false]);
+    }
+
+    #[test]
+    fn test_filter_mask_all_true() {
+        let s = Series::new("x", vec![10_i32, 20, 30]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let filtered = boxed.filter_mask(&[true, true, true]);
+        assert_eq!(filtered.len(), 3);
+    }
+
+    #[test]
+    fn test_filter_mask_all_false() {
+        let s = Series::new("x", vec![10_i32, 20, 30]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let filtered = boxed.filter_mask(&[false, false, false]);
+        assert_eq!(filtered.len(), 0);
+    }
+
+    #[test]
+    fn test_slice_beyond_bounds() {
+        let s = Series::new("x", vec![10_i32, 20, 30]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let sliced = boxed.slice(1, 100);
+        // Should clamp to available data
+        let downcasted = sliced.as_any().downcast_ref::<Series<i32>>().unwrap();
+        assert_eq!(downcasted.as_slice(), &[20, 30]);
+    }
+
+    #[test]
+    fn test_is_null_at_out_of_bounds() {
+        let s = Series::with_nulls("x", vec![1_i32, 0], vec![false, true]).unwrap();
+        // Out-of-bounds index should return false (not panic)
+        assert!(!s.is_null_at(10));
+    }
+
+    #[test]
+    fn test_rename_in_place() {
+        let mut s = Series::new("old", vec![1_i32]);
+        s.rename("new");
+        assert_eq!(s.name(), "new");
     }
 }

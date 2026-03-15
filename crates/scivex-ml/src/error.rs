@@ -1,6 +1,10 @@
 use std::fmt;
 
 /// Errors produced by `scivex-ml` algorithms.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum MlError {
     /// Model has not been fitted yet.

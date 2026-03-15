@@ -1,6 +1,10 @@
 use std::fmt;
 
 /// Errors that can occur in NLP operations.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum NlpError {
     /// The input text or document list is empty.

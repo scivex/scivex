@@ -7,6 +7,10 @@ use crate::descriptive::{mean, std_dev};
 use crate::error::{Result, StatsError};
 
 /// Which correlation method to use.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CorrelationMethod {
     Pearson,
@@ -113,7 +117,7 @@ pub fn kendall<T: Float>(x: &[T], y: &[T]) -> Result<T> {
 
 /// Compute a correlation matrix for columns of a 2-D tensor.
 ///
-/// `data` should be [n_obs x n_vars]. Returns [n_vars x n_vars].
+/// `data` should be `[n_obs x n_vars]`. Returns `[n_vars x n_vars]`.
 pub fn corr_matrix<T: Float>(data: &Tensor<T>, method: CorrelationMethod) -> Result<Tensor<T>> {
     if data.ndim() != 2 {
         return Err(StatsError::InvalidParameter {

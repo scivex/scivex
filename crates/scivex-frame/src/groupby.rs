@@ -11,6 +11,10 @@ use crate::series::string::StringSeries;
 use crate::series::{AnySeries, Series};
 
 /// Aggregation function selector.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AggFunc {
     Sum,
@@ -48,7 +52,11 @@ impl<'a> GroupBy<'a> {
         for row in 0..nrows {
             let key: Vec<String> = cols
                 .iter()
-                .map(|&c| df.column(c).unwrap().display_value(row))
+                .map(|&c| {
+                    df.column(c)
+                        .expect("groupby column exists")
+                        .display_value(row)
+                })
                 .collect();
             if !map.contains_key(&key) {
                 order.push(key.clone());
@@ -59,7 +67,7 @@ impl<'a> GroupBy<'a> {
         let groups: Vec<(Vec<String>, Vec<usize>)> = order
             .into_iter()
             .map(|k| {
-                let indices = map.remove(&k).unwrap();
+                let indices = map.remove(&k).expect("key guaranteed by iteration order");
                 (k, indices)
             })
             .collect();
@@ -187,7 +195,7 @@ impl<'a> GroupBy<'a> {
                 let indices: Vec<usize> = self
                     .groups
                     .iter()
-                    .map(|(_, idx)| *idx.last().unwrap())
+                    .map(|(_, idx)| *idx.last().expect("group indices guaranteed non-empty"))
                     .collect();
                 let result = col.take_indices(&indices);
                 return Ok(result);
@@ -410,5 +418,51 @@ mod tests {
         assert_eq!(result.nrows(), 1);
         let v = result.column_typed::<f64>("v").unwrap();
         assert_eq!(v.as_slice(), &[6.0]);
+    }
+
+    #[test]
+    fn test_groupby_all_unique_values() {
+        let df = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("g", &["A", "B", "C", "D"])),
+            Box::new(Series::new("v", vec![10.0_f64, 20.0, 30.0, 40.0])),
+        ])
+        .unwrap();
+        let gb = df.groupby(&["g"]).unwrap();
+        assert_eq!(gb.n_groups(), 4);
+        let result = gb.sum().unwrap();
+        assert_eq!(result.nrows(), 4);
+        let v = result.column_typed::<f64>("v").unwrap();
+        assert_eq!(v.as_slice(), &[10.0, 20.0, 30.0, 40.0]);
+    }
+
+    #[test]
+    fn test_groupby_nonexistent_column() {
+        let df = DataFrame::new(vec![Box::new(Series::new("x", vec![1_i32, 2]))]).unwrap();
+        assert!(df.groupby(&["nonexistent"]).is_err());
+    }
+
+    #[test]
+    fn test_groupby_agg_nonexistent_column() {
+        let df = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("g", &["A", "B"])),
+            Box::new(Series::new("v", vec![1.0_f64, 2.0])),
+        ])
+        .unwrap();
+        let gb = df.groupby(&["g"]).unwrap();
+        assert!(gb.agg("nonexistent", AggFunc::Sum).is_err());
+    }
+
+    #[test]
+    fn test_groupby_single_row() {
+        let df = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs("g", &["A"])),
+            Box::new(Series::new("v", vec![42.0_f64])),
+        ])
+        .unwrap();
+        let gb = df.groupby(&["g"]).unwrap();
+        assert_eq!(gb.n_groups(), 1);
+        let result = gb.mean().unwrap();
+        let v = result.column_typed::<f64>("v").unwrap();
+        assert_eq!(v.get(0), Some(42.0));
     }
 }

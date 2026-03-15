@@ -8,6 +8,10 @@ use crate::error::{FrameError, Result};
 use crate::series::AnySeries;
 
 /// A named column of `String` values with optional null tracking.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct StringSeries {
     pub(crate) name: String,
@@ -136,6 +140,139 @@ impl StringSeries {
     pub fn len_chars(&self) -> Vec<usize> {
         self.data.iter().map(|s| s.chars().count()).collect()
     }
+
+    /// Strip leading and trailing whitespace from each value.
+    pub fn strip(&self) -> StringSeries {
+        StringSeries {
+            name: self.name.clone(),
+            data: self.data.iter().map(|s| s.trim().to_string()).collect(),
+            null_mask: self.null_mask.clone(),
+        }
+    }
+
+    /// Replace all occurrences of `old` with `new_val` in each value.
+    pub fn replace_all(&self, old: &str, new_val: &str) -> StringSeries {
+        StringSeries {
+            name: self.name.clone(),
+            data: self.data.iter().map(|s| s.replace(old, new_val)).collect(),
+            null_mask: self.null_mask.clone(),
+        }
+    }
+
+    /// Boolean mask: which values end with the given suffix.
+    pub fn ends_with(&self, suffix: &str) -> Vec<bool> {
+        self.data.iter().map(|s| s.ends_with(suffix)).collect()
+    }
+
+    // -- Regex-powered methods (behind `regex` feature) -----------------------
+
+    /// Boolean mask: which values match the given regex pattern.
+    #[cfg(feature = "regex")]
+    pub fn regex_contains(&self, pattern: &str) -> Result<Vec<bool>> {
+        let re = regex::Regex::new(pattern).map_err(|_| FrameError::InvalidValue {
+            reason: "invalid regex pattern".into(),
+        })?;
+        Ok(self.data.iter().map(|s| re.is_match(s)).collect())
+    }
+
+    /// Extract the first capture group from each value, or empty string if no match.
+    #[cfg(feature = "regex")]
+    pub fn regex_extract(&self, pattern: &str) -> Result<StringSeries> {
+        let re = regex::Regex::new(pattern).map_err(|_| FrameError::InvalidValue {
+            reason: "invalid regex pattern".into(),
+        })?;
+        let data: Vec<String> = self
+            .data
+            .iter()
+            .map(|s| {
+                re.captures(s)
+                    .and_then(|c| c.get(1).or_else(|| c.get(0)))
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default()
+            })
+            .collect();
+        Ok(StringSeries {
+            name: self.name.clone(),
+            data,
+            null_mask: self.null_mask.clone(),
+        })
+    }
+
+    /// Replace all regex matches with the replacement string.
+    #[cfg(feature = "regex")]
+    pub fn regex_replace(&self, pattern: &str, replacement: &str) -> Result<StringSeries> {
+        let re = regex::Regex::new(pattern).map_err(|_| FrameError::InvalidValue {
+            reason: "invalid regex pattern".into(),
+        })?;
+        let data: Vec<String> = self
+            .data
+            .iter()
+            .map(|s| re.replace_all(s, replacement).into_owned())
+            .collect();
+        Ok(StringSeries {
+            name: self.name.clone(),
+            data,
+            null_mask: self.null_mask.clone(),
+        })
+    }
+
+    /// Count the number of non-overlapping regex matches in each value.
+    #[cfg(feature = "regex")]
+    pub fn regex_count(&self, pattern: &str) -> Result<Vec<usize>> {
+        let re = regex::Regex::new(pattern).map_err(|_| FrameError::InvalidValue {
+            reason: "invalid regex pattern".into(),
+        })?;
+        Ok(self.data.iter().map(|s| re.find_iter(s).count()).collect())
+    }
+
+    /// Convert to a [`CategoricalSeries`](crate::CategoricalSeries) using
+    /// dictionary encoding.
+    ///
+    /// Each unique string value is stored once in a dictionary and referenced
+    /// by an integer code, reducing memory for columns with repeated values.
+    pub fn to_categorical(&self) -> crate::series::categorical::CategoricalSeries {
+        use std::collections::HashMap;
+        let mut categories: Vec<String> = Vec::new();
+        let mut cat_map: HashMap<String, u32> = HashMap::new();
+        let mut codes = Vec::with_capacity(self.data.len());
+
+        for s in &self.data {
+            let code = if let Some(&c) = cat_map.get(s) {
+                c
+            } else {
+                let c = categories.len() as u32;
+                cat_map.insert(s.clone(), c);
+                categories.push(s.clone());
+                c
+            };
+            codes.push(code);
+        }
+        if let Some(ref mask) = self.null_mask {
+            crate::series::categorical::CategoricalSeries::with_nulls(
+                self.name.clone(),
+                categories,
+                codes,
+                mask.clone(),
+            )
+            .expect("valid construction")
+        } else {
+            crate::series::categorical::CategoricalSeries::new(self.name.clone(), categories, codes)
+                .expect("valid construction")
+        }
+    }
+
+    /// Number of unique non-null values.
+    pub fn n_unique(&self) -> usize {
+        use std::collections::HashSet;
+        let set: HashSet<&str> = self
+            .data
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| !self.is_null_at(*i))
+            .map(|(_, s)| s.as_str())
+            .collect();
+        set.len()
+    }
 }
 
 impl fmt::Display for StringSeries {
@@ -190,7 +327,11 @@ impl AnySeries for StringSeries {
             if keep && i < self.data.len() {
                 data.push(self.data[i].clone());
                 if let Some(ref mut nm) = new_nulls {
-                    nm.push(self.null_mask.as_ref().unwrap()[i]);
+                    nm.push(
+                        self.null_mask
+                            .as_ref()
+                            .expect("null_mask present when has_nulls is true")[i],
+                    );
                 }
             }
         }
@@ -235,7 +376,10 @@ impl AnySeries for StringSeries {
         if self.null_mask.is_none() {
             return self.clone_box();
         }
-        let mask = self.null_mask.as_ref().unwrap();
+        let mask = self
+            .null_mask
+            .as_ref()
+            .expect("null_mask present when has_nulls is true");
         let keep: Vec<bool> = mask.iter().map(|&is_null| !is_null).collect();
         self.filter_mask(&keep)
     }
@@ -323,5 +467,222 @@ mod tests {
         assert_eq!(boxed.display_value(1), "b");
         let downcasted = boxed.as_any().downcast_ref::<StringSeries>().unwrap();
         assert_eq!(downcasted.get(0), Some("a"));
+    }
+
+    // -- Edge-case tests -------------------------------------------------------
+
+    #[test]
+    fn test_string_series_empty() {
+        let s = StringSeries::from_strs("empty", &[]);
+        assert!(s.is_empty());
+        assert_eq!(s.len(), 0);
+        assert_eq!(s.get(0), None);
+    }
+
+    #[test]
+    fn test_string_series_empty_strings() {
+        let s = StringSeries::from_strs("x", &["", "", ""]);
+        assert_eq!(s.len(), 3);
+        assert_eq!(s.get(0), Some(""));
+        assert_eq!(s.contains("a"), vec![false, false, false]);
+        assert_eq!(s.len_chars(), vec![0, 0, 0]);
+    }
+
+    #[test]
+    fn test_string_series_contains_empty_pattern() {
+        let s = StringSeries::from_strs("x", &["hello", "world"]);
+        // Empty pattern matches everything
+        assert_eq!(s.contains(""), vec![true, true]);
+    }
+
+    #[test]
+    fn test_string_series_starts_with_empty() {
+        let s = StringSeries::from_strs("x", &["hello", "world"]);
+        assert_eq!(s.starts_with(""), vec![true, true]);
+    }
+
+    #[test]
+    fn test_string_series_uppercase_lowercase_empty() {
+        let s = StringSeries::from_strs("x", &[""]);
+        assert_eq!(s.to_uppercase().get(0), Some(""));
+        assert_eq!(s.to_lowercase().get(0), Some(""));
+    }
+
+    #[test]
+    fn test_string_series_with_nulls_display() {
+        let s =
+            StringSeries::with_nulls("x", vec!["hello".into(), String::new()], vec![false, true])
+                .unwrap();
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        assert_eq!(boxed.display_value(0), "hello");
+        assert_eq!(boxed.display_value(1), "null");
+    }
+
+    #[test]
+    fn test_string_series_null_count_no_nulls() {
+        let s = StringSeries::from_strs("x", &["a", "b", "c"]);
+        assert_eq!(s.null_count(), 0);
+    }
+
+    #[test]
+    fn test_string_series_drop_nulls() {
+        let s = StringSeries::with_nulls(
+            "x",
+            vec!["a".into(), String::new(), "c".into()],
+            vec![false, true, false],
+        )
+        .unwrap();
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let dropped = boxed.drop_nulls();
+        assert_eq!(dropped.len(), 2);
+        assert_eq!(dropped.null_count(), 0);
+    }
+
+    #[test]
+    fn test_string_series_take_indices() {
+        let s = StringSeries::from_strs("x", &["a", "b", "c", "d"]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let taken = boxed.take_indices(&[3, 0]);
+        assert_eq!(taken.len(), 2);
+        assert_eq!(taken.display_value(0), "d");
+        assert_eq!(taken.display_value(1), "a");
+    }
+
+    #[test]
+    fn test_string_series_slice() {
+        let s = StringSeries::from_strs("x", &["a", "b", "c", "d"]);
+        let boxed: Box<dyn AnySeries> = Box::new(s);
+        let sliced = boxed.slice(1, 2);
+        assert_eq!(sliced.len(), 2);
+        assert_eq!(sliced.display_value(0), "b");
+        assert_eq!(sliced.display_value(1), "c");
+    }
+
+    #[test]
+    fn test_string_series_with_nulls_length_mismatch() {
+        let result = StringSeries::with_nulls("x", vec!["a".into()], vec![false, true]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_string_series_rename() {
+        let mut s = StringSeries::from_strs("old", &["a"]);
+        s.rename("new");
+        assert_eq!(s.name(), "new");
+    }
+
+    #[test]
+    fn test_string_series_contains_no_match() {
+        let s = StringSeries::from_strs("x", &["hello", "world"]);
+        assert_eq!(s.contains("xyz"), vec![false, false]);
+    }
+
+    #[test]
+    fn test_string_series_strip() {
+        let s = StringSeries::from_strs("x", &["  hello  ", "world", " hi "]);
+        let stripped = s.strip();
+        assert_eq!(stripped.get(0), Some("hello"));
+        assert_eq!(stripped.get(1), Some("world"));
+        assert_eq!(stripped.get(2), Some("hi"));
+    }
+
+    #[test]
+    fn test_string_series_replace_all() {
+        let s = StringSeries::from_strs("x", &["hello world", "foo bar"]);
+        let replaced = s.replace_all("o", "0");
+        assert_eq!(replaced.get(0), Some("hell0 w0rld"));
+        assert_eq!(replaced.get(1), Some("f00 bar"));
+    }
+
+    #[test]
+    fn test_string_series_ends_with() {
+        let s = StringSeries::from_strs("x", &["hello.csv", "world.txt", "data.csv"]);
+        assert_eq!(s.ends_with(".csv"), vec![true, false, true]);
+    }
+
+    #[cfg(feature = "regex")]
+    #[test]
+    fn test_regex_contains() {
+        let s = StringSeries::from_strs("x", &["hello123", "world", "abc456"]);
+        let result = s.regex_contains(r"\d+").unwrap();
+        assert_eq!(result, vec![true, false, true]);
+    }
+
+    #[cfg(feature = "regex")]
+    #[test]
+    fn test_regex_extract() {
+        let s = StringSeries::from_strs("x", &["hello123", "world", "abc456"]);
+        let extracted = s.regex_extract(r"(\d+)").unwrap();
+        assert_eq!(extracted.get(0), Some("123"));
+        assert_eq!(extracted.get(1), Some(""));
+        assert_eq!(extracted.get(2), Some("456"));
+    }
+
+    #[cfg(feature = "regex")]
+    #[test]
+    fn test_regex_replace() {
+        let s = StringSeries::from_strs("x", &["hello 123 world 456"]);
+        let replaced = s.regex_replace(r"\d+", "NUM").unwrap();
+        assert_eq!(replaced.get(0), Some("hello NUM world NUM"));
+    }
+
+    #[cfg(feature = "regex")]
+    #[test]
+    fn test_regex_count() {
+        let s = StringSeries::from_strs("x", &["aaa", "abab", "xyz"]);
+        let counts = s.regex_count(r"a").unwrap();
+        assert_eq!(counts, vec![3, 2, 0]);
+    }
+
+    #[cfg(feature = "regex")]
+    #[test]
+    fn test_regex_invalid_pattern() {
+        let s = StringSeries::from_strs("x", &["hello"]);
+        assert!(s.regex_contains(r"[invalid").is_err());
+    }
+
+    #[test]
+    fn test_to_categorical() {
+        let s = StringSeries::from_strs("color", &["red", "blue", "red", "green", "blue"]);
+        let cat = s.to_categorical();
+        assert_eq!(cat.n_categories(), 3);
+        assert_eq!(cat.len(), 5);
+        assert_eq!(cat.get(0), Some("red"));
+        assert_eq!(cat.get(1), Some("blue"));
+        assert_eq!(cat.get(2), Some("red"));
+        assert_eq!(cat.get(3), Some("green"));
+        assert_eq!(cat.get(4), Some("blue"));
+    }
+
+    #[test]
+    fn test_to_categorical_preserves_nulls() {
+        let s = StringSeries::with_nulls(
+            "x",
+            vec!["a".into(), "b".into(), "a".into()],
+            vec![false, true, false],
+        )
+        .unwrap();
+        let cat = s.to_categorical();
+        assert_eq!(cat.null_count(), 1);
+        assert_eq!(cat.get(0), Some("a"));
+        assert_eq!(cat.get(1), None);
+        assert_eq!(cat.get(2), Some("a"));
+    }
+
+    #[test]
+    fn test_n_unique() {
+        let s = StringSeries::from_strs("x", &["a", "b", "a", "c", "b"]);
+        assert_eq!(s.n_unique(), 3);
+    }
+
+    #[test]
+    fn test_n_unique_with_nulls() {
+        let s = StringSeries::with_nulls(
+            "x",
+            vec!["a".into(), "b".into(), "a".into()],
+            vec![false, true, false],
+        )
+        .unwrap();
+        assert_eq!(s.n_unique(), 1); // only "a" is non-null
     }
 }

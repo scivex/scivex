@@ -9,6 +9,10 @@ use crate::variable::Variable;
 use super::Layer;
 
 /// ReLU activation layer.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct ReLU;
 
 impl<T: Float> Layer<T> for ReLU {
@@ -25,6 +29,10 @@ impl<T: Float> Layer<T> for ReLU {
 }
 
 /// Sigmoid activation layer.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct Sigmoid;
 
 impl<T: Float> Layer<T> for Sigmoid {
@@ -41,6 +49,10 @@ impl<T: Float> Layer<T> for Sigmoid {
 }
 
 /// Tanh activation layer.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct Tanh;
 
 impl<T: Float> Layer<T> for Tanh {

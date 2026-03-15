@@ -6,6 +6,10 @@ use crate::traits::{Classifier, Predictor};
 /// Gaussian Naive Bayes classifier.
 ///
 /// Assumes features are normally distributed within each class.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct GaussianNB<T: Float> {
     /// Per-class prior probabilities, shape `[n_classes]`.

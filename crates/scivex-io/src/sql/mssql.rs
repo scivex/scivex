@@ -17,6 +17,10 @@ use super::{
 };
 
 /// Configuration for connecting to a SQL Server instance.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct MssqlConfig {
     /// Server hostname or IP.
     pub host: String,

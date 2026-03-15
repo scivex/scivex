@@ -12,6 +12,10 @@ use crate::error::{CoreError, Result};
 use crate::tensor::Tensor;
 
 /// Result of a Singular Value Decomposition.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct SvdDecomposition<T: Float> {
     /// Left singular vectors (m x m).
@@ -257,17 +261,23 @@ impl<T: Float> SvdDecomposition<T> {
 
     /// The left singular vectors `U` (m x m).
     pub fn u(&self) -> Tensor<T> {
-        Tensor::from_vec(self.u.clone(), vec![self.m, self.m]).unwrap()
+        // SAFETY: u always has exactly m*m elements, matching the [m, m] shape.
+        Tensor::from_vec(self.u.clone(), vec![self.m, self.m])
+            .expect("u length equals m*m by construction")
     }
 
     /// The right singular vectors transposed `V^T` (n x n).
     pub fn vt(&self) -> Tensor<T> {
-        Tensor::from_vec(self.vt.clone(), vec![self.n, self.n]).unwrap()
+        // SAFETY: vt always has exactly n*n elements, matching the [n, n] shape.
+        Tensor::from_vec(self.vt.clone(), vec![self.n, self.n])
+            .expect("vt length equals n*n by construction")
     }
 
     /// The singular values as a 1-D tensor.
     pub fn s(&self) -> Tensor<T> {
-        Tensor::from_vec(self.s.clone(), vec![self.s.len()]).unwrap()
+        // SAFETY: shape [len] trivially matches the vec length.
+        Tensor::from_vec(self.s.clone(), vec![self.s.len()])
+            .expect("s length matches its own len by construction")
     }
 
     /// Compute the matrix rank (number of singular values above a tolerance).

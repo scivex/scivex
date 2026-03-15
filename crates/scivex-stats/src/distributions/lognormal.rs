@@ -7,6 +7,10 @@ use super::{Distribution, Normal};
 
 /// Log-normal distribution parameterized by `mu` and `sigma` of the underlying
 /// normal distribution. If `X ~ Normal(mu, sigma)`, then `exp(X) ~ LogNormal(mu, sigma)`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct LogNormal<T: Float> {
     mu: T,

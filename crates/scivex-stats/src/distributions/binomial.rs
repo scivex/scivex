@@ -7,6 +7,10 @@ use crate::special::{ln_gamma, regularized_beta};
 use super::{Distribution, ppf_bisection};
 
 /// Binomial distribution with `n` trials and success probability `p`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Binomial<T: Float> {
     n: usize,

@@ -6,6 +6,10 @@ use crate::scale::Scale;
 use crate::style::{Fill, Font};
 
 /// A heatmap rendered as a grid of colored rectangles.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct HeatmapBuilder {
     data: Vec<Vec<f64>>,
     colormap: ColorMap,

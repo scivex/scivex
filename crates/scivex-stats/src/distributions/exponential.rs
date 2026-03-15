@@ -6,6 +6,10 @@ use crate::error::{Result, StatsError};
 use super::Distribution;
 
 /// Exponential distribution with rate parameter lambda.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Exponential<T: Float> {
     lambda: T,

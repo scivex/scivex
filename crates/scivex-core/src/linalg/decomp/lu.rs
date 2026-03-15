@@ -14,6 +14,10 @@ use crate::tensor::Tensor;
 /// Stores the factorization `PA = LU` in compact form: `L` and `U` are
 /// packed into a single matrix (the unit diagonal of `L` is implicit),
 /// and the permutation is stored as a pivot index vector.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct LuDecomposition<T: Float> {
     /// Packed LU matrix: lower triangle holds L (without diagonal),
@@ -112,7 +116,8 @@ impl<T: Float> LuDecomposition<T> {
                 data[i * n + j] = self.lu[i * n + j];
             }
         }
-        Tensor::from_vec(data, vec![n, n]).unwrap()
+        // SAFETY: data has exactly n*n elements, matching shape [n, n].
+        Tensor::from_vec(data, vec![n, n]).expect("L data length equals n*n by construction")
     }
 
     /// Extract the upper triangular matrix `U`.
@@ -124,7 +129,8 @@ impl<T: Float> LuDecomposition<T> {
                 data[i * n + j] = self.lu[i * n + j];
             }
         }
-        Tensor::from_vec(data, vec![n, n]).unwrap()
+        // SAFETY: data has exactly n*n elements, matching shape [n, n].
+        Tensor::from_vec(data, vec![n, n]).expect("U data length equals n*n by construction")
     }
 
     /// Extract the permutation matrix `P`.
@@ -134,7 +140,8 @@ impl<T: Float> LuDecomposition<T> {
         for (i, &pi) in self.pivots.iter().enumerate() {
             data[i * n + pi] = T::one();
         }
-        Tensor::from_vec(data, vec![n, n]).unwrap()
+        // SAFETY: data has exactly n*n elements, matching shape [n, n].
+        Tensor::from_vec(data, vec![n, n]).expect("P data length equals n*n by construction")
     }
 
     /// The permutation pivot vector.

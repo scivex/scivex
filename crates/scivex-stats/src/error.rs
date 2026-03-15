@@ -1,6 +1,10 @@
 use core::fmt;
 
 /// All errors returned by `scivex-stats`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatsError {
     /// Input slice is empty when at least one element is required.

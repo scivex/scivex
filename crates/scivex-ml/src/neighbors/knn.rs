@@ -4,6 +4,10 @@ use crate::error::{MlError, Result};
 use crate::traits::Predictor;
 
 /// K-nearest neighbours classifier (brute-force Euclidean distance).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct KNNClassifier<T: Float> {
     k: usize,
@@ -75,6 +79,10 @@ impl<T: Float> Predictor<T> for KNNClassifier<T> {
 }
 
 /// K-nearest neighbours regressor (brute-force Euclidean distance).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct KNNRegressor<T: Float> {
     k: usize,

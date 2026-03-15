@@ -26,10 +26,20 @@ tokio-util = { version = "0.7", optional = true, features = ["compat"] }
 parquet_crate = { package = "parquet", version = "55", optional = true, default-features = false, features = ["arrow", "snap", "zstd", "lz4"] }
 arrow_crate = { package = "arrow", version = "55", optional = true, default-features = false, features = ["ipc"] }
 bytes = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+
+# Memory-mapped I/O
+memmap2 = { version = "0.9", optional = true }
+
+# Excel
+calamine = { version = "0.26", optional = true }
+rust_xlsxwriter = { version = "0.82", optional = true }
 
 [features]
+serde-support = ["dep:serde", "scivex-core/serde-support", "scivex-frame/serde-support"]
 default = ["csv"]
 csv = []
+npy = []
 json = ["dep:serde_json"]
 sqlite = ["dep:rusqlite"]
 postgres = ["dep:postgres"]
@@ -38,4 +48,6 @@ mssql = ["dep:tiberius", "dep:tokio", "dep:tokio-util"]
 sql = ["sqlite", "postgres", "mysql", "mssql"]
 parquet = ["dep:parquet_crate", "dep:arrow_crate", "dep:bytes"]
 arrow = ["dep:arrow_crate"]
-full = ["csv", "json", "sql", "parquet", "arrow"]
+mmap = ["dep:memmap2"]
+excel = ["dep:calamine", "dep:rust_xlsxwriter"]
+full = ["csv", "json", "sql", "parquet", "arrow", "npy", "mmap", "excel"]

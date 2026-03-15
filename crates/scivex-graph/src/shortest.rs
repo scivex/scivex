@@ -7,6 +7,10 @@ use crate::error::{GraphError, Result};
 use crate::graph::Graph;
 
 /// Result of a single-source shortest path algorithm.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct ShortestPathResult<T> {
     /// Distance from the source to each node. Unreachable nodes have `T::infinity()`.

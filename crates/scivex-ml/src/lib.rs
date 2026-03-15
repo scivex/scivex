@@ -19,7 +19,7 @@
 //! | [`ensemble`] | `RandomForest*`, `GradientBoosting*` |
 //! | [`svm`] | `SVC`, `SVR`, `Kernel` |
 //! | [`neighbors`] | `KNNClassifier`, `KNNRegressor` |
-//! | [`cluster`] | `KMeans` |
+//! | [`cluster`] | `KMeans`, `DBSCAN` |
 //! | [`naive_bayes`] | `GaussianNB` |
 //! | [`pipeline`] | `Pipeline`, `FeatureUnion`, `ColumnTransformer` |
 //! | [`search`] | `grid_search_cv`, `random_search_cv` |
@@ -88,7 +88,7 @@ pub mod prelude {
     pub use crate::neighbors::{KNNClassifier, KNNRegressor};
 
     // Clustering
-    pub use crate::cluster::KMeans;
+    pub use crate::cluster::{DBSCAN, KMeans};
 
     // Naive Bayes
     pub use crate::naive_bayes::GaussianNB;

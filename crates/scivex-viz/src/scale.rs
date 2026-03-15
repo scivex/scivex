@@ -9,6 +9,10 @@ pub trait Scale {
 }
 
 /// A linear scale mapping `[min, max]` to `[0, 1]`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct LinearScale {
     /// Minimum data value.
@@ -43,6 +47,10 @@ impl Scale for LinearScale {
 }
 
 /// A logarithmic scale mapping `[min, max]` (both > 0) to `[0, 1]`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct LogScale {
     /// Minimum data value (must be positive).

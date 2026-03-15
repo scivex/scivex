@@ -20,7 +20,11 @@ impl<T: Scalar> Series<T> {
             if keep {
                 data.push(self.data[i]);
                 if let Some(ref mut nm) = new_nulls {
-                    nm.push(self.null_mask.as_ref().unwrap()[i]);
+                    nm.push(
+                        self.null_mask
+                            .as_ref()
+                            .expect("null_mask present when has_nulls is true")[i],
+                    );
                 }
             }
         }
@@ -118,5 +122,96 @@ mod tests {
         let s = Series::new("x", vec![1_i32, 2, 1, 3, 2]);
         let u = s.unique();
         assert_eq!(u.as_slice(), &[1, 2, 3]);
+    }
+
+    // -- Edge-case tests -------------------------------------------------------
+
+    #[test]
+    fn test_filter_all_true() {
+        let s = Series::new("x", vec![10_i32, 20, 30]);
+        let filtered = s.filter(&[true, true, true]).unwrap();
+        assert_eq!(filtered.as_slice(), &[10, 20, 30]);
+    }
+
+    #[test]
+    fn test_filter_all_false() {
+        let s = Series::new("x", vec![10_i32, 20, 30]);
+        let filtered = s.filter(&[false, false, false]).unwrap();
+        assert_eq!(filtered.len(), 0);
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn test_filter_empty_series() {
+        let s: Series<i32> = Series::new("x", vec![]);
+        let filtered = s.filter(&[]).unwrap();
+        assert_eq!(filtered.len(), 0);
+    }
+
+    #[test]
+    fn test_sort_with_duplicates() {
+        let s = Series::new("x", vec![3_i32, 1, 3, 1, 2]);
+        let sorted = s.sort(true);
+        assert_eq!(sorted.as_slice(), &[1, 1, 2, 3, 3]);
+    }
+
+    #[test]
+    fn test_sort_single_element() {
+        let s = Series::new("x", vec![42_i32]);
+        let sorted = s.sort(true);
+        assert_eq!(sorted.as_slice(), &[42]);
+    }
+
+    #[test]
+    fn test_sort_empty() {
+        let s: Series<i32> = Series::new("x", vec![]);
+        let sorted = s.sort(true);
+        assert!(sorted.is_empty());
+    }
+
+    #[test]
+    fn test_unique_empty() {
+        let s: Series<i32> = Series::new("x", vec![]);
+        let u = s.unique();
+        assert!(u.is_empty());
+    }
+
+    #[test]
+    fn test_unique_all_same() {
+        let s = Series::new("x", vec![5_i32, 5, 5, 5]);
+        let u = s.unique();
+        assert_eq!(u.as_slice(), &[5]);
+    }
+
+    #[test]
+    fn test_argsort_empty() {
+        let s: Series<i32> = Series::new("x", vec![]);
+        let indices = s.argsort(true);
+        assert!(indices.is_empty());
+    }
+
+    #[test]
+    fn test_filter_preserves_nulls() {
+        let s =
+            Series::with_nulls("x", vec![1_i32, 0, 3, 0], vec![false, true, false, true]).unwrap();
+        let filtered = s.filter(&[true, true, false, false]).unwrap();
+        assert_eq!(filtered.len(), 2);
+        assert!(!filtered.is_null_at(0));
+        assert!(filtered.is_null_at(1));
+    }
+
+    #[test]
+    fn test_unique_single_element() {
+        let s = Series::new("x", vec![42_i32]);
+        let u = s.unique();
+        assert_eq!(u.as_slice(), &[42]);
+    }
+
+    #[test]
+    fn test_sort_preserves_nulls() {
+        let s = Series::with_nulls("x", vec![3_i32, 0, 1], vec![false, true, false]).unwrap();
+        let sorted = s.sort(true);
+        // Values are sorted by data values; null mask is reordered too
+        assert_eq!(sorted.len(), 3);
     }
 }

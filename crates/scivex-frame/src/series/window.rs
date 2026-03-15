@@ -6,6 +6,10 @@ use super::Series;
 use crate::error::{FrameError, Result};
 
 /// Configuration for rolling window operations.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct RollingWindow {
     /// Number of elements in each window.
@@ -140,7 +144,11 @@ impl<T: Float> Series<T> {
             let (start, end) = self.window_bounds(i, w);
             let vals = self.window_values(start, end);
             if vals.len() >= w.min_periods {
-                data[i] = vals.iter().copied().reduce(T::min).unwrap();
+                data[i] = vals
+                    .iter()
+                    .copied()
+                    .reduce(T::min)
+                    .expect("non-empty window");
             } else {
                 null_mask[i] = true;
             }
@@ -169,7 +177,11 @@ impl<T: Float> Series<T> {
             let (start, end) = self.window_bounds(i, w);
             let vals = self.window_values(start, end);
             if vals.len() >= w.min_periods {
-                data[i] = vals.iter().copied().reduce(T::max).unwrap();
+                data[i] = vals
+                    .iter()
+                    .copied()
+                    .reduce(T::max)
+                    .expect("non-empty window");
             } else {
                 null_mask[i] = true;
             }
@@ -433,5 +445,151 @@ mod tests {
         // Second: (0.5*1 + 2) / (0.5 + 1) = 2.5/1.5 ≈ 1.667
         assert!((result.get(1).unwrap() - 5.0 / 3.0).abs() < 1e-10);
         assert!(!result.is_null_at(3));
+    }
+
+    // -- Edge-case tests -------------------------------------------------------
+
+    #[test]
+    fn test_rolling_window_size_greater_than_data() {
+        let s = Series::new("x", vec![1.0_f64, 2.0]);
+        let w = RollingWindow::new(5);
+        let result = s.rolling_mean(&w).unwrap();
+        // min_periods=5 but data has only 2 elements → all null
+        assert!(result.is_null_at(0));
+        assert!(result.is_null_at(1));
+    }
+
+    #[test]
+    fn test_rolling_window_size_1() {
+        let s = Series::new("x", vec![1.0_f64, 2.0, 3.0]);
+        let w = RollingWindow::new(1);
+        let result = s.rolling_mean(&w).unwrap();
+        // Window of 1 = identity
+        assert_eq!(result.get(0), Some(1.0));
+        assert_eq!(result.get(1), Some(2.0));
+        assert_eq!(result.get(2), Some(3.0));
+    }
+
+    #[test]
+    fn test_rolling_window_size_0_error() {
+        let s = Series::new("x", vec![1.0_f64, 2.0]);
+        let w = RollingWindow::new(0);
+        assert!(s.rolling_mean(&w).is_err());
+        assert!(s.rolling_sum(&w).is_err());
+        assert!(s.rolling_min(&w).is_err());
+        assert!(s.rolling_max(&w).is_err());
+        assert!(s.rolling_std(&w).is_err());
+    }
+
+    #[test]
+    fn test_rolling_sum_basic() {
+        let s = Series::new("x", vec![1.0_f64, 2.0, 3.0, 4.0]);
+        let w = RollingWindow::new(2);
+        let result = s.rolling_sum(&w).unwrap();
+        assert!(result.is_null_at(0));
+        assert_eq!(result.get(1), Some(3.0));
+        assert_eq!(result.get(2), Some(5.0));
+        assert_eq!(result.get(3), Some(7.0));
+    }
+
+    #[test]
+    fn test_rolling_min_max() {
+        let s = Series::new("x", vec![3.0_f64, 1.0, 4.0, 1.0, 5.0]);
+        let w = RollingWindow::new(3);
+        let rmin = s.rolling_min(&w).unwrap();
+        let rmax = s.rolling_max(&w).unwrap();
+        // index 2: window [3,1,4] → min=1, max=4
+        assert_eq!(rmin.get(2), Some(1.0));
+        assert_eq!(rmax.get(2), Some(4.0));
+    }
+
+    #[test]
+    fn test_ewm_mean_alpha_1() {
+        let s = Series::new("x", vec![1.0_f64, 2.0, 3.0]);
+        let result = s.ewm_mean(1.0).unwrap();
+        // alpha=1 means no memory, each value is just itself
+        assert_eq!(result.get(0), Some(1.0));
+        assert_eq!(result.get(1), Some(2.0));
+        assert_eq!(result.get(2), Some(3.0));
+    }
+
+    #[test]
+    fn test_ewm_mean_invalid_alpha() {
+        let s = Series::new("x", vec![1.0_f64]);
+        assert!(s.ewm_mean(0.0).is_err());
+        assert!(s.ewm_mean(-0.5).is_err());
+    }
+
+    #[test]
+    fn test_expanding_min_max() {
+        let s = Series::new("x", vec![3.0_f64, 1.0, 4.0, 1.0, 5.0]);
+        let emin = s.expanding_min();
+        let emax = s.expanding_max();
+        assert_eq!(emin.as_slice(), &[3.0, 1.0, 1.0, 1.0, 1.0]);
+        assert_eq!(emax.as_slice(), &[3.0, 3.0, 4.0, 4.0, 5.0]);
+    }
+
+    #[test]
+    fn test_rolling_std_basic() {
+        let s = Series::new("x", vec![1.0_f64, 2.0, 3.0, 4.0, 5.0]);
+        let w = RollingWindow::new(3);
+        let result = s.rolling_std(&w).unwrap();
+        assert!(result.is_null_at(0));
+        assert!(result.is_null_at(1));
+        // Window [1,2,3]: mean=2, var=(1+0+1)/3=2/3, std=sqrt(2/3)
+        let std_val = result.get(2).unwrap();
+        let expected = (2.0_f64 / 3.0).sqrt();
+        assert!((std_val - expected).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_expanding_sum_empty() {
+        let s: Series<f64> = Series::new("x", vec![]);
+        let result = s.expanding_sum();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_expanding_mean_empty() {
+        let s: Series<f64> = Series::new("x", vec![]);
+        let result = s.expanding_mean();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_ewm_mean_with_nulls() {
+        let s = Series::with_nulls("x", vec![1.0_f64, 0.0, 3.0], vec![false, true, false]).unwrap();
+        let result = s.ewm_mean(0.5).unwrap();
+        assert_eq!(result.get(0), Some(1.0));
+        // Index 1 is null in source but ewm should still produce a value (carry forward)
+        assert!(!result.is_null_at(1));
+        assert!(!result.is_null_at(2));
+    }
+
+    #[test]
+    fn test_rolling_sum_window_larger_than_data() {
+        let s = Series::new("x", vec![1.0_f64, 2.0]);
+        let w = RollingWindow::new(5);
+        let result = s.rolling_sum(&w).unwrap();
+        assert!(result.is_null_at(0));
+        assert!(result.is_null_at(1));
+    }
+
+    #[test]
+    fn test_rolling_min_max_window_1() {
+        let s = Series::new("x", vec![3.0_f64, 1.0, 4.0]);
+        let w = RollingWindow::new(1);
+        let rmin = s.rolling_min(&w).unwrap();
+        let rmax = s.rolling_max(&w).unwrap();
+        assert_eq!(rmin.as_slice(), &[3.0, 1.0, 4.0]);
+        assert_eq!(rmax.as_slice(), &[3.0, 1.0, 4.0]);
+    }
+
+    #[test]
+    fn test_rolling_sum_window_1() {
+        let s = Series::new("x", vec![10.0_f64, 20.0, 30.0]);
+        let w = RollingWindow::new(1);
+        let result = s.rolling_sum(&w).unwrap();
+        assert_eq!(result.as_slice(), &[10.0, 20.0, 30.0]);
     }
 }

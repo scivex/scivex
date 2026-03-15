@@ -10,6 +10,10 @@ use crate::tensor::Tensor;
 /// Result of a Cholesky decomposition.
 ///
 /// Stores the factorization `A = L L^T` where `L` is lower triangular.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct CholeskyDecomposition<T: Float> {
     /// Lower triangular factor stored as a flat n x n array.
@@ -80,7 +84,9 @@ impl<T: Float> CholeskyDecomposition<T> {
 
     /// Extract the lower triangular factor `L`.
     pub fn l(&self) -> Tensor<T> {
-        Tensor::from_vec(self.l_data.clone(), vec![self.n, self.n]).unwrap()
+        // SAFETY: l_data always has exactly n*n elements, matching the [n, n] shape.
+        Tensor::from_vec(self.l_data.clone(), vec![self.n, self.n])
+            .expect("l_data length equals n*n by construction")
     }
 
     /// Solve the linear system `Ax = b` using the Cholesky factorization.

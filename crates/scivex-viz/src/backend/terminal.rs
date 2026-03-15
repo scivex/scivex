@@ -13,6 +13,10 @@ use crate::error::Result;
 /// Dot 2 (0x04)  Dot 5 (0x20)
 /// Dot 6 (0x40)  Dot 7 (0x80)
 /// ```
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct TerminalBackend {
     /// Terminal width in character columns.

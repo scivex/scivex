@@ -8,10 +8,20 @@ repository.workspace = true
 
 [dependencies]
 rayon = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
 
 [features]
 simd = []
 parallel = ["dep:rayon"]
+serde-support = ["dep:serde"]
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1"
+
+[[bench]]
+name = "core_benchmarks"
+harness = false
 
 [lints]
 workspace = true

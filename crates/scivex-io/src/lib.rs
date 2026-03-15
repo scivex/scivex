@@ -51,6 +51,22 @@ pub mod parquet;
 #[cfg(feature = "arrow")]
 pub mod arrow;
 
+/// NumPy `.npy` and `.npz` file format support.
+#[cfg(feature = "npy")]
+pub mod npy;
+
+/// Excel (.xlsx) reading and writing.
+#[cfg(feature = "excel")]
+pub mod excel;
+
+/// Memory-mapped file I/O for tensors.
+#[cfg(feature = "mmap")]
+pub mod mmap;
+
+/// Tensor ↔ Arrow array conversions.
+#[cfg(feature = "arrow")]
+pub mod tensor_conv;
+
 pub use error::{IoError, Result};
 
 /// Glob-import convenience: `use scivex_io::prelude::*;`
@@ -59,7 +75,8 @@ pub mod prelude {
 
     #[cfg(feature = "csv")]
     pub use crate::csv::{
-        CsvReaderBuilder, CsvWriterBuilder, QuoteStyle, read_csv, read_csv_path, write_csv,
+        CsvChunkReader, CsvReaderBuilder, CsvWriterBuilder, QuoteStyle, read_csv, read_csv_path,
+        write_csv,
     };
 
     #[cfg(feature = "json")]
@@ -95,4 +112,23 @@ pub mod prelude {
 
     #[cfg(feature = "arrow")]
     pub use crate::arrow::{read_arrow, read_arrow_stream, write_arrow, write_arrow_stream};
+
+    #[cfg(feature = "npy")]
+    pub use crate::npy::{
+        read_npy, read_npy_path, read_npz, read_npz_path, write_npy, write_npy_path, write_npz,
+        write_npz_path,
+    };
+
+    #[cfg(feature = "excel")]
+    pub use crate::excel::{ExcelReaderBuilder, ExcelWriterBuilder, read_excel, write_excel};
+
+    #[cfg(feature = "mmap")]
+    pub use crate::mmap::{MmapTensorReader, mmap_npy};
+
+    #[cfg(feature = "arrow")]
+    pub use crate::tensor_conv::{
+        any_arrow_to_tensor_f64, arrow_f32_to_tensor, arrow_f64_to_tensor, record_batch_to_tensor,
+        tensor_f32_to_arrow, tensor_f64_to_arrow, tensor_to_record_batch,
+        tensor_to_record_batch_named,
+    };
 }

@@ -23,6 +23,7 @@ scivex-signal = { path = "../crates/scivex-signal", optional = true }
 scivex-graph = { path = "../crates/scivex-graph", optional = true }
 scivex-nlp = { path = "../crates/scivex-nlp", optional = true }
 scivex-sym = { path = "../crates/scivex-sym", optional = true }
+scivex-gpu = { path = "../crates/scivex-gpu", optional = true }
 
 [features]
 default = ["core"]
@@ -39,8 +40,25 @@ signal = ["dep:scivex-signal"]
 graph = ["dep:scivex-graph"]
 nlp = ["dep:scivex-nlp"]
 sym = ["dep:scivex-sym"]
+gpu = ["dep:scivex-gpu"]
+frame-regex = ["frame", "scivex-frame/regex"]
 image-png = ["image", "scivex-image/png"]
 image-jpeg = ["image", "scivex-image/jpeg"]
 simd = ["scivex-core/simd"]
 parallel = ["scivex-core/parallel"]
+serde-support = [
+    "scivex-core/serde-support",
+    "scivex-frame?/serde-support",
+    "scivex-stats?/serde-support",
+    "scivex-io?/serde-support",
+    "scivex-optim?/serde-support",
+    "scivex-viz?/serde-support",
+    "scivex-ml?/serde-support",
+    "scivex-nn?/serde-support",
+    "scivex-image?/serde-support",
+    "scivex-signal?/serde-support",
+    "scivex-graph?/serde-support",
+    "scivex-nlp?/serde-support",
+    "scivex-sym?/serde-support",
+]
 full = ["core", "frame", "stats", "io", "optim", "viz", "ml", "nn", "image", "image-png", "image-jpeg", "signal", "graph", "nlp", "sym"]

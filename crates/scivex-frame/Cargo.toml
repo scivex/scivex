@@ -11,3 +11,17 @@ workspace = true
 
 [dependencies]
 scivex-core = { path = "../scivex-core" }
+regex = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1"
+
+[[bench]]
+name = "frame_benchmarks"
+harness = false
+
+[features]
+regex = ["dep:regex"]
+serde-support = ["dep:serde", "scivex-core/serde-support"]

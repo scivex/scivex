@@ -4,6 +4,10 @@
 ///
 /// Implements the classic 5-step Porter stemmer that reduces words to their
 /// stems by stripping suffixes.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct PorterStemmer;
 
 impl PorterStemmer {

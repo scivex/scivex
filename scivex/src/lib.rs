@@ -23,7 +23,8 @@
 //! | `graph`            | Graph data structures, algorithms, network      |
 //! | `nlp`              | Tokenization, embeddings, text processing       |
 //! | `sym`              | Symbolic math, CAS, expression simplification   |
-//! | `full`             | All of the above                               |
+//! | `gpu`              | GPU-accelerated tensor ops via wgpu              |
+//! | `full`             | All of the above (except `gpu`)                 |
 
 pub use scivex_core as core;
 
@@ -62,6 +63,9 @@ pub use scivex_nlp as nlp;
 
 #[cfg(feature = "sym")]
 pub use scivex_sym as sym;
+
+#[cfg(feature = "gpu")]
+pub use scivex_gpu as gpu;
 
 /// Glob-import convenience: `use scivex::prelude::*;`
 pub mod prelude {

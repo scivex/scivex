@@ -9,6 +9,10 @@ use super::gamma::Gamma;
 /// Chi-squared distribution with `df` degrees of freedom.
 ///
 /// Internally delegates to `Gamma(df/2, 0.5)`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct ChiSquared<T: Float> {
     df: T,

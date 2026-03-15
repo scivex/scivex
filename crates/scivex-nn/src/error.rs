@@ -1,6 +1,10 @@
 use std::fmt;
 
 /// Errors produced by `scivex-nn`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum NnError {
     /// Shape mismatch between expected and actual.

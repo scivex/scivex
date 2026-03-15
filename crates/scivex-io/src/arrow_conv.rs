@@ -38,7 +38,10 @@ where
     A: From<Vec<T>> + From<Vec<Option<T>>> + 'static,
     A: arrow_crate::array::Array,
 {
-    let s = col.as_any().downcast_ref::<Series<T>>().unwrap();
+    let s = col
+        .as_any()
+        .downcast_ref::<Series<T>>()
+        .expect("dtype matched series type");
     if nullable {
         let values: Vec<Option<T>> = (0..s.len())
             .map(|i| {

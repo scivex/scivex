@@ -5,6 +5,10 @@ use crate::style::Font;
 use std::fmt::Write;
 
 /// Renders elements to SVG 1.1 markup.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct SvgBackend;
 
@@ -15,7 +19,7 @@ impl Renderer for SvgBackend {
             svg,
             r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">"#,
         )
-        .unwrap();
+        .expect("write to String is infallible");
 
         for elem in elements {
             render_element(&mut svg, elem, 1);
@@ -57,7 +61,7 @@ fn render_line(buf: &mut String, elem: &Element, depth: usize) {
             stroke.color.to_svg_color(),
             stroke.width,
         )
-        .unwrap();
+        .expect("write to String is infallible");
         write_dash(buf, stroke.dash.as_ref());
         buf.push_str("/>\n");
     }
@@ -78,7 +82,7 @@ fn render_rect(buf: &mut String, elem: &Element, depth: usize) {
             buf,
             r#"<rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{h:.2}""#,
         )
-        .unwrap();
+        .expect("write to String is infallible");
         write_fill(buf, fill.as_ref());
         write_stroke(buf, stroke.as_ref());
         buf.push_str("/>\n");
@@ -95,7 +99,8 @@ fn render_circle(buf: &mut String, elem: &Element, depth: usize) {
     } = elem
     {
         indent(buf, depth);
-        write!(buf, r#"<circle cx="{cx:.2}" cy="{cy:.2}" r="{r:.2}""#).unwrap();
+        write!(buf, r#"<circle cx="{cx:.2}" cy="{cy:.2}" r="{r:.2}""#)
+            .expect("write to String is infallible");
         write_fill(buf, fill.as_ref());
         write_stroke(buf, stroke.as_ref());
         buf.push_str("/>\n");
@@ -121,10 +126,10 @@ fn render_text(buf: &mut String, elem: &Element, depth: usize) {
             buf,
             r#"<text x="{x:.2}" y="{y:.2}" text-anchor="{anchor_str}""#,
         )
-        .unwrap();
+        .expect("write to String is infallible");
         write_font_attrs(buf, font);
         let escaped = xml_escape(text);
-        writeln!(buf, ">{escaped}</text>").unwrap();
+        writeln!(buf, ">{escaped}</text>").expect("write to String is infallible");
     }
 }
 
@@ -140,7 +145,8 @@ fn render_polyline(buf: &mut String, elem: &Element, depth: usize) {
             .iter()
             .map(|(px, py)| format!("{px:.2},{py:.2}"))
             .collect();
-        write!(buf, r#"<polyline points="{}""#, pts.join(" ")).unwrap();
+        write!(buf, r#"<polyline points="{}""#, pts.join(" "))
+            .expect("write to String is infallible");
         write_fill(buf, fill.as_ref());
         write!(
             buf,
@@ -148,7 +154,7 @@ fn render_polyline(buf: &mut String, elem: &Element, depth: usize) {
             stroke.color.to_svg_color(),
             stroke.width,
         )
-        .unwrap();
+        .expect("write to String is infallible");
         write_dash(buf, stroke.dash.as_ref());
         buf.push_str("/>\n");
     }
@@ -175,7 +181,8 @@ fn render_element(buf: &mut String, elem: &Element, depth: usize) {
 
 fn write_fill(buf: &mut String, fill: Option<&crate::style::Fill>) {
     match fill {
-        Some(f) => write!(buf, r#" fill="{}""#, f.color.to_svg_color()).unwrap(),
+        Some(f) => write!(buf, r#" fill="{}""#, f.color.to_svg_color())
+            .expect("write to String is infallible"),
         None => buf.push_str(r#" fill="none""#),
     }
 }
@@ -188,7 +195,7 @@ fn write_stroke(buf: &mut String, stroke: Option<&crate::style::Stroke>) {
             s.color.to_svg_color(),
             s.width,
         )
-        .unwrap();
+        .expect("write to String is infallible");
         write_dash(buf, s.dash.as_ref());
     }
 }
@@ -196,7 +203,8 @@ fn write_stroke(buf: &mut String, stroke: Option<&crate::style::Stroke>) {
 fn write_dash(buf: &mut String, dash: Option<&Vec<f64>>) {
     if let Some(d) = dash {
         let dash_str: Vec<String> = d.iter().map(|v| format!("{v:.1}")).collect();
-        write!(buf, r#" stroke-dasharray="{}""#, dash_str.join(",")).unwrap();
+        write!(buf, r#" stroke-dasharray="{}""#, dash_str.join(","))
+            .expect("write to String is infallible");
     }
 }
 
@@ -208,7 +216,7 @@ fn write_font_attrs(buf: &mut String, font: &Font) {
         font.size,
         font.color.to_svg_color(),
     )
-    .unwrap();
+    .expect("write to String is infallible");
     if font.bold {
         buf.push_str(r#" font-weight="bold""#);
     }

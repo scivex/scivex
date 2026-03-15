@@ -12,6 +12,10 @@ use crate::traits::Transformer;
 ///
 /// Computes `X ≈ U_k S_k V_k^T` keeping only the top `k` singular values.
 /// The transform projects new data onto the `k` right singular vectors.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct TruncatedSVD<T: Float> {
     n_components: usize,

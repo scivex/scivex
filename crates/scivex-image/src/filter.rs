@@ -276,4 +276,90 @@ mod tests {
         let kernel = Tensor::from_vec(vec![1.0f32; 4], vec![2, 2]).unwrap();
         assert!(convolve2d(&img, &kernel).is_err());
     }
+
+    #[test]
+    fn test_blur_1x1_image() {
+        let img = Image::from_raw(vec![0.5f32], 1, 1, PixelFormat::Gray).unwrap();
+        let blurred = gaussian_blur(&img, 1.0).unwrap();
+        // Single pixel, zero-padded borders: value should be attenuated
+        assert_eq!(blurred.width(), 1);
+        assert_eq!(blurred.height(), 1);
+        let p = blurred.get_pixel(0, 0).unwrap();
+        assert!(p[0] > 0.0);
+    }
+
+    #[test]
+    fn test_sobel_on_uniform_image() {
+        // Uniform image should have zero gradients everywhere (interior)
+        let data = vec![0.5f32; 9];
+        let img = Image::from_raw(data, 3, 3, PixelFormat::Gray).unwrap();
+        let edges = sobel(&img).unwrap();
+        let center = edges.get_pixel(1, 1).unwrap();
+        assert!(
+            center[0].abs() < 1e-5,
+            "uniform image edge should be ~0, got {}",
+            center[0]
+        );
+    }
+
+    #[test]
+    fn test_sobel_x_on_uniform() {
+        let data = vec![1.0f32; 9];
+        let img = Image::from_raw(data, 3, 3, PixelFormat::Gray).unwrap();
+        let gx = sobel_x(&img).unwrap();
+        let center = gx.get_pixel(1, 1).unwrap();
+        assert!(center[0].abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_sobel_y_on_uniform() {
+        let data = vec![1.0f32; 9];
+        let img = Image::from_raw(data, 3, 3, PixelFormat::Gray).unwrap();
+        let gy = sobel_y(&img).unwrap();
+        let center = gy.get_pixel(1, 1).unwrap();
+        assert!(center[0].abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_gaussian_blur_invalid_sigma() {
+        let img = Image::from_raw(vec![0.5f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+        assert!(gaussian_blur(&img, 0.0).is_err());
+        assert!(gaussian_blur(&img, -1.0).is_err());
+    }
+
+    #[test]
+    fn test_box_blur_invalid_radius() {
+        let img = Image::from_raw(vec![0.5f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+        assert!(box_blur(&img, 0).is_err());
+    }
+
+    #[test]
+    fn test_median_filter_invalid_radius() {
+        let img = Image::from_raw(vec![1u8; 9], 3, 3, PixelFormat::Gray).unwrap();
+        assert!(median_filter(&img, 0).is_err());
+    }
+
+    #[test]
+    fn test_convolve2d_1d_kernel_rejected() {
+        let img = Image::from_raw(vec![1.0f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+        let kernel = Tensor::from_vec(vec![1.0f32; 3], vec![3]).unwrap();
+        assert!(convolve2d(&img, &kernel).is_err());
+    }
+
+    #[test]
+    fn test_sharpen_preserves_dimensions() {
+        let data = vec![0.5f32; 25 * 3];
+        let img = Image::from_raw(data, 5, 5, PixelFormat::Rgb).unwrap();
+        let sharpened = sharpen(&img).unwrap();
+        assert_eq!(sharpened.width(), 5);
+        assert_eq!(sharpened.height(), 5);
+        assert_eq!(sharpened.channels(), 3);
+    }
+
+    #[test]
+    fn test_median_filter_1x1() {
+        let img = Image::from_raw(vec![42u8], 1, 1, PixelFormat::Gray).unwrap();
+        let filtered = median_filter(&img, 1).unwrap();
+        assert_eq!(filtered.get_pixel(0, 0).unwrap(), vec![42]);
+    }
 }

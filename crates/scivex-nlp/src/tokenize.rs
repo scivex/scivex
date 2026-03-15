@@ -11,6 +11,10 @@ pub trait Tokenizer {
 // ---------------------------------------------------------------------------
 
 /// Splits text on whitespace boundaries.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct WhitespaceTokenizer;
 
 impl Tokenizer for WhitespaceTokenizer {
@@ -23,6 +27,10 @@ impl Tokenizer for WhitespaceTokenizer {
 // WordTokenizer
 // ---------------------------------------------------------------------------
 
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 /// Splits text on non-alphanumeric boundaries, producing word tokens.
 pub struct WordTokenizer {
     pub to_lowercase: bool,
@@ -94,6 +102,10 @@ impl Tokenizer for WordTokenizer {
 // ---------------------------------------------------------------------------
 
 /// Splits text into individual character tokens.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct CharTokenizer;
 
 impl Tokenizer for CharTokenizer {
@@ -109,6 +121,10 @@ impl Tokenizer for CharTokenizer {
 // ---------------------------------------------------------------------------
 
 /// Produces character-level n-grams from text.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct NGramTokenizer {
     pub n: usize,
 }

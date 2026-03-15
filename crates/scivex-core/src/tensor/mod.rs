@@ -25,6 +25,10 @@ use crate::error::{CoreError, Result};
 /// # Type Parameters
 ///
 /// - `T`: The element type, which must implement [`Scalar`].
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Tensor<T: Scalar> {
     data: Vec<T>,
@@ -40,6 +44,15 @@ impl<T: Scalar> Tensor<T> {
     /// Create a tensor from a flat data vector and a shape.
     ///
     /// Returns an error if the product of `shape` does not equal `data.len()`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+    /// assert_eq!(t.shape(), &[2, 3]);
+    /// assert_eq!(t.numel(), 6);
+    /// ```
     pub fn from_vec(data: Vec<T>, shape: Vec<usize>) -> Result<Self> {
         let numel: usize = shape.iter().product();
         if numel != data.len() {
@@ -57,11 +70,31 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Create a tensor from a flat slice and a shape (copies the data).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let data = [1, 2, 3, 4];
+    /// let t = Tensor::from_slice(&data, vec![2, 2]).unwrap();
+    /// assert_eq!(t.shape(), &[2, 2]);
+    /// assert_eq!(*t.get(&[1, 0]).unwrap(), 3);
+    /// ```
     pub fn from_slice(data: &[T], shape: Vec<usize>) -> Result<Self> {
         Self::from_vec(data.to_vec(), shape)
     }
 
     /// Create a scalar (0-dimensional) tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::scalar(42.0_f64);
+    /// assert_eq!(t.ndim(), 0);
+    /// assert_eq!(t.numel(), 1);
+    /// assert_eq!(t.as_slice(), &[42.0]);
+    /// ```
     pub fn scalar(value: T) -> Self {
         Self {
             data: vec![value],
@@ -148,6 +181,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Get a reference to the element at the given multi-dimensional index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![10, 20, 30, 40], vec![2, 2]).unwrap();
+    /// assert_eq!(*t.get(&[0, 1]).unwrap(), 20);
+    /// assert_eq!(*t.get(&[1, 0]).unwrap(), 30);
+    /// ```
     pub fn get(&self, index: &[usize]) -> Result<&T> {
         let flat = self.flat_index(index)?;
         Ok(&self.data[flat])
@@ -160,6 +202,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Set the element at the given multi-dimensional index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let mut t = Tensor::from_vec(vec![1, 2, 3, 4], vec![2, 2]).unwrap();
+    /// t.set(&[0, 1], 99).unwrap();
+    /// assert_eq!(*t.get(&[0, 1]).unwrap(), 99);
+    /// ```
     pub fn set(&mut self, index: &[usize], value: T) -> Result<()> {
         let flat = self.flat_index(index)?;
         self.data[flat] = value;
@@ -185,6 +236,15 @@ impl<T: Scalar> Tensor<T> {
     // ------------------------------------------------------------------
 
     /// Apply a function to every element, returning a new tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4], vec![2, 2]).unwrap();
+    /// let doubled = t.map(|x| x * 2);
+    /// assert_eq!(doubled.as_slice(), &[2, 4, 6, 8]);
+    /// ```
     pub fn map<F>(&self, f: F) -> Tensor<T>
     where
         F: Fn(T) -> T,

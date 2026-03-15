@@ -1,6 +1,10 @@
 use crate::error::{Result, VizError};
 
 /// An RGBA color with 8-bit channels.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Color {
     /// Red channel (0--255).
@@ -128,6 +132,10 @@ impl Color {
 }
 
 /// A continuous colormap that maps values in `[0, 1]` to colors.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct ColorMap {
     colors: Vec<Color>,

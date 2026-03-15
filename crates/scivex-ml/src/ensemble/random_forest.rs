@@ -8,6 +8,10 @@ use crate::traits::Predictor;
 use crate::tree::{DecisionTreeClassifier, DecisionTreeRegressor};
 
 /// Random forest classifier using bagging of decision trees.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct RandomForestClassifier<T: Float> {
     n_trees: usize,
@@ -125,6 +129,10 @@ impl<T: Float> Predictor<T> for RandomForestClassifier<T> {
 }
 
 /// Random forest regressor using bagging of decision trees.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct RandomForestRegressor<T: Float> {
     n_trees: usize,

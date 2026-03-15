@@ -24,6 +24,10 @@ pub trait PlotBuilder {
 // ---------------------------------------------------------------------------
 
 /// A line plot connecting `(x, y)` data points.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct LinePlot {
     x: Vec<f64>,
     y: Vec<f64>,
@@ -105,6 +109,10 @@ impl PlotBuilder for LinePlot {
 // ScatterPlot
 // ---------------------------------------------------------------------------
 
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 /// A scatter plot drawing markers at `(x, y)` data points.
 pub struct ScatterPlot {
     x: Vec<f64>,
@@ -187,6 +195,10 @@ impl PlotBuilder for ScatterPlot {
 // ---------------------------------------------------------------------------
 
 /// A bar chart for categorical data.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct BarPlot {
     categories: Vec<String>,
     values: Vec<f64>,
@@ -291,6 +303,10 @@ impl PlotBuilder for BarPlot {
 // ---------------------------------------------------------------------------
 
 /// A histogram that bins continuous data.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 pub struct Histogram {
     data: Vec<f64>,
     n_bins: usize,

@@ -1,9 +1,15 @@
-//! Optimizers for training neural networks.
+//! Optimizers and learning rate schedulers for training neural networks.
 
 mod adam;
+/// Learning rate schedulers.
+pub mod scheduler;
 mod sgd;
 
 pub use adam::Adam;
+pub use scheduler::{
+    CosineAnnealingLR, ExponentialLR, LinearLR, LrScheduler, ReduceLROnPlateau, StepLR,
+    WarmupCosineDecay,
+};
 pub use sgd::SGD;
 
 use scivex_core::Float;

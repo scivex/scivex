@@ -3,6 +3,10 @@ use core::fmt;
 use scivex_core::CoreError;
 
 /// All errors returned by `scivex-sym`.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum SymError {
     /// The expression is malformed or unsupported.

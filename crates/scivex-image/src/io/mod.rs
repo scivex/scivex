@@ -13,6 +13,10 @@ use crate::error::{ImageError, Result};
 use crate::image::Image;
 
 /// Supported image file formats.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Format {
     /// PPM (Portable Pixmap) — color images.

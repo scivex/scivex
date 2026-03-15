@@ -19,6 +19,10 @@ fn atan_approx<T: Float>(x: T) -> T {
 /// Cauchy distribution (Lorentz distribution) with location `x0` and scale `gamma`.
 ///
 /// The Cauchy distribution has no finite mean or variance.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Cauchy<T: Float> {
     x0: T,

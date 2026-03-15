@@ -6,6 +6,10 @@ use crate::error::{Result, StatsError};
 use super::Distribution;
 
 /// Bernoulli distribution with success probability p.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Bernoulli<T: Float> {
     p: T,

@@ -6,6 +6,18 @@ use crate::series::AnySeries;
 
 impl DataFrame {
     /// First `n` rows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![10_i32, 20, 30, 40])
+    ///     .build()
+    ///     .unwrap();
+    /// let top = df.head(2);
+    /// assert_eq!(top.nrows(), 2);
+    /// ```
     pub fn head(&self, n: usize) -> DataFrame {
         let n = n.min(self.nrows());
         let cols = self.columns.iter().map(|c| c.slice(0, n)).collect();
@@ -13,6 +25,18 @@ impl DataFrame {
     }
 
     /// Last `n` rows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![10_i32, 20, 30, 40])
+    ///     .build()
+    ///     .unwrap();
+    /// let bottom = df.tail(2);
+    /// assert_eq!(bottom.nrows(), 2);
+    /// ```
     pub fn tail(&self, n: usize) -> DataFrame {
         let total = self.nrows();
         let n = n.min(total);
@@ -160,5 +184,57 @@ mod tests {
         let df = sample_df();
         let h = df.head(100);
         assert_eq!(h.nrows(), 3);
+    }
+
+    #[test]
+    fn test_tail_larger_than_nrows() {
+        let df = sample_df();
+        let t = df.tail(100);
+        assert_eq!(t.nrows(), 3);
+        let col = t.column_typed::<i32>("a").unwrap();
+        assert_eq!(col.as_slice(), &[3, 1, 2]);
+    }
+
+    #[test]
+    fn test_empty_df_head_tail() {
+        let df = DataFrame::empty();
+        let h = df.head(5);
+        assert_eq!(h.nrows(), 0);
+        let t = df.tail(5);
+        assert_eq!(t.nrows(), 0);
+    }
+
+    #[test]
+    fn test_sort_by_nonexistent_column() {
+        let df = sample_df();
+        assert!(df.sort_by("nonexistent", true).is_err());
+    }
+
+    #[test]
+    fn test_filter_empty_df() {
+        let df = DataFrame::new(vec![Box::new(Series::new("a", Vec::<i32>::new()))]).unwrap();
+        let filtered = df.filter(&[]).unwrap();
+        assert_eq!(filtered.nrows(), 0);
+    }
+
+    #[test]
+    fn test_slice_beyond_bounds() {
+        let df = sample_df();
+        let s = df.slice(1, 100);
+        assert_eq!(s.nrows(), 2);
+    }
+
+    #[test]
+    fn test_head_zero() {
+        let df = sample_df();
+        let h = df.head(0);
+        assert_eq!(h.nrows(), 0);
+    }
+
+    #[test]
+    fn test_tail_zero() {
+        let df = sample_df();
+        let t = df.tail(0);
+        assert_eq!(t.nrows(), 0);
     }
 }

@@ -11,3 +11,7 @@ workspace = true
 
 [dependencies]
 scivex-core = { path = "../scivex-core" }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+serde-support = ["dep:serde", "scivex-core/serde-support"]

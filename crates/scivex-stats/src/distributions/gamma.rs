@@ -9,6 +9,10 @@ use super::{Distribution, ppf_bisection};
 /// Gamma distribution with shape `alpha` and rate `beta`.
 ///
 /// PDF: f(x) = beta^alpha * x^{alpha-1} * e^{-beta*x} / Gamma(alpha)
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct Gamma<T: Float> {
     alpha: T,
@@ -98,7 +102,7 @@ impl<T: Float> Distribution<T> for Gamma<T> {
 
         if self.alpha < one {
             // For alpha < 1: sample Gamma(alpha+1) and multiply by U^{1/alpha}
-            let g1 = Gamma::new(self.alpha + one, one).unwrap();
+            let g1 = Gamma::new(self.alpha + one, one).expect("alpha+1 always valid");
             let x = g1.sample(rng);
             let u = T::from_f64(rng.next_f64());
             return x * u.powf(one / self.alpha) / self.beta;

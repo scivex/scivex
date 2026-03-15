@@ -1,6 +1,10 @@
 use crate::style::{Fill, Font, Stroke};
 
 /// Text horizontal alignment.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextAnchor {
     /// Align text to the left (start of the text run).
@@ -14,6 +18,10 @@ pub enum TextAnchor {
 /// Backend-agnostic drawing primitive.
 ///
 /// All coordinates are in **pixel space** (post-transform from data space).
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub enum Element {
     /// A straight line segment from `(x1, y1)` to `(x2, y2)`.

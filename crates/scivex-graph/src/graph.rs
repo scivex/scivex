@@ -8,6 +8,10 @@ use crate::error::{GraphError, Result};
 /// Nodes are identified by `usize` indices. Removed nodes leave a tombstone
 /// (empty adjacency list, `active[u] = false`) so that existing node IDs
 /// remain stable.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct Graph<T: Float> {
     adj: Vec<Vec<(usize, T)>>,
@@ -18,6 +22,15 @@ pub struct Graph<T: Float> {
 
 impl<T: Float> Graph<T> {
     /// Create an empty graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::<f64>::new();
+    /// assert_eq!(g.node_count(), 0);
+    /// assert_eq!(g.edge_count(), 0);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {

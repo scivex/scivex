@@ -340,6 +340,11 @@ pub fn gemm<T: Scalar>(
     beta: T,
     c: &mut Tensor<T>,
 ) -> Result<()> {
+    // Tile sizes for blocked GEMM — keep working sets in L1/L2 cache.
+    const MC: usize = 64; // row block size for A/C
+    const KC: usize = 256; // reduction-dimension block size
+    const NC: usize = 256; // column block size for B/C
+
     if a.ndim() != 2 || b.ndim() != 2 || c.ndim() != 2 {
         return Err(CoreError::InvalidArgument {
             reason: "gemm: all arguments must be 2-D tensors (matrices)",
@@ -378,16 +383,36 @@ pub fn gemm<T: Scalar>(
         }
     }
 
-    // ikj loop order: for each row i of A, accumulate alpha*A[i,p]*B[p,:] into C[i,:].
-    // The inner j-loop is a contiguous axpy which auto-vectorizes / uses SIMD.
-    for i in 0..m {
-        let a_row = i * k;
-        let c_row = i * n;
-        for p in 0..k {
-            let scale = alpha * a_data[a_row + p];
-            let b_row = &b_data[p * n..(p + 1) * n];
-            let c_slice = &mut c_data[c_row..c_row + n];
-            axpy_slice(scale, b_row, c_slice);
+    // Blocked GEMM with cache-aware tiling.
+    // Within each tile, the IKJ loop order is used so that the innermost
+    // j-loop is a contiguous AXPY (auto-vectorized / SIMD-accelerated).
+
+    // Loop over K-dimension blocks
+    for pk in (0..k).step_by(KC) {
+        let kb = KC.min(k - pk);
+
+        // Loop over row blocks of A / C
+        for pi in (0..m).step_by(MC) {
+            let mb = MC.min(m - pi);
+
+            // Loop over column blocks of B / C
+            for pj in (0..n).step_by(NC) {
+                let nb = NC.min(n - pj);
+
+                // Micro-kernel: multiply A[pi..pi+mb, pk..pk+kb] × B[pk..pk+kb, pj..pj+nb]
+                //                   into C[pi..pi+mb, pj..pj+nb]
+                for i in 0..mb {
+                    let row_a = (pi + i) * k + pk;
+                    let row_c = (pi + i) * n + pj;
+                    for p in 0..kb {
+                        let scale = alpha * a_data[row_a + p];
+                        let b_off = (pk + p) * n + pj;
+                        let b_row = &b_data[b_off..b_off + nb];
+                        let c_slice = &mut c_data[row_c..row_c + nb];
+                        axpy_slice(scale, b_row, c_slice);
+                    }
+                }
+            }
         }
     }
 

@@ -51,6 +51,17 @@ impl<T: Float> Variable<T> {
     // ── Constructors ────────────────────────────────────────────────
 
     /// Create a new leaf variable.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_nn::Variable;
+    /// let t = Tensor::<f64>::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+    /// let v = Variable::new(t, true);
+    /// assert!(v.requires_grad());
+    /// assert_eq!(v.shape(), vec![3]);
+    /// ```
     pub fn new(data: Tensor<T>, requires_grad: bool) -> Self {
         Self {
             inner: Rc::new(RefCell::new(Node {

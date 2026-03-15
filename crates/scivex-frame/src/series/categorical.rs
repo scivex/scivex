@@ -13,6 +13,10 @@ use crate::series::string::StringSeries;
 ///
 /// Stores unique category strings in a dictionary and references them by index,
 /// making repeated string values much more memory-efficient.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct CategoricalSeries {
     name: String,
@@ -148,7 +152,8 @@ impl CategoricalSeries {
             .map(|&c| self.categories[c as usize].clone())
             .collect();
         if let Some(ref mask) = self.null_mask {
-            StringSeries::with_nulls(self.name.clone(), data, mask.clone()).unwrap()
+            StringSeries::with_nulls(self.name.clone(), data, mask.clone())
+                .expect("valid series construction")
         } else {
             StringSeries::new(self.name.clone(), data)
         }
@@ -260,7 +265,11 @@ impl AnySeries for CategoricalSeries {
             if keep && i < self.codes.len() {
                 codes.push(self.codes[i]);
                 if let Some(ref mut nm) = new_nulls {
-                    nm.push(self.null_mask.as_ref().unwrap()[i]);
+                    nm.push(
+                        self.null_mask
+                            .as_ref()
+                            .expect("null_mask present when has_nulls is true")[i],
+                    );
                 }
             }
         }
@@ -308,7 +317,10 @@ impl AnySeries for CategoricalSeries {
         if self.null_mask.is_none() {
             return self.clone_box();
         }
-        let mask = self.null_mask.as_ref().unwrap();
+        let mask = self
+            .null_mask
+            .as_ref()
+            .expect("null_mask present when has_nulls is true");
         let keep: Vec<bool> = mask.iter().map(|&is_null| !is_null).collect();
         self.filter_mask(&keep)
     }
@@ -420,5 +432,122 @@ mod tests {
         // "a" was code 0, now should be code 2
         assert_eq!(cat.get(0), Some("a"));
         assert_eq!(cat.get(1), Some("b"));
+    }
+
+    // -- Edge-case tests -------------------------------------------------------
+
+    #[test]
+    fn test_encode_decode_roundtrip() {
+        let original = &["red", "green", "blue", "red", "blue"];
+        let cat = CategoricalSeries::from_strs("color", original);
+        let decoded = cat.to_string_series();
+        for (i, &expected) in original.iter().enumerate() {
+            assert_eq!(decoded.get(i), Some(expected));
+        }
+    }
+
+    #[test]
+    fn test_categorical_filter_mask() {
+        let cat = CategoricalSeries::from_strs("x", &["a", "b", "c", "d"]);
+        let boxed: Box<dyn AnySeries> = Box::new(cat);
+        let filtered = boxed.filter_mask(&[true, false, false, true]);
+        assert_eq!(filtered.len(), 2);
+        assert_eq!(filtered.display_value(0), "a");
+        assert_eq!(filtered.display_value(1), "d");
+    }
+
+    #[test]
+    fn test_categorical_with_nulls() {
+        let cat = CategoricalSeries::with_nulls(
+            "x",
+            vec!["a".into(), "b".into()],
+            vec![0, 1],
+            vec![false, true],
+        )
+        .unwrap();
+        assert_eq!(cat.null_count(), 1);
+        assert_eq!(cat.get(0), Some("a"));
+        assert_eq!(cat.get(1), None);
+    }
+
+    #[test]
+    fn test_categorical_add_category_idempotent() {
+        let mut cat = CategoricalSeries::from_strs("x", &["a", "b"]);
+        assert_eq!(cat.n_categories(), 2);
+        cat.add_category("c");
+        assert_eq!(cat.n_categories(), 3);
+        cat.add_category("c"); // duplicate - should not add
+        assert_eq!(cat.n_categories(), 3);
+    }
+
+    #[test]
+    fn test_categorical_rename_nonexistent() {
+        let mut cat = CategoricalSeries::from_strs("x", &["a", "b"]);
+        assert!(cat.rename_category("z", "w").is_err());
+    }
+
+    #[test]
+    fn test_categorical_new_invalid_code() {
+        let result = CategoricalSeries::new(
+            "x",
+            vec!["a".into(), "b".into()],
+            vec![0, 5], // code 5 is out of bounds
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_categorical_empty() {
+        let cat = CategoricalSeries::from_strs("x", &[]);
+        assert!(cat.is_empty());
+        assert_eq!(cat.len(), 0);
+        assert_eq!(cat.n_categories(), 0);
+        assert_eq!(cat.get(0), None);
+    }
+
+    #[test]
+    fn test_categorical_reorder_wrong_length() {
+        let mut cat = CategoricalSeries::from_strs("x", &["a", "b", "c"]);
+        let result = cat.reorder_categories(&["a", "b"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_categorical_to_string_series_with_nulls() {
+        let cat = CategoricalSeries::with_nulls(
+            "x",
+            vec!["a".into(), "b".into()],
+            vec![0, 1],
+            vec![false, true],
+        )
+        .unwrap();
+        let ss = cat.to_string_series();
+        assert_eq!(ss.get(0), Some("a"));
+        assert_eq!(ss.get(1), None); // null preserved
+        assert_eq!(ss.null_count(), 1);
+    }
+
+    #[test]
+    fn test_categorical_slice() {
+        let cat = CategoricalSeries::from_strs("x", &["a", "b", "c", "d"]);
+        let boxed: Box<dyn AnySeries> = Box::new(cat);
+        let sliced = boxed.slice(1, 2);
+        assert_eq!(sliced.len(), 2);
+        assert_eq!(sliced.display_value(0), "b");
+        assert_eq!(sliced.display_value(1), "c");
+    }
+
+    #[test]
+    fn test_categorical_with_nulls_mismatch() {
+        let result = CategoricalSeries::with_nulls("x", vec!["a".into()], vec![0, 1], vec![false]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_categorical_display() {
+        let cat = CategoricalSeries::from_strs("color", &["red", "blue"]);
+        let display = format!("{cat}");
+        assert!(display.contains("color"));
+        assert!(display.contains("len=2"));
     }
 }

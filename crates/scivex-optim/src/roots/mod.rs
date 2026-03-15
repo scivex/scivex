@@ -13,6 +13,10 @@ pub use newton::newton;
 use scivex_core::Float;
 
 /// Result of a root-finding algorithm.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct RootResult<T: Float> {
     /// The estimated root.
@@ -26,6 +30,10 @@ pub struct RootResult<T: Float> {
 }
 
 /// Options controlling root-finding algorithms.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct RootOptions<T: Float> {
     /// Tolerance on the root position.

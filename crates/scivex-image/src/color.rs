@@ -330,4 +330,67 @@ mod tests {
         let gray = to_grayscale(&img).unwrap();
         assert_eq!(gray.get_pixel(0, 0).unwrap(), vec![0]);
     }
+
+    #[test]
+    fn test_grayscale_of_gray_is_identity() {
+        let data = vec![50u8, 100, 150, 200];
+        let img = Image::from_raw(data.clone(), 4, 1, PixelFormat::Gray).unwrap();
+        let gray = to_grayscale(&img).unwrap();
+        assert_eq!(gray.format(), PixelFormat::Gray);
+        assert_eq!(gray.as_slice(), &data);
+    }
+
+    #[test]
+    fn test_to_grayscale_from_rgba() {
+        let data = vec![100u8, 150, 200, 255];
+        let img = Image::from_raw(data, 1, 1, PixelFormat::Rgba).unwrap();
+        let gray = to_grayscale(&img).unwrap();
+        assert_eq!(gray.format(), PixelFormat::Gray);
+        assert_eq!(gray.channels(), 1);
+        // Should produce a valid gray value derived from R=100 G=150 B=200
+        let val = gray.get_pixel(0, 0).unwrap()[0];
+        assert!(val > 0);
+    }
+
+    #[test]
+    fn test_invert_twice_identity() {
+        let data = vec![10u8, 100, 200];
+        let img = Image::from_raw(data.clone(), 1, 1, PixelFormat::Rgb).unwrap();
+        let double_inv = invert(&invert(&img));
+        assert_eq!(double_inv.as_slice(), &data);
+    }
+
+    #[test]
+    fn test_invert_f32_twice_identity() {
+        let data = vec![0.1f32, 0.5, 0.9];
+        let img = Image::from_raw(data.clone(), 1, 1, PixelFormat::Rgb).unwrap();
+        let double_inv = invert_f32(&invert_f32(&img));
+        for (a, b) in double_inv.as_slice().iter().zip(data.iter()) {
+            assert!((a - b).abs() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn test_rgb_to_hsv_pure_green() {
+        let data = vec![0.0f32, 1.0, 0.0];
+        let img = Image::from_raw(data, 1, 1, PixelFormat::Rgb).unwrap();
+        let hsv = rgb_to_hsv(&img).unwrap();
+        let p = hsv.get_pixel(0, 0).unwrap();
+        // Green: H ~ 1/3, S=1, V=1
+        assert!((p[0] - 1.0 / 3.0).abs() < 1e-5);
+        assert!((p[1] - 1.0).abs() < 1e-5);
+        assert!((p[2] - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_rgb_to_hsv_pure_blue() {
+        let data = vec![0.0f32, 0.0, 1.0];
+        let img = Image::from_raw(data, 1, 1, PixelFormat::Rgb).unwrap();
+        let hsv = rgb_to_hsv(&img).unwrap();
+        let p = hsv.get_pixel(0, 0).unwrap();
+        // Blue: H ~ 2/3, S=1, V=1
+        assert!((p[0] - 2.0 / 3.0).abs() < 1e-5);
+        assert!((p[1] - 1.0).abs() < 1e-5);
+        assert!((p[2] - 1.0).abs() < 1e-5);
+    }
 }

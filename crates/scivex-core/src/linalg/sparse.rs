@@ -15,6 +15,10 @@ use crate::tensor::Tensor;
 ///
 /// Stores (row, col, value) triplets. Duplicate entries are summed during
 /// conversion to CSR/CSC.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct CooMatrix<T: Scalar> {
     rows: Vec<usize>,
@@ -113,7 +117,9 @@ impl<T: Scalar> CooMatrix<T> {
         {
             data[r * self.ncols + c] += v;
         }
-        Tensor::from_vec(data, vec![self.nrows, self.ncols]).unwrap()
+        // SAFETY: data has exactly nrows*ncols elements, matching shape [nrows, ncols].
+        Tensor::from_vec(data, vec![self.nrows, self.ncols])
+            .expect("dense data length equals nrows*ncols by construction")
     }
 
     /// Convert to CSR format. Duplicate entries at the same position are summed.
@@ -202,6 +208,10 @@ impl<T: Scalar> CooMatrix<T> {
 // ======================================================================
 
 /// Sparse matrix in CSR (Compressed Sparse Row) format.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct CsrMatrix<T: Scalar> {
     row_ptr: Vec<usize>,
@@ -318,7 +328,9 @@ impl<T: Scalar> CsrMatrix<T> {
                 data[r * self.ncols + c] = self.values[idx];
             }
         }
-        Tensor::from_vec(data, vec![self.nrows, self.ncols]).unwrap()
+        // SAFETY: data has exactly nrows*ncols elements, matching shape [nrows, ncols].
+        Tensor::from_vec(data, vec![self.nrows, self.ncols])
+            .expect("dense data length equals nrows*ncols by construction")
     }
 
     /// Sparse matrix × dense vector multiplication.
@@ -446,6 +458,10 @@ impl<T: Scalar> CsrMatrix<T> {
 // ======================================================================
 
 /// Sparse matrix in CSC (Compressed Sparse Column) format.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone)]
 pub struct CscMatrix<T: Scalar> {
     col_ptr: Vec<usize>,
@@ -514,7 +530,9 @@ impl<T: Scalar> CscMatrix<T> {
                 data[r * self.ncols + c] = self.values[idx];
             }
         }
-        Tensor::from_vec(data, vec![self.nrows, self.ncols]).unwrap()
+        // SAFETY: data has exactly nrows*ncols elements, matching shape [nrows, ncols].
+        Tensor::from_vec(data, vec![self.nrows, self.ncols])
+            .expect("dense data length equals nrows*ncols by construction")
     }
 
     /// Sparse matrix × dense vector multiplication.

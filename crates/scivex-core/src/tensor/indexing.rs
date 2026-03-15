@@ -8,6 +8,10 @@ use super::{Tensor, compute_strides};
 /// A range specification for one axis when slicing a tensor.
 ///
 /// Mirrors Python's `start:stop:step` slice notation.
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct SliceRange {
     pub start: usize,
