@@ -126,20 +126,25 @@ fn trace_boundary(
 
         for i in 0..8 {
             let d = (start_dir + i) % 8;
-            let nr = cur_row.cast_signed() + DIRS[d].0;
-            let nc = cur_col.cast_signed() + DIRS[d].1;
+            let (dr, dc) = DIRS[d];
+            // Bounds-check: skip if the offset would go negative or out of range.
+            let in_bounds = (dr >= 0 || cur_row > 0)
+                && (dc >= 0 || cur_col > 0)
+                && (dr <= 0 || cur_row + 1 < h)
+                && (dc <= 0 || cur_col + 1 < w);
+            if !in_bounds {
+                continue;
+            }
+            let nr = cur_row.wrapping_add_signed(dr);
+            let nc = cur_col.wrapping_add_signed(dc);
 
-            if nr >= 0 && nr < h.cast_signed() && nc >= 0 && nc < w.cast_signed() {
-                let nr = nr.cast_unsigned();
-                let nc = nc.cast_unsigned();
-                if binary[nr * w + nc] {
-                    // The backtrack direction is opposite of where we came from.
-                    backtrack_dir = (d + 4) % 8;
-                    cur_row = nr;
-                    cur_col = nc;
-                    found = true;
-                    break;
-                }
+            if nr < h && nc < w && binary[nr * w + nc] {
+                // The backtrack direction is opposite of where we came from.
+                backtrack_dir = (d + 4) % 8;
+                cur_row = nr;
+                cur_col = nc;
+                found = true;
+                break;
             }
         }
 
