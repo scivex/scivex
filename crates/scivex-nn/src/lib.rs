@@ -37,8 +37,16 @@ pub mod ops;
 pub mod optim;
 /// Weight persistence: save and load model parameters.
 pub mod persist;
+/// Model serialization formats (SafeTensors, GGUF).
+pub mod serialize;
+/// Training utilities (Trainer, callbacks, gradient clipping).
+pub mod training;
 /// Autograd computation graph node.
 pub mod variable;
+
+/// GPU-accelerated training backend.
+#[cfg(feature = "gpu")]
+pub mod gpu;
 
 pub use error::{NnError, Result};
 pub use variable::Variable;
@@ -51,8 +59,9 @@ pub mod prelude {
     pub use crate::init::{kaiming_normal, kaiming_uniform, xavier_normal, xavier_uniform};
     pub use crate::layer::{
         AvgPool1d, AvgPool2d, BatchNorm1d, Conv1d, Conv2d, Dropout, Embedding, Flatten, GRU, LSTM,
-        Layer, LayerNorm, Linear, MaxPool1d, MaxPool2d, MultiHeadAttention, ReLU, Sequential,
-        Sigmoid, SimpleRNN, Tanh, TransformerEncoderLayer,
+        Layer, LayerNorm, Linear, MaxPool1d, MaxPool2d, MultiHeadAttention, ReLU,
+        RotaryPositionalEncoding, Sequential, Sigmoid, SimpleRNN, SinusoidalPositionalEncoding,
+        Tanh, TransformerDecoderLayer, TransformerEncoderLayer, causal_mask,
     };
     pub use crate::loss::{bce_loss, cross_entropy_loss, mse_loss};
     pub use crate::onnx::{
@@ -65,5 +74,15 @@ pub mod prelude {
         ReduceLROnPlateau, SGD, StepLR, WarmupCosineDecay,
     };
     pub use crate::persist::{load_weights, save_weights};
+    pub use crate::serialize::{
+        GgufFile, GgufValue, load_gguf, load_safetensors, save_gguf, save_safetensors,
+    };
+    pub use crate::training::{
+        Callback, CallbackAction, EarlyStopping, LossLogger, ModelCheckpoint, Trainer,
+        TrainingHistory, clip_grad_norm, clip_grad_value,
+    };
     pub use crate::variable::Variable;
+
+    #[cfg(feature = "gpu")]
+    pub use crate::gpu::prelude::*;
 }

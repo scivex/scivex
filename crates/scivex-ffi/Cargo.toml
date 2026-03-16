@@ -10,8 +10,10 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 scivex-core = { path = "../scivex-core" }
+scivex-frame = { path = "../scivex-frame" }
 scivex-stats = { path = "../scivex-stats" }
 scivex-ml = { path = "../scivex-ml" }
+scivex-viz = { path = "../scivex-viz" }
 
 [lints]
 workspace = true

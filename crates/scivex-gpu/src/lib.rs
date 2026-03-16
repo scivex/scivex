@@ -32,11 +32,22 @@
 //! | Linear algebra | `matmul` |
 //! | Reduction | `sum`, `mean` |
 
+pub mod backend;
 pub mod device;
 pub mod error;
 pub mod ops;
 pub mod tensor;
 
+#[cfg(feature = "cuda")]
+pub mod cuda;
+
+pub use backend::GpuBackend;
 pub use device::{GpuDevice, GpuInfo};
 pub use error::GpuError;
 pub use tensor::GpuTensor;
+
+#[cfg(feature = "cuda")]
+pub use cuda::{
+    CuBlasHandle, CuDnnHandle, CudaBuffer, CudaContext, CudaDevice, CudaKernels, CudaStream,
+    CudaTensor,
+};

@@ -22,6 +22,9 @@ tiberius = { version = "0.12", optional = true, default-features = false, featur
 tokio = { version = "1", optional = true, features = ["rt", "net", "io-util"] }
 tokio-util = { version = "0.7", optional = true, features = ["compat"] }
 
+# DuckDB
+duckdb = { version = "1", optional = true, features = ["bundled"] }
+
 # Parquet & Arrow
 parquet_crate = { package = "parquet", version = "55", optional = true, default-features = false, features = ["arrow", "snap", "zstd", "lz4"] }
 arrow_crate = { package = "arrow", version = "55", optional = true, default-features = false, features = ["ipc"] }
@@ -40,14 +43,17 @@ serde-support = ["dep:serde", "scivex-core/serde-support", "scivex-frame/serde-s
 default = ["csv"]
 csv = []
 npy = []
+hdf5 = []
 json = ["dep:serde_json"]
 sqlite = ["dep:rusqlite"]
 postgres = ["dep:postgres"]
 mysql = ["dep:mysql"]
 mssql = ["dep:tiberius", "dep:tokio", "dep:tokio-util"]
+duckdb = ["dep:duckdb"]
 sql = ["sqlite", "postgres", "mysql", "mssql"]
 parquet = ["dep:parquet_crate", "dep:arrow_crate", "dep:bytes"]
 arrow = ["dep:arrow_crate"]
+avro = []
 mmap = ["dep:memmap2"]
 excel = ["dep:calamine", "dep:rust_xlsxwriter"]
-full = ["csv", "json", "sql", "parquet", "arrow", "npy", "mmap", "excel"]
+full = ["csv", "json", "sql", "parquet", "arrow", "npy", "mmap", "excel", "duckdb", "avro", "hdf5"]

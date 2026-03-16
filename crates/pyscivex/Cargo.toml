@@ -1,0 +1,21 @@
+[package]
+name = "pyscivex"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Scivex — Python bindings via PyO3"
+
+[lib]
+name = "pyscivex"
+crate-type = ["cdylib"]
+
+[dependencies]
+scivex-core = { path = "../scivex-core" }
+scivex-frame = { path = "../scivex-frame" }
+scivex-stats = { path = "../scivex-stats" }
+scivex-ml = { path = "../scivex-ml" }
+scivex-viz = { path = "../scivex-viz" }
+pyo3 = { version = "0.25", features = ["extension-module"] }
+
+[lints]
+workspace = true

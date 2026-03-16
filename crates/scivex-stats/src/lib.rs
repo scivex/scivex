@@ -20,6 +20,8 @@
 //! assert!((med - 4.5).abs() < 1e-10);
 //! ```
 
+/// Bayesian inference: MCMC samplers and convergence diagnostics.
+pub mod bayesian;
 /// Confidence interval construction (mean, proportion).
 pub mod confidence;
 /// Multiple comparison corrections (Bonferroni, Benjamini-Hochberg).
@@ -32,11 +34,19 @@ pub mod descriptive;
 pub mod distributions;
 /// Statistics error types.
 pub mod error;
+/// GARCH volatility models.
+pub mod garch;
+/// Generalized Linear Models.
+pub mod glm;
 /// Hypothesis tests (t-test, chi-square, ANOVA, Mann-Whitney, KS).
 pub mod hypothesis;
+/// Kalman filter for linear state estimation.
+pub mod kalman;
 /// Ordinary least-squares regression.
 pub mod regression;
 pub(crate) mod special;
+/// Survival analysis (Kaplan-Meier, log-rank test, Cox PH).
+pub mod survival;
 /// Time series analysis (ACF, PACF, ARIMA, exponential smoothing, seasonal decomposition).
 pub mod timeseries;
 
@@ -49,11 +59,18 @@ pub use descriptive::{
 };
 pub use distributions::Distribution;
 pub use error::{Result, StatsError};
+pub use garch::Garch;
+pub use glm::{Family, GlmResult, LinkFunction, glm};
 pub use hypothesis::{
     TestResult, anova_oneway, chi_square_test, ks_test_two_sample, mann_whitney_u,
     t_test_one_sample, t_test_two_sample,
 };
+pub use kalman::KalmanFilter;
 pub use regression::{OlsResult, ols};
+pub use survival::{
+    CoxPHResult, KaplanMeierEstimate, LogRankResult, SurvivalRecord, cox_ph, kaplan_meier,
+    log_rank_test, median_survival_time,
+};
 pub use timeseries::{
     AdfResult, Arima, DecomposeResult, ExponentialSmoothing, SmoothingMethod, acf, adf_test, pacf,
     seasonal_decompose,
@@ -61,6 +78,10 @@ pub use timeseries::{
 
 /// Items intended for glob-import: `use scivex_stats::prelude::*;`
 pub mod prelude {
+    pub use crate::bayesian::{
+        HamiltonianMC, McmcConfig, McmcResult, MetropolisHastings, TraceSummary,
+        effective_sample_size, rhat, trace_summary,
+    };
     pub use crate::confidence::{ConfidenceInterval, ci_mean, ci_mean_z, ci_proportion};
     pub use crate::correction::{benjamini_hochberg, bonferroni};
     pub use crate::correlation::{CorrelationMethod, corr_matrix, kendall, pearson, spearman};
@@ -73,9 +94,16 @@ pub mod prelude {
         Uniform, Weibull,
     };
     pub use crate::error::{Result, StatsError};
+    pub use crate::garch::Garch;
+    pub use crate::glm::{Family, GlmResult, LinkFunction, glm};
     pub use crate::hypothesis::{
         TestResult, anova_oneway, chi_square_test, ks_test_two_sample, mann_whitney_u,
         t_test_one_sample, t_test_two_sample,
     };
+    pub use crate::kalman::KalmanFilter;
     pub use crate::regression::{OlsResult, ols};
+    pub use crate::survival::{
+        CoxPHResult, KaplanMeierEstimate, LogRankResult, SurvivalRecord, cox_ph, kaplan_meier,
+        log_rank_test, median_survival_time,
+    };
 }

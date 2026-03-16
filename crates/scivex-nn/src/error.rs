@@ -25,8 +25,13 @@ pub enum NnError {
     IndexOutOfBounds { index: usize, len: usize },
     /// ONNX model loading or execution error.
     OnnxError(String),
+    /// Serialization / deserialization error.
+    SerializeError(String),
     /// Error propagated from `scivex-core`.
     CoreError(scivex_core::CoreError),
+    /// Error from GPU operations.
+    #[cfg(feature = "gpu")]
+    GpuError(String),
 }
 
 impl fmt::Display for NnError {
@@ -40,11 +45,14 @@ impl fmt::Display for NnError {
                 write!(f, "invalid parameter `{name}`: {reason}")
             }
             Self::OnnxError(msg) => write!(f, "onnx: {msg}"),
+            Self::SerializeError(msg) => write!(f, "serialize: {msg}"),
             Self::EmptyInput => write!(f, "input data is empty"),
             Self::IndexOutOfBounds { index, len } => {
                 write!(f, "index {index} out of bounds for length {len}")
             }
             Self::CoreError(e) => write!(f, "core: {e}"),
+            #[cfg(feature = "gpu")]
+            Self::GpuError(e) => write!(f, "gpu: {e}"),
         }
     }
 }
@@ -54,6 +62,13 @@ impl std::error::Error for NnError {}
 impl From<scivex_core::CoreError> for NnError {
     fn from(e: scivex_core::CoreError) -> Self {
         Self::CoreError(e)
+    }
+}
+
+#[cfg(feature = "gpu")]
+impl From<scivex_gpu::GpuError> for NnError {
+    fn from(e: scivex_gpu::GpuError) -> Self {
+        Self::GpuError(e.to_string())
     }
 }
 

@@ -35,7 +35,8 @@ pub mod json;
     feature = "sqlite",
     feature = "postgres",
     feature = "mysql",
-    feature = "mssql"
+    feature = "mssql",
+    feature = "duckdb"
 ))]
 pub mod sql;
 
@@ -51,6 +52,10 @@ pub mod parquet;
 #[cfg(feature = "arrow")]
 pub mod arrow;
 
+/// DuckDB embedded OLAP database connectivity.
+#[cfg(feature = "duckdb")]
+pub mod duckdb_io;
+
 /// NumPy `.npy` and `.npz` file format support.
 #[cfg(feature = "npy")]
 pub mod npy;
@@ -58,6 +63,14 @@ pub mod npy;
 /// Excel (.xlsx) reading and writing.
 #[cfg(feature = "excel")]
 pub mod excel;
+
+/// Apache Avro container file reading and writing.
+#[cfg(feature = "avro")]
+pub mod avro;
+
+/// HDF5 hierarchical data format support.
+#[cfg(feature = "hdf5")]
+pub mod hdf5;
 
 /// Memory-mapped file I/O for tensors.
 #[cfg(feature = "mmap")]
@@ -89,7 +102,8 @@ pub mod prelude {
         feature = "sqlite",
         feature = "postgres",
         feature = "mysql",
-        feature = "mssql"
+        feature = "mssql",
+        feature = "duckdb"
     ))]
     pub use crate::sql::IfExists;
 
@@ -104,6 +118,9 @@ pub mod prelude {
 
     #[cfg(feature = "mssql")]
     pub use crate::sql::mssql::{MssqlConfig, MssqlConnection};
+
+    #[cfg(feature = "duckdb")]
+    pub use crate::duckdb_io::DuckDbConnection;
 
     #[cfg(feature = "parquet")]
     pub use crate::parquet::{
@@ -121,6 +138,16 @@ pub mod prelude {
 
     #[cfg(feature = "excel")]
     pub use crate::excel::{ExcelReaderBuilder, ExcelWriterBuilder, read_excel, write_excel};
+
+    #[cfg(feature = "avro")]
+    pub use crate::avro::{
+        AvroField, AvroHeader, AvroSchema, AvroType, read_avro, read_avro_header, write_avro,
+    };
+
+    #[cfg(feature = "hdf5")]
+    pub use crate::hdf5::{
+        Hdf5Scalar, list_hdf5_datasets, read_hdf5_dataset, write_hdf5_dataset, write_hdf5_datasets,
+    };
 
     #[cfg(feature = "mmap")]
     pub use crate::mmap::{MmapTensorReader, mmap_npy};

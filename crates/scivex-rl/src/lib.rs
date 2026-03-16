@@ -1,0 +1,40 @@
+//! # scivex-rl
+//!
+//! Reinforcement learning: environments, algorithms (DQN, PPO, A2C),
+//! experience replay, and episode logging for the Scivex ecosystem.
+//!
+//! ## Modules
+//!
+//! | Module | Contents |
+//! |--------|----------|
+//! | [`mod@env`] | `Environment` trait, `CartPole`, `MountainCar`, `GridWorld` |
+//! | [`algorithms`] | `DqnAgent`, `PpoAgent`, `A2cAgent` |
+//! | [`replay`] | `ReplayBuffer` for off-policy methods |
+//! | [`logger`] | `EpisodeLogger` for tracking training progress |
+//! | [`error`] | `RlError` and `Result` type alias |
+
+/// Reinforcement learning algorithms: DQN, PPO, A2C.
+pub mod algorithms;
+/// Reinforcement learning environments.
+pub mod env;
+/// Error types for the RL crate.
+pub mod error;
+/// Episode logging utilities.
+pub mod logger;
+/// Experience replay buffer.
+pub mod replay;
+
+pub use algorithms::{A2cAgent, A2cConfig, DqnAgent, DqnConfig, PpoAgent, PpoConfig};
+pub use env::{CartPole, Environment, GridWorld, MountainCar, StepResult};
+pub use error::{Result, RlError};
+pub use logger::EpisodeLogger;
+pub use replay::ReplayBuffer;
+
+/// Convenience re-exports.
+pub mod prelude {
+    pub use crate::algorithms::{A2cAgent, A2cConfig, DqnAgent, DqnConfig, PpoAgent, PpoConfig};
+    pub use crate::env::{CartPole, Environment, GridWorld, MountainCar, StepResult};
+    pub use crate::error::{Result, RlError};
+    pub use crate::logger::EpisodeLogger;
+    pub use crate::replay::ReplayBuffer;
+}

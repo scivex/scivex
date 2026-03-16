@@ -154,6 +154,12 @@ pub(crate) fn build_dataframe(names: &[String], columns: Vec<ColumnData>) -> Res
 }
 
 /// SQL dialect for type mapping.
+#[cfg(any(
+    feature = "sqlite",
+    feature = "postgres",
+    feature = "mysql",
+    feature = "mssql"
+))]
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum SqlDialect {
     #[cfg(feature = "sqlite")]
@@ -167,6 +173,12 @@ pub(crate) enum SqlDialect {
 }
 
 /// Map a [`DType`] to a SQL column type string for the given dialect.
+#[cfg(any(
+    feature = "sqlite",
+    feature = "postgres",
+    feature = "mysql",
+    feature = "mssql"
+))]
 #[allow(unreachable_patterns)]
 pub(crate) fn dtype_to_sql(dtype: DType, dialect: SqlDialect) -> &'static str {
     match dialect {
@@ -224,6 +236,12 @@ pub(crate) fn dtype_to_sql(dtype: DType, dialect: SqlDialect) -> &'static str {
 }
 
 /// Generate a `CREATE TABLE` statement from a DataFrame's schema.
+#[cfg(any(
+    feature = "sqlite",
+    feature = "postgres",
+    feature = "mysql",
+    feature = "mssql"
+))]
 pub(crate) fn create_table_sql(df: &DataFrame, table: &str, dialect: SqlDialect) -> String {
     let cols: Vec<String> = df
         .columns()
@@ -237,6 +255,12 @@ pub(crate) fn create_table_sql(df: &DataFrame, table: &str, dialect: SqlDialect)
 }
 
 /// Generate a parameterized `INSERT` statement.
+#[cfg(any(
+    feature = "sqlite",
+    feature = "postgres",
+    feature = "mysql",
+    feature = "mssql"
+))]
 #[allow(dead_code, unreachable_patterns)]
 pub(crate) fn insert_sql(table: &str, column_names: &[&str], dialect: SqlDialect) -> String {
     let cols: String = column_names
