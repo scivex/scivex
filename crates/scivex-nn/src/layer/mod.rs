@@ -10,8 +10,10 @@ mod flatten;
 pub(crate) mod layernorm;
 pub(crate) mod linear;
 mod pool;
+mod positional;
 mod rnn;
 mod sequential;
+mod transformer_decoder;
 
 pub use activation::{ReLU, Sigmoid, Tanh};
 pub use attention::{MultiHeadAttention, TransformerEncoderLayer};
@@ -23,8 +25,10 @@ pub use flatten::Flatten;
 pub use layernorm::LayerNorm;
 pub use linear::Linear;
 pub use pool::{AvgPool1d, AvgPool2d, MaxPool1d, MaxPool2d};
+pub use positional::{RotaryPositionalEncoding, SinusoidalPositionalEncoding, causal_mask};
 pub use rnn::{GRU, LSTM, SimpleRNN};
 pub use sequential::Sequential;
+pub use transformer_decoder::TransformerDecoderLayer;
 
 use scivex_core::Float;
 

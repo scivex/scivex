@@ -18,6 +18,15 @@ pub enum GpuError {
     CoreError(scivex_core::CoreError),
     /// Buffer mapping or data transfer failed.
     TransferError { reason: String },
+    /// CUDA runtime error.
+    #[cfg(feature = "cuda")]
+    CudaError { code: i32, reason: String },
+    /// cuBLAS library error.
+    #[cfg(feature = "cuda")]
+    CuBlasError { code: i32, reason: String },
+    /// cuDNN library error.
+    #[cfg(feature = "cuda")]
+    CuDnnError { code: i32, reason: String },
 }
 
 impl fmt::Display for GpuError {
@@ -33,6 +42,18 @@ impl fmt::Display for GpuError {
             Self::InvalidShape { reason } => write!(f, "invalid shape: {reason}"),
             Self::CoreError(e) => write!(f, "core error: {e}"),
             Self::TransferError { reason } => write!(f, "GPU transfer error: {reason}"),
+            #[cfg(feature = "cuda")]
+            Self::CudaError { code, reason } => {
+                write!(f, "CUDA error (code {code}): {reason}")
+            }
+            #[cfg(feature = "cuda")]
+            Self::CuBlasError { code, reason } => {
+                write!(f, "cuBLAS error (code {code}): {reason}")
+            }
+            #[cfg(feature = "cuda")]
+            Self::CuDnnError { code, reason } => {
+                write!(f, "cuDNN error (code {code}): {reason}")
+            }
         }
     }
 }

@@ -67,6 +67,9 @@ pub use scivex_sym as sym;
 #[cfg(feature = "gpu")]
 pub use scivex_gpu as gpu;
 
+#[cfg(feature = "rl")]
+pub use scivex_rl as rl;
+
 /// Glob-import convenience: `use scivex::prelude::*;`
 pub mod prelude {
     pub use scivex_core::prelude::*;
@@ -106,6 +109,9 @@ pub mod prelude {
 
     #[cfg(feature = "sym")]
     pub use scivex_sym::prelude::*;
+
+    #[cfg(feature = "rl")]
+    pub use scivex_rl::prelude::*;
 }
 
 // Re-export the Tensor type at the top level for ergonomics.

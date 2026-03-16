@@ -11,5 +11,9 @@ wgpu = { version = "24", features = ["wgsl"] }
 bytemuck = { version = "1", features = ["derive"] }
 pollster = "0.4"
 
+[features]
+default = []
+cuda = []
+
 [lints]
 workspace = true

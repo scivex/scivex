@@ -16,6 +16,8 @@ pub mod audio;
 pub mod convolution;
 /// Signal processing error types.
 pub mod error;
+/// Audio feature extraction: mel spectrogram, MFCC, chroma, pitch detection.
+pub mod features;
 /// Digital filters (FIR design, `lfilter`, `filtfilt`).
 pub mod filter;
 /// Peak detection and prominence calculation.
@@ -35,5 +37,8 @@ pub use error::{Result, SignalError};
 pub mod prelude {
     pub use crate::convolution::ConvolveMode;
     pub use crate::error::{Result, SignalError};
+    pub use crate::features::{
+        chroma_stft, hz_to_mel, mel_spectrogram, mel_to_hz, mfcc, pitch_yin,
+    };
     pub use crate::wavelet::Wavelet;
 }

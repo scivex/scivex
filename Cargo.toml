@@ -17,6 +17,8 @@ members = [
     "crates/scivex-wasm",
     "crates/scivex-gpu",
     "crates/scivex-ffi",
+    "crates/scivex-rl",
+    "crates/pyscivex",
 ]
 resolver = "3"
 

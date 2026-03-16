@@ -22,11 +22,15 @@
 //! own independent error state.
 
 mod error;
+mod frame;
 mod ml;
 mod stats;
 mod tensor;
+mod viz;
 
 pub use error::*;
+pub use frame::*;
 pub use ml::*;
 pub use stats::*;
 pub use tensor::*;
+pub use viz::*;
