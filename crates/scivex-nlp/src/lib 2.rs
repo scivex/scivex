@@ -1,28 +1,18 @@
 //! `scivex-nlp` — Tokenization, embeddings, and text processing.
 //!
 //! Provides from-scratch implementations of:
-//! - Tokenizers: whitespace, word, character, n-gram, WordPiece, Unigram
+//! - Tokenizers: whitespace, word, character, n-gram
 //! - Text utilities: stopwords, n-grams, edit distance, normalization
 //! - Porter stemmer
 //! - Count and TF-IDF vectorization
 //! - Word embeddings with similarity search and analogy solving
-//! - Word2Vec training (Skip-gram + CBOW with negative sampling)
 //! - Similarity measures: cosine, Jaccard, normalized edit distance
 //! - Lexicon-based sentiment analysis
-//! - HMM-based POS tagging
-//! - Rule-based Named Entity Recognition
-//! - LDA topic modeling (collapsed Gibbs sampling)
 
 /// Word embeddings with similarity search and analogy solving.
 pub mod embeddings;
 /// NLP error types.
 pub mod error;
-/// Latent Dirichlet Allocation topic modeling.
-pub mod lda;
-/// Rule-based Named Entity Recognition.
-pub mod ner;
-/// HMM-based part-of-speech tagging.
-pub mod pos;
 /// Lexicon-based sentiment analysis.
 pub mod sentiment;
 /// Similarity measures (cosine, Jaccard, normalized edit distance).
@@ -33,44 +23,26 @@ pub mod stem;
 pub mod text;
 /// Tokenizers (whitespace, word, character, n-gram).
 pub mod tokenize;
-/// Unigram (SentencePiece) subword tokenizer.
-pub mod unigram;
 /// Count and TF-IDF vectorization.
 pub mod vectorize;
-/// Word2Vec training (Skip-gram and CBOW).
-pub mod word2vec;
-/// WordPiece (BERT-style) subword tokenizer.
-pub mod wordpiece;
 
 pub use embeddings::WordEmbeddings;
 pub use error::{NlpError, Result};
-pub use lda::{LdaConfig, LdaModel};
-pub use ner::{Entity, EntityType, RuleBasedNer};
-pub use pos::{HmmPosTagger, PosTag};
 pub use sentiment::{SentimentAnalyzer, SentimentResult};
 pub use similarity::{cosine_similarity, edit_distance_normalized, jaccard_similarity};
 pub use stem::PorterStemmer;
 pub use tokenize::{CharTokenizer, NGramTokenizer, Tokenizer, WhitespaceTokenizer, WordTokenizer};
-pub use unigram::UnigramTokenizer;
 pub use vectorize::{CountVectorizer, TfidfVectorizer};
-pub use word2vec::{Word2VecConfig, Word2VecModel, Word2VecTrainer};
-pub use wordpiece::WordPieceTokenizer;
 
 /// Items intended for glob-import: `use scivex_nlp::prelude::*;`
 pub mod prelude {
     pub use crate::embeddings::WordEmbeddings;
     pub use crate::error::{NlpError, Result};
-    pub use crate::lda::{LdaConfig, LdaModel};
-    pub use crate::ner::{Entity, EntityType, RuleBasedNer};
-    pub use crate::pos::{HmmPosTagger, PosTag};
     pub use crate::sentiment::{SentimentAnalyzer, SentimentResult};
     pub use crate::similarity::{cosine_similarity, edit_distance_normalized, jaccard_similarity};
     pub use crate::stem::PorterStemmer;
     pub use crate::tokenize::{
         CharTokenizer, NGramTokenizer, Tokenizer, WhitespaceTokenizer, WordTokenizer,
     };
-    pub use crate::unigram::UnigramTokenizer;
     pub use crate::vectorize::{CountVectorizer, TfidfVectorizer};
-    pub use crate::word2vec::{Word2VecConfig, Word2VecModel, Word2VecTrainer};
-    pub use crate::wordpiece::WordPieceTokenizer;
 }

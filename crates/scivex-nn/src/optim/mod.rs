@@ -1,11 +1,17 @@
 //! Optimizers and learning rate schedulers for training neural networks.
 
+mod adagrad;
 mod adam;
+mod adamw;
+mod rmsprop;
 /// Learning rate schedulers.
 pub mod scheduler;
 mod sgd;
 
+pub use adagrad::Adagrad;
 pub use adam::Adam;
+pub use adamw::AdamW;
+pub use rmsprop::RMSprop;
 pub use scheduler::{
     CosineAnnealingLR, ExponentialLR, LinearLR, LrScheduler, ReduceLROnPlateau, StepLR,
     WarmupCosineDecay,

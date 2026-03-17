@@ -7,6 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+half = { version = "2", optional = true }
 rayon = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 
@@ -14,6 +15,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 simd = []
 parallel = ["dep:rayon"]
 serde-support = ["dep:serde"]
+mixed-precision = ["dep:half"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

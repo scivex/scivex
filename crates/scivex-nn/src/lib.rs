@@ -10,9 +10,9 @@
 //! | [`variable`] | `Variable<T>` — autograd computation graph node |
 //! | [`ops`] | Differentiable operations (add, mul, matmul, etc.) |
 //! | [`functional`] | Activation functions (relu, sigmoid, tanh, softmax) |
-//! | [`layer`] | `Layer` trait, `Linear`, `Conv1d/2d`, pooling, RNN/LSTM/GRU, attention, `Sequential` |
-//! | [`optim`] | `Optimizer` trait, `SGD`, `Adam`, LR schedulers |
-//! | [`loss`] | Loss functions (MSE, cross-entropy, BCE) |
+//! | [`layer`] | `Layer` trait, `Linear`, `Conv1d/2d/3d`, `BatchNorm1d/2d`, pooling, RNN/LSTM/GRU, attention, `Sequential` |
+//! | [`optim`] | `Optimizer` trait, `SGD`, `Adam`, `AdamW`, `RMSprop`, `Adagrad`, LR schedulers |
+//! | [`loss`] | Loss functions (MSE, cross-entropy, BCE, Huber, focal, KL, hinge, smooth L1) |
 //! | [`init`] | Weight initialization (Xavier, Kaiming) |
 //! | [`persist`] | `save_weights`, `load_weights` — binary weight persistence |
 //! | [`data`] | `Dataset` trait, `TensorDataset`, `DataLoader` |
@@ -33,7 +33,7 @@ pub mod loss;
 pub mod onnx;
 /// Differentiable tensor operations for the autograd graph.
 pub mod ops;
-/// Optimizers (SGD, Adam).
+/// Optimizers (SGD, Adam, AdamW, RMSprop, Adagrad).
 pub mod optim;
 /// Weight persistence: save and load model parameters.
 pub mod persist;
@@ -58,28 +58,33 @@ pub mod prelude {
     pub use crate::functional::{log_softmax, relu, sigmoid, softmax, tanh_fn};
     pub use crate::init::{kaiming_normal, kaiming_uniform, xavier_normal, xavier_uniform};
     pub use crate::layer::{
-        AvgPool1d, AvgPool2d, BatchNorm1d, Conv1d, Conv2d, Dropout, Embedding, Flatten, GRU, LSTM,
-        Layer, LayerNorm, Linear, MaxPool1d, MaxPool2d, MultiHeadAttention, ReLU,
-        RotaryPositionalEncoding, Sequential, Sigmoid, SimpleRNN, SinusoidalPositionalEncoding,
-        Tanh, TransformerDecoderLayer, TransformerEncoderLayer, causal_mask,
+        AvgPool1d, AvgPool2d, BatchNorm1d, BatchNorm2d, Conv1d, Conv2d, Conv3d, Dropout, Embedding,
+        Flatten, GRU, LSTM, Layer, LayerNorm, Linear, MaxPool1d, MaxPool2d, MultiHeadAttention,
+        ReLU, RotaryPositionalEncoding, Sequential, Sigmoid, SimpleRNN,
+        SinusoidalPositionalEncoding, Tanh, TransformerDecoderLayer, TransformerEncoderLayer,
+        causal_mask,
     };
-    pub use crate::loss::{bce_loss, cross_entropy_loss, mse_loss};
+    pub use crate::loss::{
+        bce_loss, cross_entropy_loss, focal_loss, hinge_loss, huber_loss, kl_divergence, mse_loss,
+        smooth_l1_loss,
+    };
     pub use crate::onnx::{
         OnnxAttribute, OnnxAttributeValue, OnnxDataType, OnnxGraph, OnnxInferenceSession,
         OnnxModel, OnnxNode, OnnxOpsetImport, OnnxTensor, OnnxValueInfo, load_onnx,
     };
     pub use crate::ops::{add, add_bias, matmul, mean, mul, neg, pow, scalar_mul, sub, sum};
     pub use crate::optim::{
-        Adam, CosineAnnealingLR, ExponentialLR, LinearLR, LrScheduler, Optimizer,
-        ReduceLROnPlateau, SGD, StepLR, WarmupCosineDecay,
+        Adagrad, Adam, AdamW, CosineAnnealingLR, ExponentialLR, LinearLR, LrScheduler, Optimizer,
+        RMSprop, ReduceLROnPlateau, SGD, StepLR, WarmupCosineDecay,
     };
     pub use crate::persist::{load_weights, save_weights};
     pub use crate::serialize::{
         GgufFile, GgufValue, load_gguf, load_safetensors, save_gguf, save_safetensors,
     };
     pub use crate::training::{
-        Callback, CallbackAction, EarlyStopping, LossLogger, ModelCheckpoint, Trainer,
-        TrainingHistory, clip_grad_norm, clip_grad_value,
+        AmpConfig, Callback, CallbackAction, EarlyStopping, GradScaler, LossLogger, LrFinder,
+        LrFinderResult, ModelCheckpoint, Trainer, TrainingHistory, cast_params, cast_variable,
+        clip_grad_norm, clip_grad_value,
     };
     pub use crate::variable::Variable;
 

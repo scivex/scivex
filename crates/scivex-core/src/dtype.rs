@@ -261,6 +261,161 @@ macro_rules! impl_scalar_float {
 impl_scalar_float!(f32);
 impl_scalar_float!(f64);
 
+// ---------------------------------------------------------------------------
+// Half-precision floats (f16, bf16) — behind `mixed-precision` feature
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "mixed-precision")]
+mod half_impl {
+    use super::*;
+
+    macro_rules! impl_half_float {
+        ($ty:ty, $name:expr) => {
+            impl Scalar for $ty {
+                #[inline]
+                fn zero() -> Self {
+                    Self::ZERO
+                }
+                #[inline]
+                fn one() -> Self {
+                    Self::ONE
+                }
+                #[inline]
+                fn from_usize(v: usize) -> Self {
+                    Self::from_f32(v as f32)
+                }
+            }
+
+            impl Float for $ty {
+                #[inline]
+                fn pi() -> Self {
+                    Self::PI
+                }
+                #[inline]
+                fn epsilon() -> Self {
+                    Self::EPSILON
+                }
+                #[inline]
+                fn infinity() -> Self {
+                    Self::INFINITY
+                }
+                #[inline]
+                fn neg_infinity() -> Self {
+                    Self::NEG_INFINITY
+                }
+                #[inline]
+                fn nan() -> Self {
+                    Self::NAN
+                }
+                #[inline]
+                fn abs(self) -> Self {
+                    Self::from_f32(self.to_f32().abs())
+                }
+                #[inline]
+                fn sqrt(self) -> Self {
+                    Self::from_f32(self.to_f32().sqrt())
+                }
+                #[inline]
+                fn sin(self) -> Self {
+                    Self::from_f32(self.to_f32().sin())
+                }
+                #[inline]
+                fn cos(self) -> Self {
+                    Self::from_f32(self.to_f32().cos())
+                }
+                #[inline]
+                fn tan(self) -> Self {
+                    Self::from_f32(self.to_f32().tan())
+                }
+                #[inline]
+                fn exp(self) -> Self {
+                    Self::from_f32(self.to_f32().exp())
+                }
+                #[inline]
+                fn ln(self) -> Self {
+                    Self::from_f32(self.to_f32().ln())
+                }
+                #[inline]
+                fn log2(self) -> Self {
+                    Self::from_f32(self.to_f32().log2())
+                }
+                #[inline]
+                fn log10(self) -> Self {
+                    Self::from_f32(self.to_f32().log10())
+                }
+                #[inline]
+                fn powf(self, n: Self) -> Self {
+                    Self::from_f32(self.to_f32().powf(n.to_f32()))
+                }
+                #[inline]
+                fn powi(self, n: i32) -> Self {
+                    Self::from_f32(self.to_f32().powi(n))
+                }
+                #[inline]
+                fn floor(self) -> Self {
+                    Self::from_f32(self.to_f32().floor())
+                }
+                #[inline]
+                fn ceil(self) -> Self {
+                    Self::from_f32(self.to_f32().ceil())
+                }
+                #[inline]
+                fn round(self) -> Self {
+                    Self::from_f32(self.to_f32().round())
+                }
+                #[inline]
+                fn recip(self) -> Self {
+                    Self::from_f32(self.to_f32().recip())
+                }
+                #[inline]
+                fn is_nan(self) -> bool {
+                    <$ty>::is_nan(self)
+                }
+                #[inline]
+                fn is_finite(self) -> bool {
+                    <$ty>::is_finite(self)
+                }
+                #[inline]
+                fn min(self, other: Self) -> Self {
+                    if self.to_f32() <= other.to_f32() {
+                        self
+                    } else {
+                        other
+                    }
+                }
+                #[inline]
+                fn max(self, other: Self) -> Self {
+                    if self.to_f32() >= other.to_f32() {
+                        self
+                    } else {
+                        other
+                    }
+                }
+                #[inline]
+                fn mul_add(self, a: Self, b: Self) -> Self {
+                    Self::from_f32(self.to_f32().mul_add(a.to_f32(), b.to_f32()))
+                }
+                #[inline]
+                fn from_f64(v: f64) -> Self {
+                    Self::from_f64(v)
+                }
+                #[inline]
+                fn to_f64(self) -> f64 {
+                    <$ty>::to_f64(self)
+                }
+            }
+
+            impl Real for $ty {}
+        };
+    }
+
+    impl_half_float!(half::f16, "f16");
+    impl_half_float!(half::bf16, "bf16");
+}
+
+#[cfg(feature = "mixed-precision")]
+pub use half::{bf16, f16};
+
 macro_rules! impl_scalar_int {
     ($ty:ty) => {
         impl Scalar for $ty {

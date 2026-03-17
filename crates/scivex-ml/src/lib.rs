@@ -97,7 +97,7 @@ pub mod prelude {
     };
 
     // Clustering
-    pub use crate::cluster::{DBSCAN, KMeans};
+    pub use crate::cluster::{AgglomerativeClustering, DBSCAN, DendrogramNode, KMeans, Linkage};
 
     // Naive Bayes
     pub use crate::naive_bayes::GaussianNB;

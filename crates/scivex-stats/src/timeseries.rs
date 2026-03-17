@@ -885,6 +885,518 @@ fn invert_matrix<T: Float>(a: &[T], n: usize) -> Result<Vec<T>> {
     Ok(inv)
 }
 
+// ── Seasonal Differencing ──────────────────────────────────────────────
+
+/// Difference a time series at seasonal lag `m`, repeated `d` times.
+fn seasonal_difference<T: Float>(data: &[T], m: usize, d: usize) -> Vec<T> {
+    let mut current = data.to_vec();
+    for _ in 0..d {
+        let mut diffed = Vec::with_capacity(current.len().saturating_sub(m));
+        for i in m..current.len() {
+            diffed.push(current[i] - current[i - m]);
+        }
+        current = diffed;
+    }
+    current
+}
+
+// ── SARIMAX ────────────────────────────────────────────────────────────
+
+/// SARIMAX(p, d, q)(P, D, Q, m) model — Seasonal ARIMA with eXogenous variables.
+///
+/// - `p`, `d`, `q` — regular ARIMA orders
+/// - `P`, `D`, `Q` — seasonal AR, differencing, and MA orders
+/// - `m` — seasonal period (e.g. 12 for monthly data with yearly seasonality)
+/// - Optional exogenous variables are regressed out before ARIMA fitting
+///
+/// # Example
+/// ```
+/// use scivex_stats::timeseries::Sarimax;
+///
+/// let data: Vec<f64> = (0..120)
+///     .map(|i| 10.0 + (i as f64) * 0.1 + [3.0, -1.0, 2.0, -2.0][i % 4])
+///     .collect();
+/// let mut model = Sarimax::new(1, 0, 0, (1, 0, 0, 4)).unwrap();
+/// model.fit(&data, None).unwrap();
+/// let fc = model.forecast(4, None).unwrap();
+/// assert_eq!(fc.len(), 4);
+/// ```
+#[cfg_attr(
+    feature = "serde-support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+#[derive(Debug, Clone)]
+pub struct Sarimax<T: Float> {
+    // Regular orders
+    p: usize,
+    d: usize,
+    q: usize,
+    // Seasonal orders
+    big_p: usize,
+    big_d: usize,
+    big_q: usize,
+    m: usize,
+    // Fitted coefficients
+    ar_coeffs: Vec<T>,
+    ma_coeffs: Vec<T>,
+    sar_coeffs: Vec<T>,
+    sma_coeffs: Vec<T>,
+    intercept: T,
+    exog_coeffs: Vec<T>,
+    residuals: Vec<T>,
+    fitted: bool,
+    original: Vec<T>,
+    original_exog: Option<Vec<Vec<T>>>,
+    use_exog: bool,
+}
+
+impl<T: Float> Sarimax<T> {
+    /// Create a new SARIMAX model.
+    ///
+    /// `seasonal` is a tuple `(P, D, Q, m)` for seasonal orders and period.
+    pub fn new(
+        p: usize,
+        d: usize,
+        q: usize,
+        seasonal: (usize, usize, usize, usize),
+    ) -> Result<Self> {
+        let (big_p, big_d, big_q, m) = seasonal;
+        if p == 0 && q == 0 && big_p == 0 && big_q == 0 {
+            return Err(StatsError::InvalidParameter {
+                name: "p, q, P, Q",
+                reason: "at least one of p, q, P, Q must be > 0",
+            });
+        }
+        if m == 0 {
+            return Err(StatsError::InvalidParameter {
+                name: "m",
+                reason: "seasonal period m must be > 0",
+            });
+        }
+        Ok(Self {
+            p,
+            d,
+            q,
+            big_p,
+            big_d,
+            big_q,
+            m,
+            ar_coeffs: Vec::new(),
+            ma_coeffs: Vec::new(),
+            sar_coeffs: Vec::new(),
+            sma_coeffs: Vec::new(),
+            intercept: T::zero(),
+            exog_coeffs: Vec::new(),
+            residuals: Vec::new(),
+            fitted: false,
+            original: Vec::new(),
+            original_exog: None,
+            use_exog: false,
+        })
+    }
+
+    /// Enable exogenous variable support (builder pattern).
+    pub fn with_exog(mut self) -> Self {
+        self.use_exog = true;
+        self
+    }
+
+    /// Fit the SARIMAX model to data.
+    ///
+    /// `exog` is an optional slice of exogenous variable vectors, each the same
+    /// length as `data`. If the model was created with [`with_exog`](Self::with_exog),
+    /// exogenous variables are expected.
+    #[allow(clippy::too_many_lines)]
+    pub fn fit(&mut self, data: &[T], exog: Option<&[Vec<T>]>) -> Result<()> {
+        let n = data.len();
+
+        // Minimum data length check
+        let min_len = self.p
+            + self.d
+            + self.q
+            + self.big_p * self.m
+            + self.big_d * self.m
+            + self.big_q * self.m
+            + 2;
+        if n < min_len {
+            return Err(StatsError::InsufficientData {
+                need: min_len,
+                got: n,
+            });
+        }
+
+        self.original = data.to_vec();
+
+        // ── Step 1: Remove exogenous effects via OLS ───────────────────
+        let mut series = data.to_vec();
+        if let Some(exog_vars) = exog {
+            // Validate exogenous dimensions
+            for v in exog_vars {
+                if v.len() != n {
+                    return Err(StatsError::LengthMismatch {
+                        expected: n,
+                        got: v.len(),
+                    });
+                }
+            }
+            self.original_exog = Some(exog_vars.to_vec());
+            let k = exog_vars.len();
+
+            // Solve X'X beta = X'y via normal equations
+            let mut xtx = vec![T::zero(); k * k];
+            let mut xty = vec![T::zero(); k];
+            for i in 0..k {
+                for j in 0..k {
+                    let mut s = T::zero();
+                    for (xi, xj) in exog_vars[i].iter().zip(exog_vars[j].iter()) {
+                        s += *xi * *xj;
+                    }
+                    xtx[i * k + j] = s;
+                }
+                let mut s = T::zero();
+                for (xi, &yi) in exog_vars[i].iter().zip(data.iter()) {
+                    s += *xi * yi;
+                }
+                xty[i] = s;
+            }
+
+            self.exog_coeffs = solve_linear_system(&xtx, &xty, k)?;
+
+            // Subtract X * beta from series
+            for t in 0..n {
+                for (i, coeff) in self.exog_coeffs.iter().enumerate() {
+                    series[t] -= *coeff * exog_vars[i][t];
+                }
+            }
+        } else {
+            self.exog_coeffs.clear();
+            self.original_exog = None;
+        }
+
+        // ── Step 2: Seasonal differencing then regular differencing ────
+        let after_seasonal = seasonal_difference(&series, self.m, self.big_d);
+        let diffed = difference(&after_seasonal, self.d);
+        let nd = diffed.len();
+
+        if nd < 2 {
+            return Err(StatsError::InsufficientData {
+                need: min_len,
+                got: n,
+            });
+        }
+
+        // ── Step 3: Fit regular AR via Yule-Walker (Levinson-Durbin) ──
+        if self.p > 0 {
+            let acf_vals = acf(&diffed, self.p)?;
+            let mut phi = vec![T::zero(); self.p];
+            let mut phi_prev = vec![T::zero(); self.p];
+
+            phi[0] = acf_vals[1];
+            let mut v = T::one() - phi[0] * phi[0];
+
+            for k in 1..self.p {
+                let mut lambda = acf_vals[k + 1];
+                for j in 0..k {
+                    lambda -= phi[j] * acf_vals[k - j];
+                }
+                if v.abs() < T::from_f64(1e-15) {
+                    break;
+                }
+                phi_prev[..self.p].copy_from_slice(&phi[..self.p]);
+                phi[k] = lambda / v;
+                for j in 0..k {
+                    phi[j] = phi_prev[j] - phi[k] * phi_prev[k - 1 - j];
+                }
+                v *= T::one() - phi[k] * phi[k];
+            }
+            self.ar_coeffs = phi;
+        } else {
+            self.ar_coeffs.clear();
+        }
+
+        // ── Step 4: Fit seasonal AR at lag multiples of m ─────────────
+        if self.big_p > 0 {
+            let max_seasonal_lag = self.big_p * self.m;
+            if nd > max_seasonal_lag {
+                let acf_vals = acf(&diffed, max_seasonal_lag)?;
+                // Extract seasonal ACF at multiples of m
+                let mut sacf = Vec::with_capacity(self.big_p + 1);
+                for i in 0..=self.big_p {
+                    sacf.push(acf_vals[i * self.m]);
+                }
+                // Levinson-Durbin on seasonal ACF
+                let mut phi = vec![T::zero(); self.big_p];
+                let mut phi_prev = vec![T::zero(); self.big_p];
+
+                phi[0] = sacf[1];
+                let mut v = T::one() - phi[0] * phi[0];
+
+                for k in 1..self.big_p {
+                    let mut lambda = sacf[k + 1];
+                    for j in 0..k {
+                        lambda -= phi[j] * sacf[k - j];
+                    }
+                    if v.abs() < T::from_f64(1e-15) {
+                        break;
+                    }
+                    phi_prev[..self.big_p].copy_from_slice(&phi[..self.big_p]);
+                    phi[k] = lambda / v;
+                    for j in 0..k {
+                        phi[j] = phi_prev[j] - phi[k] * phi_prev[k - 1 - j];
+                    }
+                    v *= T::one() - phi[k] * phi[k];
+                }
+                self.sar_coeffs = phi;
+            } else {
+                self.sar_coeffs = vec![T::zero(); self.big_p];
+            }
+        } else {
+            self.sar_coeffs.clear();
+        }
+
+        // ── Step 5: Compute intercept ─────────────────────────────────
+        let diff_mean = descriptive::mean(&diffed)?;
+        let mut ar_sum = T::zero();
+        for &c in &self.ar_coeffs {
+            ar_sum += c;
+        }
+        for &c in &self.sar_coeffs {
+            ar_sum += c;
+        }
+        self.intercept = diff_mean * (T::one() - ar_sum);
+
+        // ── Step 6: Compute residuals from AR + SAR prediction ────────
+        let start = self.p.max(self.big_p * self.m);
+        let mut residuals = vec![T::zero(); nd];
+        for t in start..nd {
+            let mut pred = self.intercept;
+            for j in 0..self.p {
+                pred += self.ar_coeffs[j] * diffed[t - 1 - j];
+            }
+            for j in 0..self.big_p {
+                let lag = (j + 1) * self.m;
+                if t >= lag {
+                    pred += self.sar_coeffs[j] * diffed[t - lag];
+                }
+            }
+            residuals[t] = diffed[t] - pred;
+        }
+
+        // ── Step 7: Fit regular MA from residual ACF ──────────────────
+        if self.q > 0 {
+            let res_slice = &residuals[start..];
+            if res_slice.len() > self.q {
+                let res_acf = acf(res_slice, self.q)?;
+                self.ma_coeffs = res_acf[1..].to_vec();
+            } else {
+                self.ma_coeffs = vec![T::zero(); self.q];
+            }
+        } else {
+            self.ma_coeffs.clear();
+        }
+
+        // ── Step 8: Fit seasonal MA from residual ACF ─────────────────
+        if self.big_q > 0 {
+            let res_slice = &residuals[start..];
+            let max_sma_lag = self.big_q * self.m;
+            if res_slice.len() > max_sma_lag {
+                let res_acf = acf(res_slice, max_sma_lag)?;
+                let mut sma = Vec::with_capacity(self.big_q);
+                for i in 1..=self.big_q {
+                    sma.push(res_acf[i * self.m]);
+                }
+                self.sma_coeffs = sma;
+            } else {
+                self.sma_coeffs = vec![T::zero(); self.big_q];
+            }
+        } else {
+            self.sma_coeffs.clear();
+        }
+
+        // ── Step 9: Recompute residuals with MA + SMA terms ───────────
+        let ma_start = start.max(self.q).max(self.big_q * self.m);
+        for t in ma_start..nd {
+            let mut pred = self.intercept;
+            for j in 0..self.p {
+                pred += self.ar_coeffs[j] * diffed[t - 1 - j];
+            }
+            for j in 0..self.big_p {
+                let lag = (j + 1) * self.m;
+                if t >= lag {
+                    pred += self.sar_coeffs[j] * diffed[t - lag];
+                }
+            }
+            for j in 0..self.q {
+                if t > j {
+                    pred += self.ma_coeffs[j] * residuals[t - 1 - j];
+                }
+            }
+            for j in 0..self.big_q {
+                let lag = (j + 1) * self.m;
+                if t >= lag {
+                    pred += self.sma_coeffs[j] * residuals[t - lag];
+                }
+            }
+            residuals[t] = diffed[t] - pred;
+        }
+
+        self.residuals = residuals;
+        self.fitted = true;
+        Ok(())
+    }
+
+    /// Forecast `steps` steps ahead.
+    ///
+    /// If exogenous variables were used during fitting, `exog_future` must
+    /// provide values for each variable for the forecast horizon.
+    pub fn forecast(&self, steps: usize, exog_future: Option<&[Vec<T>]>) -> Result<Vec<T>> {
+        if !self.fitted {
+            return Err(StatsError::InvalidParameter {
+                name: "model",
+                reason: "model must be fitted before forecasting",
+            });
+        }
+
+        // Prepare exogenous contribution for each forecast step
+        let exog_contrib: Vec<T> = if let Some(exog_f) = exog_future {
+            for v in exog_f {
+                if v.len() < steps {
+                    return Err(StatsError::LengthMismatch {
+                        expected: steps,
+                        got: v.len(),
+                    });
+                }
+            }
+            (0..steps)
+                .map(|h| {
+                    let mut c = T::zero();
+                    for (i, coeff) in self.exog_coeffs.iter().enumerate() {
+                        c += *coeff * exog_f[i][h];
+                    }
+                    c
+                })
+                .collect()
+        } else {
+            vec![T::zero(); steps]
+        };
+
+        // Remove exogenous effects from original for ARIMA forecasting
+        let mut series = self.original.clone();
+        if let Some(ref orig_exog) = self.original_exog {
+            for (t, val) in series.iter_mut().enumerate() {
+                for (i, coeff) in self.exog_coeffs.iter().enumerate() {
+                    *val -= *coeff * orig_exog[i][t];
+                }
+            }
+        }
+
+        // Apply seasonal then regular differencing
+        let after_seasonal = seasonal_difference(&series, self.m, self.big_d);
+        let diffed = difference(&after_seasonal, self.d);
+        let nd = diffed.len();
+
+        // Extend diffed series and residuals for forecasting
+        let mut extended = diffed.clone();
+        let mut ext_resid = self.residuals.clone();
+
+        for _ in 0..steps {
+            let t = extended.len();
+            let mut pred = self.intercept;
+            for j in 0..self.p {
+                if t > j {
+                    pred += self.ar_coeffs[j] * extended[t - 1 - j];
+                }
+            }
+            for j in 0..self.big_p {
+                let lag = (j + 1) * self.m;
+                if t >= lag {
+                    pred += self.sar_coeffs[j] * extended[t - lag];
+                }
+            }
+            for j in 0..self.q {
+                if t > j && t - 1 - j < ext_resid.len() {
+                    pred += self.ma_coeffs[j] * ext_resid[t - 1 - j];
+                }
+            }
+            for j in 0..self.big_q {
+                let lag = (j + 1) * self.m;
+                if t >= lag && t - lag < ext_resid.len() {
+                    pred += self.sma_coeffs[j] * ext_resid[t - lag];
+                }
+            }
+            extended.push(pred);
+            ext_resid.push(T::zero());
+        }
+
+        // Un-difference: first undo regular differencing, then seasonal
+        let mut forecasts = extended[nd..].to_vec();
+
+        // Undo regular differencing
+        for _ in 0..self.d {
+            let mut last = *after_seasonal.last().unwrap_or(&T::zero());
+            for val in &mut forecasts {
+                last += *val;
+                *val = last;
+            }
+        }
+
+        // Undo seasonal differencing
+        for _ in 0..self.big_d {
+            let sn = series.len();
+            let mut undone = Vec::with_capacity(forecasts.len());
+            for (h, &fc) in forecasts.iter().enumerate() {
+                // y_t = diff_t + y_{t-m}
+                // For forecast index h, the reference is either from original
+                // series or from previously undone forecasts
+                let ref_val = if h < self.m {
+                    // Reference from end of the series before seasonal differencing
+                    if sn >= self.m - h {
+                        series[sn - self.m + h]
+                    } else {
+                        T::zero()
+                    }
+                } else {
+                    undone[h - self.m]
+                };
+                undone.push(fc + ref_val);
+            }
+            forecasts = undone;
+        }
+
+        // Add back exogenous contribution
+        for (h, val) in forecasts.iter_mut().enumerate() {
+            *val += exog_contrib[h];
+        }
+
+        Ok(forecasts)
+    }
+
+    /// Return the regular AR coefficients.
+    pub fn ar_coefficients(&self) -> &[T] {
+        &self.ar_coeffs
+    }
+
+    /// Return the regular MA coefficients.
+    pub fn ma_coefficients(&self) -> &[T] {
+        &self.ma_coeffs
+    }
+
+    /// Return the seasonal AR coefficients.
+    pub fn seasonal_ar_coefficients(&self) -> &[T] {
+        &self.sar_coeffs
+    }
+
+    /// Return the seasonal MA coefficients.
+    pub fn seasonal_ma_coefficients(&self) -> &[T] {
+        &self.sma_coeffs
+    }
+
+    /// Return the exogenous variable coefficients.
+    pub fn exog_coefficients(&self) -> &[T] {
+        &self.exog_coeffs
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1115,5 +1627,139 @@ mod tests {
         assert!(result.n_lags == 2);
         assert!(result.n_obs > 0);
         assert!(result.statistic.is_finite());
+    }
+
+    // ── SARIMAX ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_sarimax_seasonal_data() {
+        // Seasonal data with period 4, trend, and repeating pattern
+        let seasonal_pattern = [3.0_f64, -1.0, 2.0, -2.0];
+        let data: Vec<f64> = (0..120)
+            .map(|i| 10.0 + (i as f64) * 0.1 + seasonal_pattern[i % 4])
+            .collect();
+
+        let mut model = Sarimax::new(1, 0, 0, (1, 0, 0, 4)).unwrap();
+        model.fit(&data, None).unwrap();
+        let fc = model.forecast(8, None).unwrap();
+        assert_eq!(fc.len(), 8);
+
+        // All forecasts should be finite and in a reasonable range
+        for (h, &v) in fc.iter().enumerate() {
+            assert!(v.is_finite(), "fc[{h}] = {v} is not finite");
+            // Should be in the rough neighborhood of the data
+            assert!(v > 0.0 && v < 50.0, "fc[{h}] = {v} out of reasonable range");
+        }
+
+        // Seasonal AR should produce forecasts that continue the general level
+        assert!(
+            fc[0] > data[119] - 15.0,
+            "fc[0]={} too far below last data point {}",
+            fc[0],
+            data[119]
+        );
+    }
+
+    #[test]
+    fn test_sarimax_with_exogenous() {
+        // Pure exogenous effect: y = beta * x (no trend, no AR dynamics)
+        let n = 200;
+        let exog_effect = 3.0_f64;
+        // Use a simple linear exogenous variable for clean OLS recovery
+        let exog_var: Vec<f64> = (0..n).map(|i| i as f64).collect();
+        let data: Vec<f64> = (0..n).map(|i| exog_effect * exog_var[i]).collect();
+
+        let mut model = Sarimax::new(1, 0, 0, (0, 0, 0, 1)).unwrap().with_exog();
+        model
+            .fit(&data, Some(std::slice::from_ref(&exog_var)))
+            .unwrap();
+
+        // Exogenous coefficient should be recovered
+        assert!(
+            !model.exog_coefficients().is_empty(),
+            "should have exog coefficients"
+        );
+
+        // Forecast with future exogenous values
+        let future_exog: Vec<f64> = (n..(n + 5)).map(|i| i as f64).collect();
+        let fc = model.forecast(5, Some(&[future_exog])).unwrap();
+        assert_eq!(fc.len(), 5);
+        // Forecasts should be finite
+        for (h, &v) in fc.iter().enumerate() {
+            assert!(v.is_finite(), "fc[{h}] = {v} is not finite");
+        }
+        // With exog, forecast should be in a reasonable range continuing
+        // the trend set by the exogenous variable
+        assert!(
+            fc[0] > data[n - 1] * 0.5,
+            "fc[0]={} too low compared to last data point {}",
+            fc[0],
+            data[n - 1]
+        );
+    }
+
+    #[test]
+    fn test_sarimax_reduces_to_arima() {
+        // With seasonal orders (0,0,0,1), SARIMAX should behave like ARIMA
+        let data: Vec<f64> = (0..100)
+            .map(|i| f64::from(i) * 2.0 + f64::from(i % 7))
+            .collect();
+
+        let mut arima = Arima::new(1, 1, 0).unwrap();
+        arima.fit(&data).unwrap();
+        let arima_fc = arima.forecast(5).unwrap();
+
+        let mut sarimax = Sarimax::new(1, 1, 0, (0, 0, 0, 1)).unwrap();
+        sarimax.fit(&data, None).unwrap();
+        let sarimax_fc = sarimax.forecast(5, None).unwrap();
+
+        assert_eq!(arima_fc.len(), sarimax_fc.len());
+        // The AR coefficients should match since both use Yule-Walker
+        // on the same differenced series
+        assert_eq!(
+            arima.ar_coefficients().len(),
+            sarimax.ar_coefficients().len()
+        );
+        for (a, s) in arima
+            .ar_coefficients()
+            .iter()
+            .zip(sarimax.ar_coefficients())
+        {
+            assert!(
+                (a - s).abs() < 1e-10,
+                "AR coeff mismatch: ARIMA={a}, SARIMAX={s}"
+            );
+        }
+        // Forecasts should be very close
+        for (h, (a, s)) in arima_fc.iter().zip(sarimax_fc.iter()).enumerate() {
+            assert!(
+                (a - s).abs() < 1e-6,
+                "forecast[{h}] mismatch: ARIMA={a}, SARIMAX={s}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_sarimax_insufficient_data() {
+        let mut model = Sarimax::<f64>::new(1, 0, 0, (1, 1, 0, 4)).unwrap();
+        // Need p + d + q + P*m + D*m + Q*m + 2 = 1 + 0 + 0 + 4 + 4 + 0 + 2 = 11
+        let short_data = vec![1.0_f64; 5];
+        let result = model.fit(&short_data, None);
+        assert!(result.is_err());
+        match result {
+            Err(StatsError::InsufficientData { .. }) => {}
+            other => panic!("expected InsufficientData, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_sarimax_forecast_before_fit() {
+        let model = Sarimax::<f64>::new(1, 0, 0, (1, 0, 0, 4)).unwrap();
+        let result = model.forecast(5, None);
+        assert!(result.is_err());
+        match result {
+            Err(StatsError::InvalidParameter { .. }) => {}
+            other => panic!("expected InvalidParameter, got {other:?}"),
+        }
     }
 }

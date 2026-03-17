@@ -32,6 +32,8 @@ pub mod correlation;
 pub mod descriptive;
 /// Probability distributions (Normal, Uniform, Exponential, etc.).
 pub mod distributions;
+/// Effect size measures (Cohen's d, Hedges' g, η², ω², Cramér's V, etc.).
+pub mod effect_size;
 /// Statistics error types.
 pub mod error;
 /// GARCH volatility models.
@@ -49,6 +51,8 @@ pub(crate) mod special;
 pub mod survival;
 /// Time series analysis (ACF, PACF, ARIMA, exponential smoothing, seasonal decomposition).
 pub mod timeseries;
+/// Vector Autoregression (VAR) models for multivariate time series.
+pub mod var;
 
 pub use confidence::{ConfidenceInterval, ci_mean, ci_mean_z, ci_proportion};
 pub use correction::{benjamini_hochberg, bonferroni};
@@ -58,6 +62,10 @@ pub use descriptive::{
     std_dev_with_ddof, variance, variance_with_ddof,
 };
 pub use distributions::Distribution;
+pub use effect_size::{
+    EffectSizeInterpretation, cohens_d, cohens_w, cramers_v, eta_squared, glass_delta, hedges_g,
+    interpret_cohens_d, omega_squared, point_biserial,
+};
 pub use error::{Result, StatsError};
 pub use garch::Garch;
 pub use glm::{Family, GlmResult, LinkFunction, glm};
@@ -72,9 +80,10 @@ pub use survival::{
     log_rank_test, median_survival_time,
 };
 pub use timeseries::{
-    AdfResult, Arima, DecomposeResult, ExponentialSmoothing, SmoothingMethod, acf, adf_test, pacf,
-    seasonal_decompose,
+    AdfResult, Arima, DecomposeResult, ExponentialSmoothing, Sarimax, SmoothingMethod, acf,
+    adf_test, pacf, seasonal_decompose,
 };
+pub use var::{GrangerResult, VarModel};
 
 /// Items intended for glob-import: `use scivex_stats::prelude::*;`
 pub mod prelude {
@@ -93,6 +102,10 @@ pub mod prelude {
         Hypergeometric, Laplace, LogNormal, NegativeBinomial, Normal, Pareto, Poisson, StudentT,
         Uniform, Weibull,
     };
+    pub use crate::effect_size::{
+        EffectSizeInterpretation, cohens_d, cohens_w, cramers_v, eta_squared, glass_delta,
+        hedges_g, interpret_cohens_d, omega_squared, point_biserial,
+    };
     pub use crate::error::{Result, StatsError};
     pub use crate::garch::Garch;
     pub use crate::glm::{Family, GlmResult, LinkFunction, glm};
@@ -106,4 +119,5 @@ pub mod prelude {
         CoxPHResult, KaplanMeierEstimate, LogRankResult, SurvivalRecord, cox_ph, kaplan_meier,
         log_rank_test, median_survival_time,
     };
+    pub use crate::var::{GrangerResult, VarModel};
 }
