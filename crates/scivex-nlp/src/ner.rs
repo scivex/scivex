@@ -150,9 +150,11 @@ impl RuleBasedNer {
                 EntityType::Organization,
                 EntityType::Location,
             ] {
-                if let Some(set) = self.gazetteers.get(entity_type)
-                    && set.contains(clean)
-                {
+                let in_gazetteer = self
+                    .gazetteers
+                    .get(entity_type)
+                    .is_some_and(|set| set.contains(clean));
+                if in_gazetteer {
                     entities.push(Entity {
                         text: clean.to_string(),
                         entity_type: entity_type.clone(),
@@ -192,24 +194,20 @@ impl RuleBasedNer {
 
             // Capitalization heuristic: capitalized word not at sentence start
             // could be a Person or Organization
-            if i > 0 {
-                let first_char = clean.chars().next();
-                if let Some(c) = first_char
-                    && c.is_uppercase()
-                    && clean.len() > 1
-                {
-                    // Check if previous token ended a sentence
-                    let prev = tokens[i - 1];
-                    let prev_ends_sentence =
-                        prev.ends_with('.') || prev.ends_with('!') || prev.ends_with('?');
-                    if !prev_ends_sentence {
-                        entities.push(Entity {
-                            text: clean.to_string(),
-                            entity_type: EntityType::Other,
-                            start: i,
-                            end: i + 1,
-                        });
-                    }
+            let is_capitalized =
+                i > 0 && clean.len() > 1 && clean.chars().next().is_some_and(char::is_uppercase);
+            if is_capitalized {
+                // Check if previous token ended a sentence
+                let prev = tokens[i - 1];
+                let prev_ends_sentence =
+                    prev.ends_with('.') || prev.ends_with('!') || prev.ends_with('?');
+                if !prev_ends_sentence {
+                    entities.push(Entity {
+                        text: clean.to_string(),
+                        entity_type: EntityType::Other,
+                        start: i,
+                        end: i + 1,
+                    });
                 }
             }
         }
