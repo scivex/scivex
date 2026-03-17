@@ -37,6 +37,10 @@ pub use dtype::{Float, Integer, Real, Scalar};
 pub use error::{CoreError, Result};
 pub use tensor::Tensor;
 
+// Re-export half-precision types when enabled.
+#[cfg(feature = "mixed-precision")]
+pub use dtype::{bf16, f16};
+
 /// Items intended for glob-import: `use scivex_core::prelude::*;`
 pub mod prelude {
     pub use crate::dtype::{Float, Integer, Real, Scalar};

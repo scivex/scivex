@@ -134,6 +134,11 @@ impl<T: Float> Variable<T> {
         self.inner.borrow_mut().data = data;
     }
 
+    /// Replace the gradient tensor (used by `GradScaler` for unscaling).
+    pub fn set_grad(&self, grad: Tensor<T>) {
+        self.inner.borrow_mut().grad = Some(grad);
+    }
+
     /// Accumulate `g` into this node's gradient (summing if one already exists).
     pub(crate) fn acc_grad(&self, g: &Tensor<T>) {
         let mut node = self.inner.borrow_mut();

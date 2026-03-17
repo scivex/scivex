@@ -15,6 +15,7 @@ pub mod indexing;
 pub use indexing::SliceRange;
 
 use crate::Scalar;
+use crate::dtype::Float;
 use crate::error::{CoreError, Result};
 
 /// An N-dimensional tensor with dynamic shape.
@@ -251,6 +252,21 @@ impl<T: Scalar> Tensor<T> {
     {
         Tensor {
             data: self.data.iter().map(|&x| f(x)).collect(),
+            shape: self.shape.clone(),
+            strides: self.strides.clone(),
+        }
+    }
+
+    /// Cast every element to a different scalar type, preserving shape.
+    ///
+    /// Uses `to_f64()` / `from_f64()` for the conversion, which is lossless for
+    /// f32→f64 and lossy (but intentionally so) for f64→f32 or f32→f16.
+    pub fn cast<U: Scalar + Float>(&self) -> Tensor<U>
+    where
+        T: Float,
+    {
+        Tensor {
+            data: self.data.iter().map(|&x| U::from_f64(x.to_f64())).collect(),
             shape: self.shape.clone(),
             strides: self.strides.clone(),
         }

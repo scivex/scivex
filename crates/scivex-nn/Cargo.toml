@@ -24,3 +24,4 @@ harness = false
 [features]
 serde-support = ["dep:serde", "scivex-core/serde-support"]
 gpu = ["dep:scivex-gpu"]
+mixed-precision = ["scivex-core/mixed-precision"]

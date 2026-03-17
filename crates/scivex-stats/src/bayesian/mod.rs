@@ -3,10 +3,12 @@
 pub mod diagnostics;
 pub mod hmc;
 pub mod metropolis;
+pub mod variational;
 
 pub use diagnostics::{TraceSummary, effective_sample_size, rhat, trace_summary};
 pub use hmc::HamiltonianMC;
 pub use metropolis::MetropolisHastings;
+pub use variational::{VariationalDistribution, ViConfig, ViResult, cavi_gaussian, mean_field_vi};
 
 use scivex_core::Float;
 

@@ -182,6 +182,339 @@ pub fn bce_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
     ))
 }
 
+/// Huber (smooth L1) loss.
+///
+/// For each element, computes:
+/// - `0.5 * d^2` if `|d| <= delta`
+/// - `delta * (|d| - 0.5 * delta)` otherwise
+///
+/// where `d = pred - target`. Returns the mean over all elements.
+pub fn huber_loss<T: Float>(
+    pred: &Variable<T>,
+    target: &Variable<T>,
+    delta: T,
+) -> Result<Variable<T>> {
+    let p = pred.data();
+    let t = target.data();
+    if p.shape() != t.shape() {
+        return Err(NnError::ShapeMismatch {
+            expected: t.shape().to_vec(),
+            got: p.shape().to_vec(),
+        });
+    }
+    let n = p.numel();
+    let n_t = T::from_usize(n);
+    let half = T::from_f64(0.5);
+
+    let diff = p.zip_map(&t, |a, b| a - b)?;
+
+    let loss_val = diff
+        .as_slice()
+        .iter()
+        .map(|&d| {
+            if d.abs() <= delta {
+                half * d * d
+            } else {
+                delta * (d.abs() - half * delta)
+            }
+        })
+        .fold(T::zero(), |a, b| a + b)
+        / n_t;
+
+    let data = Tensor::from_vec(vec![loss_val], vec![1])?;
+    let shape = p.shape().to_vec();
+
+    Ok(Variable::from_op(
+        data,
+        vec![pred.clone(), target.clone()],
+        Box::new(move |g: &Tensor<T>| {
+            let g_val = g.as_slice()[0];
+            let grad_p: Vec<T> = diff
+                .as_slice()
+                .iter()
+                .map(|&d| {
+                    let raw = if d.abs() <= delta {
+                        d
+                    } else if d > T::zero() {
+                        delta
+                    } else {
+                        -delta
+                    };
+                    raw * g_val / n_t
+                })
+                .collect();
+            let gp =
+                Tensor::from_vec(grad_p, shape.clone()).expect("grad shape matches forward pass");
+            let gt = Tensor::zeros(shape.clone());
+            vec![gp, gt]
+        }),
+    ))
+}
+
+/// Focal loss for binary classification.
+///
+/// `logits` and `targets` have the same shape; targets contain 0 or 1 values.
+///
+/// Computes: `-mean(alpha_t * (1 - p_t)^gamma * ln(p_t + eps))`
+/// where `p = sigmoid(logits)`, `p_t = p * t + (1 - p) * (1 - t)`,
+/// and `alpha_t = alpha * t + (1 - alpha) * (1 - t)`.
+pub fn focal_loss<T: Float>(
+    logits: &Variable<T>,
+    targets: &Variable<T>,
+    gamma: T,
+    alpha: T,
+) -> Result<Variable<T>> {
+    let x = logits.data();
+    let t = targets.data();
+    if x.shape() != t.shape() {
+        return Err(NnError::ShapeMismatch {
+            expected: t.shape().to_vec(),
+            got: x.shape().to_vec(),
+        });
+    }
+    let n = x.numel();
+    let n_t = T::from_usize(n);
+    let one = T::one();
+    let eps = T::from_f64(1e-7);
+
+    // Numerically stable sigmoid.
+    let sigmoid: Vec<T> = x
+        .as_slice()
+        .iter()
+        .map(|&v| {
+            if v >= T::zero() {
+                one / (one + (-v).exp())
+            } else {
+                let ev = v.exp();
+                ev / (one + ev)
+            }
+        })
+        .collect();
+
+    let t_v: Vec<T> = t.as_slice().to_vec();
+    let mut loss = T::zero();
+    for i in 0..n {
+        let p = sigmoid[i];
+        let ti = t_v[i];
+        let pt = p * ti + (one - p) * (one - ti);
+        let at = alpha * ti + (one - alpha) * (one - ti);
+        loss += at * (one - pt).max(T::zero()).powf(gamma) * (pt + eps).ln();
+    }
+    loss = -loss / n_t;
+
+    let data = Tensor::from_vec(vec![loss], vec![1])?;
+    let shape = x.shape().to_vec();
+
+    Ok(Variable::from_op(
+        data,
+        vec![logits.clone(), targets.clone()],
+        Box::new(move |g: &Tensor<T>| {
+            let g_val = g.as_slice()[0];
+            let mut grad_x = Vec::with_capacity(n);
+            for i in 0..n {
+                let p = sigmoid[i];
+                let ti = t_v[i];
+                let pt = p * ti + (one - p) * (one - ti);
+                let at = alpha * ti + (one - alpha) * (one - ti);
+                // sign: dp_t / dp = 2*t - 1
+                let dpt_dp = ti + ti - one;
+                // dp/dx = p * (1 - p)  (sigmoid derivative)
+                let dp_dx = p * (one - p);
+                // d/dx [ -at * (1-pt)^gamma * ln(pt+eps) ]
+                // = -at * [ -gamma * (1-pt)^(gamma-1) * dpt_dp * dp_dx * ln(pt+eps)
+                //           + (1-pt)^gamma * dpt_dp * dp_dx / (pt+eps) ]
+                let one_minus_pt = (one - pt).max(T::zero());
+                let pow_g = one_minus_pt.powf(gamma);
+                let pow_gm1 = if gamma > T::zero() {
+                    one_minus_pt.powf(gamma - one)
+                } else {
+                    T::zero()
+                };
+                let term1 = -gamma * pow_gm1 * dpt_dp * dp_dx * (pt + eps).ln();
+                let term2 = pow_g * dpt_dp * dp_dx / (pt + eps);
+                grad_x.push(-at * (term1 + term2) * g_val / n_t);
+            }
+            let gx =
+                Tensor::from_vec(grad_x, shape.clone()).expect("grad shape matches forward pass");
+            let gt = Tensor::zeros(shape.clone());
+            vec![gx, gt]
+        }),
+    ))
+}
+
+/// KL divergence: `KL(P || Q) = mean(exp(log_p) * (log_p - log_q))`.
+///
+/// Both inputs are log-probabilities with the same shape.
+pub fn kl_divergence<T: Float>(log_p: &Variable<T>, log_q: &Variable<T>) -> Result<Variable<T>> {
+    let lp = log_p.data();
+    let lq = log_q.data();
+    if lp.shape() != lq.shape() {
+        return Err(NnError::ShapeMismatch {
+            expected: lq.shape().to_vec(),
+            got: lp.shape().to_vec(),
+        });
+    }
+    let n = lp.numel();
+    let n_t = T::from_usize(n);
+    let one = T::one();
+
+    let lp_v: Vec<T> = lp.as_slice().to_vec();
+    let lq_v: Vec<T> = lq.as_slice().to_vec();
+    let mut loss = T::zero();
+    for i in 0..n {
+        loss += lp_v[i].exp() * (lp_v[i] - lq_v[i]);
+    }
+    loss /= n_t;
+
+    let data = Tensor::from_vec(vec![loss], vec![1])?;
+    let shape = lp.shape().to_vec();
+
+    Ok(Variable::from_op(
+        data,
+        vec![log_p.clone(), log_q.clone()],
+        Box::new(move |g: &Tensor<T>| {
+            let g_val = g.as_slice()[0];
+            let mut grad_lp = Vec::with_capacity(n);
+            let mut grad_lq = Vec::with_capacity(n);
+            for i in 0..n {
+                let exp_lp = lp_v[i].exp();
+                // d/d(log_p) = exp(log_p) * (log_p - log_q + 1) / n
+                grad_lp.push(exp_lp * (lp_v[i] - lq_v[i] + one) * g_val / n_t);
+                // d/d(log_q) = -exp(log_p) / n
+                grad_lq.push(-exp_lp * g_val / n_t);
+            }
+            let glp =
+                Tensor::from_vec(grad_lp, shape.clone()).expect("grad shape matches forward pass");
+            let glq =
+                Tensor::from_vec(grad_lq, shape.clone()).expect("grad shape matches forward pass");
+            vec![glp, glq]
+        }),
+    ))
+}
+
+/// Hinge loss for binary classification.
+///
+/// `target` values should be -1 or +1.
+/// Computes: `mean(max(0, 1 - target * pred))`.
+pub fn hinge_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Variable<T>> {
+    let p = pred.data();
+    let t = target.data();
+    if p.shape() != t.shape() {
+        return Err(NnError::ShapeMismatch {
+            expected: t.shape().to_vec(),
+            got: p.shape().to_vec(),
+        });
+    }
+    let n = p.numel();
+    let n_t = T::from_usize(n);
+    let one = T::one();
+    let zero = T::zero();
+
+    let p_v: Vec<T> = p.as_slice().to_vec();
+    let t_v: Vec<T> = t.as_slice().to_vec();
+    let mut loss = T::zero();
+    for i in 0..n {
+        let margin = one - t_v[i] * p_v[i];
+        if margin > zero {
+            loss += margin;
+        }
+    }
+    loss /= n_t;
+
+    let data = Tensor::from_vec(vec![loss], vec![1])?;
+    let shape = p.shape().to_vec();
+
+    Ok(Variable::from_op(
+        data,
+        vec![pred.clone(), target.clone()],
+        Box::new(move |g: &Tensor<T>| {
+            let g_val = g.as_slice()[0];
+            let mut grad_p = Vec::with_capacity(n);
+            for i in 0..n {
+                let margin = one - t_v[i] * p_v[i];
+                if margin > zero {
+                    grad_p.push(-t_v[i] * g_val / n_t);
+                } else {
+                    grad_p.push(T::zero());
+                }
+            }
+            let gp =
+                Tensor::from_vec(grad_p, shape.clone()).expect("grad shape matches forward pass");
+            let gt = Tensor::zeros(shape.clone());
+            vec![gp, gt]
+        }),
+    ))
+}
+
+/// Smooth L1 loss parameterized by `beta`.
+///
+/// For each element `d = pred - target`:
+/// - `0.5 * d^2 / beta` if `|d| < beta`
+/// - `|d| - 0.5 * beta` otherwise
+///
+/// Returns the mean over all elements.
+pub fn smooth_l1_loss<T: Float>(
+    pred: &Variable<T>,
+    target: &Variable<T>,
+    beta: T,
+) -> Result<Variable<T>> {
+    let p = pred.data();
+    let t = target.data();
+    if p.shape() != t.shape() {
+        return Err(NnError::ShapeMismatch {
+            expected: t.shape().to_vec(),
+            got: p.shape().to_vec(),
+        });
+    }
+    let n = p.numel();
+    let n_t = T::from_usize(n);
+    let half = T::from_f64(0.5);
+
+    let diff = p.zip_map(&t, |a, b| a - b)?;
+
+    let loss_val = diff
+        .as_slice()
+        .iter()
+        .map(|&d| {
+            if d.abs() < beta {
+                half * d * d / beta
+            } else {
+                d.abs() - half * beta
+            }
+        })
+        .fold(T::zero(), |a, b| a + b)
+        / n_t;
+
+    let data = Tensor::from_vec(vec![loss_val], vec![1])?;
+    let shape = p.shape().to_vec();
+
+    Ok(Variable::from_op(
+        data,
+        vec![pred.clone(), target.clone()],
+        Box::new(move |g: &Tensor<T>| {
+            let g_val = g.as_slice()[0];
+            let grad_p: Vec<T> = diff
+                .as_slice()
+                .iter()
+                .map(|&d| {
+                    let raw = if d.abs() < beta {
+                        d / beta
+                    } else if d > T::zero() {
+                        T::one()
+                    } else {
+                        -T::one()
+                    };
+                    raw * g_val / n_t
+                })
+                .collect();
+            let gp =
+                Tensor::from_vec(grad_p, shape.clone()).expect("grad shape matches forward pass");
+            let gt = Tensor::zeros(shape.clone());
+            vec![gp, gt]
+        }),
+    ))
+}
+
 /// Helper to convert a float to usize (for target indices).
 fn idx_to_usize<T: Float>(v: T) -> usize {
     // We use from_f64/from_usize round-trip isn't available,
@@ -309,5 +642,82 @@ mod tests {
         loss.backward();
         let g = logits.grad().unwrap();
         assert_eq!(g.shape(), &[2, 3]);
+    }
+
+    #[test]
+    fn test_huber_loss_quadratic() {
+        // Small differences (|d| <= delta) should give quadratic behavior: 0.5 * d^2.
+        let pred = Variable::new(Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap(), true);
+        let target = Variable::new(Tensor::from_vec(vec![1.1, 2.1], vec![2]).unwrap(), false);
+        let loss = huber_loss(&pred, &target, 1.0).unwrap();
+        // d = -0.1 for both, 0.5 * 0.01 = 0.005 each, mean = 0.005
+        assert!((loss.data().as_slice()[0] - 0.005).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_huber_loss_linear() {
+        // Large differences (|d| > delta) should give linear behavior.
+        let pred = Variable::new(Tensor::from_vec(vec![0.0], vec![1]).unwrap(), true);
+        let target = Variable::new(Tensor::from_vec(vec![5.0], vec![1]).unwrap(), false);
+        let delta = 1.0;
+        let loss = huber_loss(&pred, &target, delta).unwrap();
+        // |d| = 5, delta*(|d| - 0.5*delta) = 1*(5 - 0.5) = 4.5
+        assert!((loss.data().as_slice()[0] - 4.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_focal_loss_easy_example() {
+        // High logit for target=1 → sigmoid near 1 → pt near 1 → loss near 0.
+        let logits = Variable::new(Tensor::from_vec(vec![10.0], vec![1]).unwrap(), true);
+        let targets = Variable::new(Tensor::from_vec(vec![1.0], vec![1]).unwrap(), false);
+        let loss = focal_loss(&logits, &targets, 2.0, 0.25).unwrap();
+        assert!(loss.data().as_slice()[0] < 1e-5);
+    }
+
+    #[test]
+    fn test_kl_divergence_same_distribution() {
+        // KL(P || P) = mean(exp(log_p) * 0) = 0.
+        let log_p = Variable::new(
+            Tensor::from_vec(vec![-1.0_f64, -2.0, -0.5], vec![3]).unwrap(),
+            true,
+        );
+        let log_q = Variable::new(
+            Tensor::from_vec(vec![-1.0_f64, -2.0, -0.5], vec![3]).unwrap(),
+            true,
+        );
+        let loss = kl_divergence(&log_p, &log_q).unwrap();
+        assert!(loss.data().as_slice()[0].abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_hinge_loss_correct_margin() {
+        // target * pred > 1 → zero loss.
+        let pred = Variable::new(Tensor::from_vec(vec![2.0, -2.0], vec![2]).unwrap(), true);
+        let target = Variable::new(Tensor::from_vec(vec![1.0, -1.0], vec![2]).unwrap(), false);
+        let loss = hinge_loss(&pred, &target).unwrap();
+        // 1 - 1*2 = -1 (clamped to 0), 1 - (-1)*(-2) = -1 (clamped to 0)
+        assert!(loss.data().as_slice()[0].abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_smooth_l1_loss_backward() {
+        let pred = Variable::new(
+            Tensor::from_vec(vec![1.0, 5.0, 3.0], vec![3]).unwrap(),
+            true,
+        );
+        let target = Variable::new(
+            Tensor::from_vec(vec![1.5, 0.0, 3.0], vec![3]).unwrap(),
+            false,
+        );
+        let loss = smooth_l1_loss(&pred, &target, 1.0).unwrap();
+        loss.backward();
+        let g = pred.grad().unwrap();
+        assert_eq!(g.shape(), &[3]);
+        // First element: |d|=0.5 < beta=1, grad = d/beta/n = -0.5/1/3
+        assert!((g.as_slice()[0] - (-0.5 / 3.0)).abs() < 1e-10);
+        // Second element: |d|=5 >= beta=1, grad = sign(d)/n = 1/3
+        assert!((g.as_slice()[1] - (1.0 / 3.0)).abs() < 1e-10);
+        // Third element: d=0 < beta=1, grad = 0/beta/n = 0
+        assert!(g.as_slice()[2].abs() < 1e-10);
     }
 }
