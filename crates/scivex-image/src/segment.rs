@@ -154,6 +154,7 @@ pub fn connected_components(img: &Image<u8>, threshold: u8) -> Result<(Image<u32
 ///
 /// Returns [`ImageError::UnsupportedChannels`] if the image is not grayscale.
 /// Returns [`ImageError::InvalidParameter`] if a seed is out of bounds.
+#[allow(clippy::cast_possible_wrap)]
 pub fn region_growing(
     img: &Image<u8>,
     seeds: &[(usize, usize)],
@@ -195,8 +196,8 @@ pub fn region_growing(
             // 4-connected neighbors
             let neighbors: [(isize, isize); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
             for (dr, dc) in neighbors {
-                let nr = r.cast_signed() + dr;
-                let nc = c.cast_signed() + dc;
+                let nr = r as isize + dr;
+                let nc = c as isize + dc;
                 if nr < 0 || nc < 0 {
                     continue;
                 }
@@ -266,7 +267,7 @@ pub const WATERSHED_BOUNDARY: u32 = u32::MAX;
 /// grayscale.
 /// Returns [`ImageError::InvalidDimensions`] if the marker image dimensions
 /// do not match the gradient image.
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::cast_possible_wrap)]
 pub fn watershed(img: &Image<u8>, markers: &Image<u32>) -> Result<Image<u32>> {
     if img.format() != PixelFormat::Gray {
         return Err(ImageError::UnsupportedChannels {
@@ -306,8 +307,8 @@ pub fn watershed(img: &Image<u8>, markers: &Image<u32>) -> Result<Image<u32>> {
             }
             // Check if any neighbor is unlabeled — if so, push those neighbors.
             for (dr, dc) in &neighbors {
-                let nr = row.cast_signed() + dr;
-                let nc = col.cast_signed() + dc;
+                let nr = row as isize + dr;
+                let nc = col as isize + dc;
                 if nr < 0 || nc < 0 {
                     continue;
                 }
@@ -338,8 +339,8 @@ pub fn watershed(img: &Image<u8>, markers: &Image<u32>) -> Result<Image<u32>> {
         let mut is_boundary = false;
 
         for (dr, dc) in &neighbors {
-            let nr = entry.row.cast_signed() + dr;
-            let nc = entry.col.cast_signed() + dc;
+            let nr = entry.row as isize + dr;
+            let nc = entry.col as isize + dc;
             if nr < 0 || nc < 0 {
                 continue;
             }
@@ -370,8 +371,8 @@ pub fn watershed(img: &Image<u8>, markers: &Image<u32>) -> Result<Image<u32>> {
         // If this pixel was labeled (not left at 0), push its unlabeled neighbors.
         if labels[idx] != 0 {
             for (dr, dc) in &neighbors {
-                let nr = entry.row.cast_signed() + dr;
-                let nc = entry.col.cast_signed() + dc;
+                let nr = entry.row as isize + dr;
+                let nc = entry.col as isize + dc;
                 if nr < 0 || nc < 0 {
                     continue;
                 }

@@ -281,6 +281,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cast_possible_wrap)]
     fn test_hough_circles_drawn_circle() {
         // Draw a circle of radius 10 centred at (25, 25) on a 50×50 image.
         let mut img = Image::<u8>::new(50, 50, PixelFormat::Gray).unwrap();
@@ -292,17 +293,17 @@ mod tests {
         // The best detection should be close to the true centre and radius.
         let best = &circles[0];
         assert!(
-            (best.center_row.cast_signed() - 25).unsigned_abs() <= 2,
+            (best.center_row as isize - 25_isize).abs() <= 2,
             "center_row should be near 25, got {}",
             best.center_row
         );
         assert!(
-            (best.center_col.cast_signed() - 25).unsigned_abs() <= 2,
+            (best.center_col as isize - 25_isize).abs() <= 2,
             "center_col should be near 25, got {}",
             best.center_col
         );
         assert!(
-            (best.radius.cast_signed() - 10).unsigned_abs() <= 2,
+            (best.radius as isize - 10_isize).abs() <= 2,
             "radius should be near 10, got {}",
             best.radius
         );

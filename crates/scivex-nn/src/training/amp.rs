@@ -2,7 +2,7 @@
 //!
 //! Mixed precision keeps **master weights** in full precision (f32) while
 //! running forward and backward passes in half precision (f16) for speed and
-//! memory savings. This module provides [`AmpWrapper`] which automates the
+//! memory savings. This module provides utilities that automate the
 //! cast-forward-backward-update cycle.
 //!
 //! Requires the `mixed-precision` feature flag.
