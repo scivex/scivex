@@ -1,6 +1,6 @@
 //! Type promotion rules and casting utilities for tensor element types.
 //!
-//! Provides numpy-style type promotion via [`promote`], compile-time type
+//! Provides numpy-style type promotion via [`promote()`], compile-time type
 //! identification via [`DTypeOf`], and element-wise casting via [`CastFrom`].
 
 use crate::dtype::Scalar;
