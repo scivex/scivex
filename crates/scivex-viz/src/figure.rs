@@ -1,4 +1,6 @@
-use crate::axes::Axes;
+use std::collections::HashMap;
+
+use crate::axes::{Axes, AxesOverrides};
 use crate::backend::{Renderer, SvgBackend, TerminalBackend};
 use crate::error::Result;
 use crate::layout::Layout;
@@ -12,6 +14,8 @@ pub struct Figure {
     layout: Layout,
     axes: Vec<(usize, usize, Axes)>,
     theme: Theme,
+    share_x: bool,
+    share_y: bool,
 }
 
 impl Figure {
@@ -24,6 +28,8 @@ impl Figure {
             layout: Layout::single(),
             axes: Vec::new(),
             theme: Theme::default(),
+            share_x: false,
+            share_y: false,
         }
     }
 
@@ -46,6 +52,26 @@ impl Figure {
     #[must_use]
     pub fn layout(mut self, l: Layout) -> Self {
         self.layout = l;
+        self
+    }
+
+    /// Share x-axis ranges across all subplots in the same column.
+    ///
+    /// When enabled, all axes in a column use the union of their x-data ranges,
+    /// and only the bottom-most axes in each column shows x-tick labels.
+    #[must_use]
+    pub fn share_x(mut self, share: bool) -> Self {
+        self.share_x = share;
+        self
+    }
+
+    /// Share y-axis ranges across all subplots in the same row.
+    ///
+    /// When enabled, all axes in a row use the union of their y-data ranges,
+    /// and only the left-most axes in each row shows y-tick labels.
+    #[must_use]
+    pub fn share_y(mut self, share: bool) -> Self {
+        self.share_y = share;
         self
     }
 
@@ -112,13 +138,87 @@ impl Figure {
             stroke: None,
         });
 
-        for (row, col, axes) in &self.axes {
+        // Compute per-axes overrides for shared axis logic.
+        let overrides = self.compute_overrides();
+
+        for (i, (row, col, axes)) in self.axes.iter().enumerate() {
             let bounds = self.layout.cell_bounds(*row, *col, self.width, self.height);
-            let ax_elements = axes.render_elements(bounds);
+            let ax_elements = axes.render_elements_with_overrides(bounds, &overrides[i]);
             elements.extend(ax_elements);
         }
 
         elements
+    }
+
+    /// Compute per-axes overrides for shared x/y axis logic.
+    fn compute_overrides(&self) -> Vec<AxesOverrides> {
+        let mut overrides: Vec<AxesOverrides> =
+            self.axes.iter().map(|_| AxesOverrides::default()).collect();
+
+        if !self.share_x && !self.share_y {
+            return overrides;
+        }
+
+        if self.share_x {
+            // Find max row per column and unified x-range per column.
+            let mut col_max_row: HashMap<usize, usize> = HashMap::new();
+            let mut col_x_ranges: HashMap<usize, (f64, f64)> = HashMap::new();
+
+            for (row, col, ax) in &self.axes {
+                let entry = col_max_row.entry(*col).or_insert(0);
+                if *row > *entry {
+                    *entry = *row;
+                }
+                let (xr, _) = ax.data_ranges();
+                let range = col_x_ranges.entry(*col).or_insert(xr);
+                if xr.0 < range.0 {
+                    range.0 = xr.0;
+                }
+                if xr.1 > range.1 {
+                    range.1 = xr.1;
+                }
+            }
+
+            for (i, (row, col, _)) in self.axes.iter().enumerate() {
+                if let Some(&unified) = col_x_ranges.get(col) {
+                    overrides[i].x_range = Some(unified);
+                }
+                if col_max_row.get(col).is_some_and(|&mr| *row < mr) {
+                    overrides[i].hide_x_ticks = true;
+                }
+            }
+        }
+
+        if self.share_y {
+            let mut row_min_col: HashMap<usize, usize> = HashMap::new();
+            let mut row_y_ranges: HashMap<usize, (f64, f64)> = HashMap::new();
+
+            for (row, col, ax) in &self.axes {
+                let entry = row_min_col.entry(*row).or_insert(usize::MAX);
+                if *col < *entry {
+                    *entry = *col;
+                }
+                let (_, yr) = ax.data_ranges();
+                let range = row_y_ranges.entry(*row).or_insert(yr);
+                if yr.0 < range.0 {
+                    range.0 = yr.0;
+                }
+                if yr.1 > range.1 {
+                    range.1 = yr.1;
+                }
+            }
+
+            for (i, (row, col, _)) in self.axes.iter().enumerate() {
+                if let Some(&unified) = row_y_ranges.get(row) {
+                    overrides[i].y_range = Some(unified);
+                }
+                if row_min_col.get(col).is_some_and(|&mc| *col > mc) {
+                    overrides[i].hide_y_ticks = true;
+                }
+            }
+        }
+
+        overrides
     }
 }
 
@@ -205,5 +305,98 @@ mod tests {
             .plot(Axes::new().add_plot(LinePlot::new(vec![0.0, 10.0], vec![0.0, 10.0])));
         let term = fig.to_terminal().unwrap();
         assert!(!term.is_empty());
+    }
+
+    #[test]
+    fn figure_share_x() {
+        let fig = Figure::new()
+            .layout(Layout::grid(2, 1))
+            .share_x(true)
+            .add_axes(
+                0,
+                0,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 5.0], vec![0.0, 1.0])),
+            )
+            .add_axes(
+                1,
+                0,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 10.0], vec![0.0, 2.0])),
+            );
+        // Should render without panicking; shared x unifies ranges.
+        let svg = fig.to_svg().unwrap();
+        assert!(svg.contains("<svg"));
+    }
+
+    #[test]
+    fn figure_share_y() {
+        let fig = Figure::new()
+            .layout(Layout::grid(1, 2))
+            .share_y(true)
+            .add_axes(
+                0,
+                0,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 5.0], vec![0.0, 1.0])),
+            )
+            .add_axes(
+                0,
+                1,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 5.0], vec![0.0, 5.0])),
+            );
+        let svg = fig.to_svg().unwrap();
+        assert!(svg.contains("<svg"));
+    }
+
+    #[test]
+    fn figure_share_both() {
+        let fig = Figure::new()
+            .layout(Layout::grid(2, 2))
+            .share_x(true)
+            .share_y(true)
+            .add_axes(
+                0,
+                0,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 5.0], vec![0.0, 1.0])),
+            )
+            .add_axes(
+                0,
+                1,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 10.0], vec![0.0, 2.0])),
+            )
+            .add_axes(
+                1,
+                0,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 5.0], vec![0.0, 3.0])),
+            )
+            .add_axes(
+                1,
+                1,
+                Axes::new().add_plot(LinePlot::new(vec![0.0, 10.0], vec![0.0, 4.0])),
+            );
+        let svg = fig.to_svg().unwrap();
+        assert!(svg.contains("<svg"));
+    }
+
+    #[test]
+    fn figure_share_x_hides_top_ticks() {
+        let fig = Figure::new()
+            .layout(Layout::grid(2, 1))
+            .share_x(true)
+            .add_axes(0, 0, Axes::new().x_range(0.0, 10.0).y_range(0.0, 10.0))
+            .add_axes(1, 0, Axes::new().x_range(0.0, 10.0).y_range(0.0, 10.0));
+        let overrides = fig.compute_overrides();
+        // Top row (row 0) should have x ticks hidden.
+        assert!(overrides[0].hide_x_ticks);
+        // Bottom row (row 1) should show x ticks.
+        assert!(!overrides[1].hide_x_ticks);
+    }
+
+    #[test]
+    fn figure_weighted_layout() {
+        let fig = Figure::new()
+            .layout(Layout::weighted_grid(vec![1.0, 3.0], vec![2.0, 1.0]))
+            .add_axes(0, 0, Axes::new())
+            .add_axes(1, 1, Axes::new());
+        let svg = fig.to_svg().unwrap();
+        assert!(svg.contains("<svg"));
     }
 }

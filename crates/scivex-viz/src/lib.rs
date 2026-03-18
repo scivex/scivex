@@ -25,6 +25,8 @@
 //! let svg = fig.to_svg().unwrap();
 //! ```
 
+/// Animation support: GIF89a and APNG encoding.
+pub mod animation;
 /// Annotations such as reference lines, text labels, and legends.
 pub mod annotation;
 /// Area / stacked area chart builder.
@@ -47,8 +49,14 @@ pub mod error_bar;
 pub mod figure;
 /// Heatmap visualization builder.
 pub mod heatmap;
+/// Joint plot: scatter + marginal histograms.
+pub mod joint_plot;
+/// Lightweight LaTeX-like math text parser.
+pub mod latex;
 /// Layout primitives: padding, bounding rectangles, and grid cells.
 pub mod layout;
+/// Pair plot: n×n scatter matrix with diagonal histograms.
+pub mod pair_plot;
 /// Pie / donut chart builder.
 pub mod pie;
 /// Plot builders: line, scatter, bar, and histogram.
@@ -63,12 +71,15 @@ pub mod stat_plots;
 pub mod statistical;
 /// Styling primitives: strokes, fills, markers, fonts, and themes.
 pub mod style;
+/// 3D surface plot with isometric projection.
+pub mod surface;
 /// Violin plot builder.
 pub mod violin;
 
+pub use animation::Animation;
 pub use annotation::{Annotation, LegendPosition};
 pub use area::AreaPlot;
-pub use axes::Axes;
+pub use axes::{Axes, AxesOverrides};
 pub use backend::{BitmapBackend, HtmlBackend, Renderer, SvgBackend, TerminalBackend};
 pub use color::{Color, ColorMap};
 pub use contour::ContourPlot;
@@ -77,7 +88,12 @@ pub use error::{Result, VizError};
 pub use error_bar::{ConfidenceBand, ErrorBarPlot};
 pub use figure::Figure;
 pub use heatmap::HeatmapBuilder;
+pub use joint_plot::JointPlot;
+pub use latex::{
+    LatexSegment, contains_math, parse as parse_latex, to_unicode as latex_to_unicode,
+};
 pub use layout::{Layout, Padding, Rect};
+pub use pair_plot::{DiagMode, PairPlot};
 pub use pie::PieChart;
 pub use plot::{AxisRange, BarPlot, Histogram, LinePlot, PlotBuilder, ScatterPlot};
 pub use polar::PolarPlot;
@@ -85,10 +101,12 @@ pub use scale::{LinearScale, LogScale, Scale};
 pub use stat_plots::{CorrelationHeatmap, QQPlot, RegressionPlot, ResidualPlot};
 pub use statistical::BoxPlotBuilder;
 pub use style::{Fill, Font, Marker, MarkerShape, Stroke, Theme};
+pub use surface::{SurfaceMode, SurfacePlot};
 pub use violin::ViolinPlot;
 
 /// Items intended for glob-import: `use scivex_viz::prelude::*;`
 pub mod prelude {
+    pub use crate::animation::Animation;
     pub use crate::annotation::{Annotation, LegendPosition};
     pub use crate::area::AreaPlot;
     pub use crate::axes::Axes;
@@ -100,7 +118,9 @@ pub mod prelude {
     pub use crate::error_bar::{ConfidenceBand, ErrorBarPlot};
     pub use crate::figure::Figure;
     pub use crate::heatmap::HeatmapBuilder;
+    pub use crate::joint_plot::JointPlot;
     pub use crate::layout::{Layout, Rect};
+    pub use crate::pair_plot::{DiagMode, PairPlot};
     pub use crate::pie::PieChart;
     pub use crate::plot::{AxisRange, BarPlot, Histogram, LinePlot, PlotBuilder, ScatterPlot};
     pub use crate::polar::PolarPlot;
@@ -108,5 +128,6 @@ pub mod prelude {
     pub use crate::stat_plots::{CorrelationHeatmap, QQPlot, RegressionPlot, ResidualPlot};
     pub use crate::statistical::BoxPlotBuilder;
     pub use crate::style::{Fill, Font, Marker, MarkerShape, Stroke, Theme};
+    pub use crate::surface::{SurfaceMode, SurfacePlot};
     pub use crate::violin::ViolinPlot;
 }
