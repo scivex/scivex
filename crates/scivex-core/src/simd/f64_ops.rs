@@ -64,6 +64,14 @@ pub(crate) fn max_f64_scalar(a: &[f64]) -> f64 {
     a.iter().copied().fold(f64::NEG_INFINITY, f64::max)
 }
 
+/// Scalar mean.
+pub(crate) fn mean_f64_scalar(a: &[f64]) -> f64 {
+    if a.is_empty() {
+        return 0.0;
+    }
+    sum_f64_scalar(a) / a.len() as f64
+}
+
 // ---------------------------------------------------------------------------
 // AVX implementations (x86_64 only)
 // ---------------------------------------------------------------------------
@@ -353,6 +361,15 @@ mod avx {
         result
     }
 
+    /// AVX mean of an f64 slice.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available and slice is non-empty.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn mean_f64_avx(a: &[f64]) -> f64 {
+        sum_f64_avx(a) / a.len() as f64
+    }
+
     /// AVX max of an f64 slice.
     ///
     /// # Safety
@@ -394,52 +411,120 @@ mod avx {
 
 /// SIMD-accelerated dot product for f64 slices.
 pub(crate) fn dot_f64(a: &[f64], b: &[f64]) -> f64 {
-    super::dispatch_f64!(avx::dot_f64_avx, dot_f64_scalar, a, b)
+    super::dispatch_f64!(
+        avx::dot_f64_avx,
+        super::neon_f64_ops::dot_f64_neon,
+        dot_f64_scalar,
+        a,
+        b
+    )
 }
 
 /// SIMD-accelerated sum for f64 slices.
 pub(crate) fn sum_f64(a: &[f64]) -> f64 {
-    super::dispatch_f64!(avx::sum_f64_avx, sum_f64_scalar, a)
+    super::dispatch_f64!(
+        avx::sum_f64_avx,
+        super::neon_f64_ops::sum_f64_neon,
+        sum_f64_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated element-wise add for f64 slices.
 pub(crate) fn add_f64(a: &[f64], b: &[f64], out: &mut [f64]) {
-    super::dispatch_f64!(avx::add_f64_avx, add_f64_scalar, a, b, out);
+    super::dispatch_f64!(
+        avx::add_f64_avx,
+        super::neon_f64_ops::add_f64_neon,
+        add_f64_scalar,
+        a,
+        b,
+        out
+    );
 }
 
 /// SIMD-accelerated element-wise mul for f64 slices.
 pub(crate) fn mul_f64(a: &[f64], b: &[f64], out: &mut [f64]) {
-    super::dispatch_f64!(avx::mul_f64_avx, mul_f64_scalar, a, b, out);
+    super::dispatch_f64!(
+        avx::mul_f64_avx,
+        super::neon_f64_ops::mul_f64_neon,
+        mul_f64_scalar,
+        a,
+        b,
+        out
+    );
 }
 
 /// SIMD-accelerated axpy for f64 slices.
 pub(crate) fn axpy_f64(alpha: f64, x: &[f64], y: &mut [f64]) {
-    super::dispatch_f64!(avx::axpy_f64_avx, axpy_f64_scalar, alpha, x, y);
+    super::dispatch_f64!(
+        avx::axpy_f64_avx,
+        super::neon_f64_ops::axpy_f64_neon,
+        axpy_f64_scalar,
+        alpha,
+        x,
+        y
+    );
 }
 
 /// SIMD-accelerated scal for f64 slices.
 pub(crate) fn scal_f64(alpha: f64, x: &mut [f64]) {
-    super::dispatch_f64!(avx::scal_f64_avx, scal_f64_scalar, alpha, x);
+    super::dispatch_f64!(
+        avx::scal_f64_avx,
+        super::neon_f64_ops::scal_f64_neon,
+        scal_f64_scalar,
+        alpha,
+        x
+    );
 }
 
 /// SIMD-accelerated sum of squares for f64 slices.
 pub(crate) fn sum_sq_f64(a: &[f64]) -> f64 {
-    super::dispatch_f64!(avx::sum_sq_f64_avx, sum_sq_f64_scalar, a)
+    super::dispatch_f64!(
+        avx::sum_sq_f64_avx,
+        super::neon_f64_ops::sum_sq_f64_neon,
+        sum_sq_f64_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated sum of absolute values for f64 slices.
 pub(crate) fn asum_f64(a: &[f64]) -> f64 {
-    super::dispatch_f64!(avx::asum_f64_avx, asum_f64_scalar, a)
+    super::dispatch_f64!(
+        avx::asum_f64_avx,
+        super::neon_f64_ops::asum_f64_neon,
+        asum_f64_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated min for f64 slices.
 pub(crate) fn min_f64(a: &[f64]) -> f64 {
-    super::dispatch_f64!(avx::min_f64_avx, min_f64_scalar, a)
+    super::dispatch_f64!(
+        avx::min_f64_avx,
+        super::neon_f64_ops::min_f64_neon,
+        min_f64_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated max for f64 slices.
 pub(crate) fn max_f64(a: &[f64]) -> f64 {
-    super::dispatch_f64!(avx::max_f64_avx, max_f64_scalar, a)
+    super::dispatch_f64!(
+        avx::max_f64_avx,
+        super::neon_f64_ops::max_f64_neon,
+        max_f64_scalar,
+        a
+    )
+}
+
+/// SIMD-accelerated mean for f64 slices.
+pub(crate) fn mean_f64(a: &[f64]) -> f64 {
+    super::dispatch_f64!(
+        avx::mean_f64_avx,
+        super::neon_f64_ops::mean_f64_neon,
+        mean_f64_scalar,
+        a
+    )
 }
 
 #[cfg(test)]
@@ -527,9 +612,16 @@ mod tests {
     }
 
     #[test]
+    fn test_mean_f64() {
+        let a: Vec<f64> = (1..=100).map(f64::from).collect();
+        assert!((mean_f64(&a) - 50.5).abs() < 1e-10);
+    }
+
+    #[test]
     fn test_empty_slices() {
         assert_eq!(dot_f64(&[], &[]), 0.0);
         assert_eq!(sum_f64(&[]), 0.0);
+        assert_eq!(mean_f64(&[]), 0.0);
     }
 
     #[test]

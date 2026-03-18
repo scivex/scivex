@@ -3714,6 +3714,7 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "proptest",
+ "rayon",
  "regex",
  "scivex-core",
  "serde",
@@ -3757,6 +3758,7 @@ dependencies = [
  "bytes",
  "calamine",
  "duckdb",
+ "flate2",
  "memmap2",
  "mysql",
  "parquet",

@@ -38,9 +38,6 @@ memmap2 = { version = "0.9", optional = true }
 calamine = { version = "0.26", optional = true }
 rust_xlsxwriter = { version = "0.82", optional = true }
 
-# ORC compression
-flate2 = { version = "1", optional = true }
-
 [features]
 serde-support = ["dep:serde", "scivex-core/serde-support", "scivex-frame/serde-support"]
 default = ["csv"]
@@ -57,9 +54,6 @@ sql = ["sqlite", "postgres", "mysql", "mssql"]
 parquet = ["dep:parquet_crate", "dep:arrow_crate", "dep:bytes"]
 arrow = ["dep:arrow_crate"]
 avro = []
-orc = ["dep:flate2"]
 mmap = ["dep:memmap2"]
 excel = ["dep:calamine", "dep:rust_xlsxwriter"]
-delta = ["parquet"]
-cloud = []
-full = ["csv", "json", "sql", "parquet", "arrow", "npy", "mmap", "excel", "duckdb", "avro", "hdf5", "cloud", "delta"]
+full = ["csv", "json", "sql", "parquet", "arrow", "npy", "mmap", "excel", "duckdb", "avro", "hdf5"]

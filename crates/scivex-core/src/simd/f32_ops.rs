@@ -64,6 +64,14 @@ pub(crate) fn max_f32_scalar(a: &[f32]) -> f32 {
     a.iter().copied().fold(f32::NEG_INFINITY, f32::max)
 }
 
+/// Scalar mean for f32.
+pub(crate) fn mean_f32_scalar(a: &[f32]) -> f32 {
+    if a.is_empty() {
+        return 0.0;
+    }
+    sum_f32_scalar(a) / a.len() as f32
+}
+
 // ---------------------------------------------------------------------------
 // AVX implementations (x86_64 only)
 // ---------------------------------------------------------------------------
@@ -356,6 +364,15 @@ mod avx {
         result
     }
 
+    /// AVX mean of an f32 slice.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available and slice is non-empty.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn mean_f32_avx(a: &[f32]) -> f32 {
+        sum_f32_avx(a) / a.len() as f32
+    }
+
     /// AVX max of an f32 slice.
     ///
     /// # Safety
@@ -399,52 +416,120 @@ mod avx {
 
 /// SIMD-accelerated dot product for f32 slices.
 pub(crate) fn dot_f32(a: &[f32], b: &[f32]) -> f32 {
-    super::dispatch_f32!(avx::dot_f32_avx, dot_f32_scalar, a, b)
+    super::dispatch_f32!(
+        avx::dot_f32_avx,
+        super::neon_f32_ops::dot_f32_neon,
+        dot_f32_scalar,
+        a,
+        b
+    )
 }
 
 /// SIMD-accelerated sum for f32 slices.
 pub(crate) fn sum_f32(a: &[f32]) -> f32 {
-    super::dispatch_f32!(avx::sum_f32_avx, sum_f32_scalar, a)
+    super::dispatch_f32!(
+        avx::sum_f32_avx,
+        super::neon_f32_ops::sum_f32_neon,
+        sum_f32_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated element-wise add for f32 slices.
 pub(crate) fn add_f32(a: &[f32], b: &[f32], out: &mut [f32]) {
-    super::dispatch_f32!(avx::add_f32_avx, add_f32_scalar, a, b, out);
+    super::dispatch_f32!(
+        avx::add_f32_avx,
+        super::neon_f32_ops::add_f32_neon,
+        add_f32_scalar,
+        a,
+        b,
+        out
+    );
 }
 
 /// SIMD-accelerated element-wise mul for f32 slices.
 pub(crate) fn mul_f32(a: &[f32], b: &[f32], out: &mut [f32]) {
-    super::dispatch_f32!(avx::mul_f32_avx, mul_f32_scalar, a, b, out);
+    super::dispatch_f32!(
+        avx::mul_f32_avx,
+        super::neon_f32_ops::mul_f32_neon,
+        mul_f32_scalar,
+        a,
+        b,
+        out
+    );
 }
 
 /// SIMD-accelerated axpy for f32 slices.
 pub(crate) fn axpy_f32(alpha: f32, x: &[f32], y: &mut [f32]) {
-    super::dispatch_f32!(avx::axpy_f32_avx, axpy_f32_scalar, alpha, x, y);
+    super::dispatch_f32!(
+        avx::axpy_f32_avx,
+        super::neon_f32_ops::axpy_f32_neon,
+        axpy_f32_scalar,
+        alpha,
+        x,
+        y
+    );
 }
 
 /// SIMD-accelerated scal for f32 slices.
 pub(crate) fn scal_f32(alpha: f32, x: &mut [f32]) {
-    super::dispatch_f32!(avx::scal_f32_avx, scal_f32_scalar, alpha, x);
+    super::dispatch_f32!(
+        avx::scal_f32_avx,
+        super::neon_f32_ops::scal_f32_neon,
+        scal_f32_scalar,
+        alpha,
+        x
+    );
 }
 
 /// SIMD-accelerated sum of squares for f32 slices.
 pub(crate) fn sum_sq_f32(a: &[f32]) -> f32 {
-    super::dispatch_f32!(avx::sum_sq_f32_avx, sum_sq_f32_scalar, a)
+    super::dispatch_f32!(
+        avx::sum_sq_f32_avx,
+        super::neon_f32_ops::sum_sq_f32_neon,
+        sum_sq_f32_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated sum of absolute values for f32 slices.
 pub(crate) fn asum_f32(a: &[f32]) -> f32 {
-    super::dispatch_f32!(avx::asum_f32_avx, asum_f32_scalar, a)
+    super::dispatch_f32!(
+        avx::asum_f32_avx,
+        super::neon_f32_ops::asum_f32_neon,
+        asum_f32_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated min for f32 slices.
 pub(crate) fn min_f32(a: &[f32]) -> f32 {
-    super::dispatch_f32!(avx::min_f32_avx, min_f32_scalar, a)
+    super::dispatch_f32!(
+        avx::min_f32_avx,
+        super::neon_f32_ops::min_f32_neon,
+        min_f32_scalar,
+        a
+    )
 }
 
 /// SIMD-accelerated max for f32 slices.
 pub(crate) fn max_f32(a: &[f32]) -> f32 {
-    super::dispatch_f32!(avx::max_f32_avx, max_f32_scalar, a)
+    super::dispatch_f32!(
+        avx::max_f32_avx,
+        super::neon_f32_ops::max_f32_neon,
+        max_f32_scalar,
+        a
+    )
+}
+
+/// SIMD-accelerated mean for f32 slices.
+pub(crate) fn mean_f32(a: &[f32]) -> f32 {
+    super::dispatch_f32!(
+        avx::mean_f32_avx,
+        super::neon_f32_ops::mean_f32_neon,
+        mean_f32_scalar,
+        a
+    )
 }
 
 #[cfg(test)]
@@ -542,8 +627,15 @@ mod tests {
     }
 
     #[test]
+    fn test_mean_f32() {
+        let a: Vec<f32> = (1..=100).map(|i| i as f32).collect();
+        assert!((mean_f32(&a) - 50.5).abs() < 1e-2);
+    }
+
+    #[test]
     fn test_empty_slices_f32() {
         assert_eq!(dot_f32(&[], &[]), 0.0);
         assert_eq!(sum_f32(&[]), 0.0);
+        assert_eq!(mean_f32(&[]), 0.0);
     }
 }
