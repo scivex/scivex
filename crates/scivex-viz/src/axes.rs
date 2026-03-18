@@ -5,6 +5,19 @@ use crate::plot::PlotBuilder;
 use crate::scale::{LinearScale, Scale};
 use crate::style::{Font, Stroke, Theme};
 
+/// Overrides applied by the figure when sharing axes across subplots.
+#[derive(Debug, Clone, Default)]
+pub struct AxesOverrides {
+    /// Override x-axis range.
+    pub x_range: Option<(f64, f64)>,
+    /// Override y-axis range.
+    pub y_range: Option<(f64, f64)>,
+    /// Force-hide x-axis ticks.
+    pub hide_x_ticks: bool,
+    /// Force-hide y-axis ticks.
+    pub hide_y_ticks: bool,
+}
+
 /// A single set of axes containing plots, labels, and annotations.
 pub struct Axes {
     title: Option<String>,
@@ -15,6 +28,8 @@ pub struct Axes {
     plots: Vec<Box<dyn PlotBuilder>>,
     annotations: Vec<Annotation>,
     show_grid: bool,
+    show_x_ticks: bool,
+    show_y_ticks: bool,
     theme: Theme,
 }
 
@@ -31,6 +46,8 @@ impl Axes {
             plots: Vec::new(),
             annotations: Vec::new(),
             show_grid: true,
+            show_x_ticks: true,
+            show_y_ticks: true,
             theme: Theme::default(),
         }
     }
@@ -70,6 +87,36 @@ impl Axes {
         self
     }
 
+    /// Show or hide x-axis tick marks and labels.
+    #[must_use]
+    pub fn hide_x_ticks(mut self, hide: bool) -> Self {
+        self.show_x_ticks = !hide;
+        self
+    }
+
+    /// Show or hide y-axis tick marks and labels.
+    #[must_use]
+    pub fn hide_y_ticks(mut self, hide: bool) -> Self {
+        self.show_y_ticks = !hide;
+        self
+    }
+
+    /// Override the x-axis range programmatically (used by shared axis logic).
+    pub fn set_x_range(&mut self, min: f64, max: f64) {
+        self.x_range = Some((min, max));
+    }
+
+    /// Override the y-axis range programmatically (used by shared axis logic).
+    pub fn set_y_range(&mut self, min: f64, max: f64) {
+        self.y_range = Some((min, max));
+    }
+
+    /// Get the auto-computed data ranges for this axes (public for shared axes).
+    #[must_use]
+    pub fn data_ranges(&self) -> ((f64, f64), (f64, f64)) {
+        self.auto_ranges()
+    }
+
     /// Enable or disable grid lines.
     #[must_use]
     pub fn grid(mut self, show: bool) -> Self {
@@ -102,12 +149,25 @@ impl Axes {
     /// given pixel `bounds`.
     #[allow(clippy::too_many_lines)]
     pub fn render_elements(&self, bounds: Rect) -> Vec<Element> {
+        self.render_elements_with_overrides(bounds, &AxesOverrides::default())
+    }
+
+    /// Render with optional overrides from shared-axis logic.
+    #[allow(clippy::too_many_lines)]
+    pub fn render_elements_with_overrides(
+        &self,
+        bounds: Rect,
+        overrides: &AxesOverrides,
+    ) -> Vec<Element> {
         let mut elements = Vec::new();
 
         // Compute data ranges from plots if not manually set.
         let (auto_xr, auto_yr) = self.auto_ranges();
-        let x_range = self.x_range.unwrap_or(auto_xr);
-        let y_range = self.y_range.unwrap_or(auto_yr);
+        let x_range = overrides.x_range.or(self.x_range).unwrap_or(auto_xr);
+        let y_range = overrides.y_range.or(self.y_range).unwrap_or(auto_yr);
+
+        let show_x = self.show_x_ticks && !overrides.hide_x_ticks;
+        let show_y = self.show_y_ticks && !overrides.hide_y_ticks;
 
         let x_scale = LinearScale::new(x_range.0, x_range.1);
         let y_scale = LinearScale::new(y_range.0, y_range.1);
@@ -139,8 +199,8 @@ impl Axes {
             stroke: Some(Stroke::new(self.theme.foreground, 1.0)),
         });
 
-        // Tick marks and labels.
-        self.render_ticks(&mut elements, &x_scale, &y_scale, plot_area);
+        // Tick marks and labels (respects hide_x_ticks / hide_y_ticks).
+        self.render_ticks_filtered(&mut elements, &x_scale, &y_scale, plot_area, show_x, show_y);
 
         // Plot data.
         for plot in &self.plots {
@@ -236,15 +296,15 @@ impl Axes {
         }
     }
 
-    fn render_ticks(
+    fn render_ticks_filtered(
         &self,
         elements: &mut Vec<Element>,
         x_scale: &dyn Scale,
         y_scale: &dyn Scale,
         area: Rect,
+        show_x: bool,
+        show_y: bool,
     ) {
-        let x_ticks = x_scale.nice_ticks(8);
-        let y_ticks = y_scale.nice_ticks(6);
         let tick_len = 5.0;
         let tick_font = Font {
             size: 10.0,
@@ -252,40 +312,46 @@ impl Axes {
             ..Font::default()
         };
 
-        for &xt in &x_ticks {
-            let px = area.x + x_scale.transform(xt) * area.w;
-            elements.push(Element::Line {
-                x1: px,
-                y1: area.y + area.h,
-                x2: px,
-                y2: area.y + area.h + tick_len,
-                stroke: Stroke::new(self.theme.foreground, 1.0),
-            });
-            elements.push(Element::Text {
-                x: px,
-                y: area.y + area.h + tick_len + 12.0,
-                text: format_tick(xt),
-                font: tick_font.clone(),
-                anchor: TextAnchor::Middle,
-            });
+        if show_x {
+            let x_ticks = x_scale.nice_ticks(8);
+            for &xt in &x_ticks {
+                let px = area.x + x_scale.transform(xt) * area.w;
+                elements.push(Element::Line {
+                    x1: px,
+                    y1: area.y + area.h,
+                    x2: px,
+                    y2: area.y + area.h + tick_len,
+                    stroke: Stroke::new(self.theme.foreground, 1.0),
+                });
+                elements.push(Element::Text {
+                    x: px,
+                    y: area.y + area.h + tick_len + 12.0,
+                    text: format_tick(xt),
+                    font: tick_font.clone(),
+                    anchor: TextAnchor::Middle,
+                });
+            }
         }
 
-        for &yt in &y_ticks {
-            let py = area.y + area.h - y_scale.transform(yt) * area.h;
-            elements.push(Element::Line {
-                x1: area.x - tick_len,
-                y1: py,
-                x2: area.x,
-                y2: py,
-                stroke: Stroke::new(self.theme.foreground, 1.0),
-            });
-            elements.push(Element::Text {
-                x: area.x - tick_len - 4.0,
-                y: py + 4.0,
-                text: format_tick(yt),
-                font: tick_font.clone(),
-                anchor: TextAnchor::End,
-            });
+        if show_y {
+            let y_ticks = y_scale.nice_ticks(6);
+            for &yt in &y_ticks {
+                let py = area.y + area.h - y_scale.transform(yt) * area.h;
+                elements.push(Element::Line {
+                    x1: area.x - tick_len,
+                    y1: py,
+                    x2: area.x,
+                    y2: py,
+                    stroke: Stroke::new(self.theme.foreground, 1.0),
+                });
+                elements.push(Element::Text {
+                    x: area.x - tick_len - 4.0,
+                    y: py + 4.0,
+                    text: format_tick(yt),
+                    font: tick_font.clone(),
+                    anchor: TextAnchor::End,
+                });
+            }
         }
     }
 
@@ -378,6 +444,8 @@ mod tests {
         assert!(a.x_range.is_none());
         assert!(a.y_range.is_none());
         assert!(a.show_grid);
+        assert!(a.show_x_ticks);
+        assert!(a.show_y_ticks);
         assert!(a.plots.is_empty());
         assert!(a.annotations.is_empty());
     }
@@ -526,5 +594,60 @@ mod tests {
         assert_eq!(format_tick(0.0), "0");
         assert_eq!(format_tick(10.0), "10");
         assert_eq!(format_tick(2.5), "2.5");
+    }
+
+    #[test]
+    fn hide_x_ticks_reduces_elements() {
+        let bounds = Rect {
+            x: 70.0,
+            y: 50.0,
+            w: 700.0,
+            h: 490.0,
+        };
+        let axes_full = Axes::new().x_range(0.0, 10.0).y_range(0.0, 10.0);
+        let axes_no_x = Axes::new()
+            .x_range(0.0, 10.0)
+            .y_range(0.0, 10.0)
+            .hide_x_ticks(true);
+        let full_elems = axes_full.render_elements(bounds);
+        let no_x_elems = axes_no_x.render_elements(bounds);
+        assert!(full_elems.len() > no_x_elems.len());
+    }
+
+    #[test]
+    fn hide_y_ticks_reduces_elements() {
+        let bounds = Rect {
+            x: 70.0,
+            y: 50.0,
+            w: 700.0,
+            h: 490.0,
+        };
+        let axes_full = Axes::new().x_range(0.0, 10.0).y_range(0.0, 10.0);
+        let axes_no_y = Axes::new()
+            .x_range(0.0, 10.0)
+            .y_range(0.0, 10.0)
+            .hide_y_ticks(true);
+        let full_elems = axes_full.render_elements(bounds);
+        let no_y_elems = axes_no_y.render_elements(bounds);
+        assert!(full_elems.len() > no_y_elems.len());
+    }
+
+    #[test]
+    fn set_range_programmatic() {
+        let mut a = Axes::new();
+        a.set_x_range(5.0, 15.0);
+        a.set_y_range(-2.0, 8.0);
+        assert_eq!(a.x_range, Some((5.0, 15.0)));
+        assert_eq!(a.y_range, Some((-2.0, 8.0)));
+    }
+
+    #[test]
+    fn data_ranges_public() {
+        let a = Axes::new().add_plot(LinePlot::new(vec![2.0, 7.0], vec![3.0, 9.0]));
+        let (xr, yr) = a.data_ranges();
+        assert!((xr.0 - 2.0).abs() < 1e-10);
+        assert!((xr.1 - 7.0).abs() < 1e-10);
+        assert!((yr.0 - 3.0).abs() < 1e-10);
+        assert!((yr.1 - 9.0).abs() < 1e-10);
     }
 }

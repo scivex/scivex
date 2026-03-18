@@ -128,8 +128,70 @@ fn render_text(buf: &mut String, elem: &Element, depth: usize) {
         )
         .expect("write to String is infallible");
         write_font_attrs(buf, font);
-        let escaped = xml_escape(text);
-        writeln!(buf, ">{escaped}</text>").expect("write to String is infallible");
+
+        if crate::latex::contains_math(text) {
+            // Render LaTeX segments with <tspan> elements.
+            buf.push('>');
+            let segments = crate::latex::parse(text);
+            for seg in &segments {
+                render_latex_segment(buf, seg, font.size);
+            }
+            writeln!(buf, "</text>").expect("write to String is infallible");
+        } else {
+            let escaped = xml_escape(text);
+            writeln!(buf, ">{escaped}</text>").expect("write to String is infallible");
+        }
+    }
+}
+
+fn render_latex_segment(buf: &mut String, seg: &crate::latex::LatexSegment, font_size: f64) {
+    use crate::latex::LatexSegment;
+    match seg {
+        LatexSegment::Plain(s) => {
+            buf.push_str(&xml_escape(s));
+        }
+        LatexSegment::MathText(s) => {
+            write!(
+                buf,
+                r#"<tspan font-style="italic">{}</tspan>"#,
+                xml_escape(s)
+            )
+            .expect("write to String is infallible");
+        }
+        LatexSegment::Superscript(s) => {
+            let small = font_size * 0.7;
+            let dy = -(font_size * 0.35);
+            write!(
+                buf,
+                r#"<tspan dy="{dy:.1}" font-size="{small:.1}">{}</tspan><tspan dy="{rise:.1}" font-size="0"> </tspan>"#,
+                xml_escape(s),
+                rise = -dy,
+            )
+            .expect("write to String is infallible");
+        }
+        LatexSegment::Subscript(s) => {
+            let small = font_size * 0.7;
+            let dy = font_size * 0.25;
+            write!(
+                buf,
+                r#"<tspan dy="{dy:.1}" font-size="{small:.1}">{}</tspan><tspan dy="{drop:.1}" font-size="0"> </tspan>"#,
+                xml_escape(s),
+                drop = -dy,
+            )
+            .expect("write to String is infallible");
+        }
+        LatexSegment::Symbol(c) => {
+            buf.push(*c);
+        }
+        LatexSegment::Fraction(num, den) => {
+            write!(
+                buf,
+                "<tspan>{}</tspan>/<tspan>{}</tspan>",
+                xml_escape(num),
+                xml_escape(den),
+            )
+            .expect("write to String is infallible");
+        }
     }
 }
 

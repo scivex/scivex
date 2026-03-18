@@ -58,6 +58,10 @@ pub struct Layout {
     pub padding: Padding,
     /// Spacing between adjacent cells in pixels.
     pub spacing: f64,
+    /// Optional per-row weights for proportional sizing.
+    pub row_weights: Option<Vec<f64>>,
+    /// Optional per-column weights for proportional sizing.
+    pub col_weights: Option<Vec<f64>>,
 }
 
 impl Layout {
@@ -69,6 +73,8 @@ impl Layout {
             cols: 1,
             padding: Padding::default(),
             spacing: 20.0,
+            row_weights: None,
+            col_weights: None,
         }
     }
 
@@ -80,6 +86,24 @@ impl Layout {
             cols,
             padding: Padding::default(),
             spacing: 20.0,
+            row_weights: None,
+            col_weights: None,
+        }
+    }
+
+    /// A grid layout with proportional row and column sizes.
+    ///
+    /// Weights are relative — `vec![1.0, 3.0]` gives the second row 3× the
+    /// height of the first.
+    #[must_use]
+    pub fn weighted_grid(row_weights: Vec<f64>, col_weights: Vec<f64>) -> Self {
+        Self {
+            rows: row_weights.len(),
+            cols: col_weights.len(),
+            padding: Padding::default(),
+            spacing: 20.0,
+            row_weights: Some(row_weights),
+            col_weights: Some(col_weights),
         }
     }
 
@@ -101,11 +125,35 @@ impl Layout {
             0.0
         };
 
-        let cell_w = (usable_w - total_h_spacing) / self.cols as f64;
-        let cell_h = (usable_h - total_v_spacing) / self.rows as f64;
+        let net_w = usable_w - total_h_spacing;
+        let net_h = usable_h - total_v_spacing;
 
-        let x = self.padding.left + col as f64 * (cell_w + self.spacing);
-        let y = self.padding.top + row as f64 * (cell_h + self.spacing);
+        // Compute cell sizes based on weights or equal distribution.
+        let (x, cell_w) = if let Some(ref cw) = self.col_weights {
+            let total: f64 = cw.iter().sum();
+            let mut x_off = self.padding.left;
+            for w in cw.iter().take(col) {
+                x_off += net_w * w / total + self.spacing;
+            }
+            (x_off, net_w * cw[col] / total)
+        } else {
+            let cell_w = net_w / self.cols as f64;
+            let x = self.padding.left + col as f64 * (cell_w + self.spacing);
+            (x, cell_w)
+        };
+
+        let (y, cell_h) = if let Some(ref rw) = self.row_weights {
+            let total: f64 = rw.iter().sum();
+            let mut y_off = self.padding.top;
+            for w in rw.iter().take(row) {
+                y_off += net_h * w / total + self.spacing;
+            }
+            (y_off, net_h * rw[row] / total)
+        } else {
+            let cell_h = net_h / self.rows as f64;
+            let y = self.padding.top + row as f64 * (cell_h + self.spacing);
+            (y, cell_h)
+        };
 
         Rect {
             x,

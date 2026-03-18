@@ -21,6 +21,12 @@ pub enum VizError {
     /// An I/O error (e.g. writing SVG to file).
     IoError(std::io::Error),
 
+    /// Animation has no frames.
+    NoFrames,
+
+    /// LaTeX parsing error.
+    LatexParseError(String),
+
     /// An error propagated from `scivex-core`.
     CoreError(scivex_core::CoreError),
 }
@@ -36,6 +42,8 @@ impl fmt::Display for VizError {
                 write!(f, "invalid parameter `{name}`: {reason}")
             }
             Self::RenderError(msg) => write!(f, "render error: {msg}"),
+            Self::NoFrames => write!(f, "animation has no frames"),
+            Self::LatexParseError(msg) => write!(f, "LaTeX parse error: {msg}"),
             Self::IoError(e) => write!(f, "I/O error: {e}"),
             Self::CoreError(e) => write!(f, "core error: {e}"),
         }
@@ -66,6 +74,8 @@ impl Clone for VizError {
             },
             Self::InvalidParameter { name, reason } => Self::InvalidParameter { name, reason },
             Self::RenderError(msg) => Self::RenderError(msg.clone()),
+            Self::NoFrames => Self::NoFrames,
+            Self::LatexParseError(msg) => Self::LatexParseError(msg.clone()),
             Self::IoError(e) => Self::IoError(std::io::Error::new(e.kind(), e.to_string())),
             Self::CoreError(e) => Self::CoreError(e.clone()),
         }
