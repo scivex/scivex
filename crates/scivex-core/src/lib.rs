@@ -11,6 +11,8 @@
 //! - `unsafe` is confined to this crate; all higher-level crates use only safe
 //!   abstractions.
 
+/// Native complex number type.
+pub mod complex;
 /// Numeric type traits: [`Scalar`], [`Float`], [`Real`], [`Integer`].
 pub mod dtype;
 /// Core error types.
@@ -24,6 +26,8 @@ pub mod math;
 /// Rayon-based parallel execution for tensors and matrix operations.
 #[cfg(feature = "parallel")]
 pub mod parallel;
+/// Type promotion rules, casting utilities, and runtime dtype tags.
+pub mod promote;
 /// Pseudo-random number generation.
 pub mod random;
 /// SIMD-accelerated kernels for core numerical operations.
@@ -33,8 +37,10 @@ pub(crate) mod simd;
 pub mod tensor;
 
 // Re-export key types at crate root for convenience.
+pub use complex::Complex;
 pub use dtype::{Float, Integer, Real, Scalar};
 pub use error::{CoreError, Result};
+pub use promote::{CastFrom, DType, DTypeOf, promote};
 pub use tensor::Tensor;
 
 // Re-export half-precision types when enabled.
@@ -43,6 +49,7 @@ pub use dtype::{bf16, f16};
 
 /// Items intended for glob-import: `use scivex_core::prelude::*;`
 pub mod prelude {
+    pub use crate::complex::Complex;
     pub use crate::dtype::{Float, Integer, Real, Scalar};
     pub use crate::error::{CoreError, Result};
     pub use crate::tensor::Tensor;

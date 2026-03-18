@@ -32,10 +32,16 @@ pub mod error;
 pub mod groupby;
 /// Lazy evaluation with expression trees and logical plans.
 pub mod lazy;
+/// Hierarchical (multi-level) row/column indexing.
+pub mod multiindex;
+/// Parallel DataFrame operations (requires `parallel` feature).
+pub mod parallel;
 /// DataFrame schema validation.
 pub mod schema;
 /// Typed series (columns) and type-erased column trait.
 pub mod series;
+/// SQL query engine on DataFrames.
+pub mod sql;
 
 // Re-export primary types at the crate root.
 pub use dataframe::join::JoinType;
@@ -44,11 +50,16 @@ pub use dtype::DType;
 pub use error::{FrameError, Result};
 pub use groupby::{AggFunc, GroupBy};
 pub use lazy::LazyFrame;
+pub use multiindex::MultiIndex;
 pub use series::categorical::CategoricalSeries;
 pub use series::datetime::{DateTime, DateTimeSeries, Duration};
 pub use series::string::StringSeries;
 pub use series::window::RollingWindow;
 pub use series::{AnySeries, Series};
+pub use sql::{SqlContext, sql};
+
+#[cfg(feature = "parallel")]
+pub use parallel::{par_apply, par_filter, par_groupby_agg, par_sort};
 
 /// Glob-import convenience: `use scivex_frame::prelude::*;`
 pub mod prelude {
@@ -58,9 +69,15 @@ pub mod prelude {
     pub use crate::error::{FrameError, Result};
     pub use crate::groupby::{AggFunc, GroupBy};
     pub use crate::lazy::LazyFrame;
+    pub use crate::multiindex::MultiIndex;
     pub use crate::series::categorical::CategoricalSeries;
     pub use crate::series::datetime::{DateTime, DateTimeSeries, Duration};
     pub use crate::series::string::StringSeries;
     pub use crate::series::window::RollingWindow;
     pub use crate::series::{AnySeries, Series};
+
+    pub use crate::sql::{SqlContext, sql};
+
+    #[cfg(feature = "parallel")]
+    pub use crate::parallel::{par_apply, par_filter, par_groupby_agg, par_sort};
 }

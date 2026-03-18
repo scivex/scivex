@@ -68,10 +68,6 @@ pub mod excel;
 #[cfg(feature = "avro")]
 pub mod avro;
 
-/// Apache ORC columnar file reading and writing.
-#[cfg(feature = "orc")]
-pub mod orc;
-
 /// HDF5 hierarchical data format support.
 #[cfg(feature = "hdf5")]
 pub mod hdf5;
@@ -83,14 +79,6 @@ pub mod mmap;
 /// Tensor ↔ Arrow array conversions.
 #[cfg(feature = "arrow")]
 pub mod tensor_conv;
-
-/// Delta Lake table reading via transaction log replay.
-#[cfg(feature = "delta")]
-pub mod delta;
-
-/// Cloud storage URL-based reading.
-#[cfg(feature = "cloud")]
-pub mod cloud;
 
 pub use error::{IoError, Result};
 
@@ -170,16 +158,4 @@ pub mod prelude {
         tensor_f32_to_arrow, tensor_f64_to_arrow, tensor_to_record_batch,
         tensor_to_record_batch_named,
     };
-
-    #[cfg(feature = "orc")]
-    pub use crate::orc::{
-        OrcCompression, read_orc, read_orc_bytes, write_orc, write_orc_to_bytes,
-        write_orc_with_options,
-    };
-
-    #[cfg(feature = "delta")]
-    pub use crate::delta::{DeltaSnapshot, read_delta};
-
-    #[cfg(feature = "cloud")]
-    pub use crate::cloud::{CloudConfig, CloudPath, HttpClient, StdHttpClient, cloud_read_bytes};
 }

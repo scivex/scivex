@@ -2,11 +2,12 @@
 //!
 //! This module provides hand-tuned SIMD implementations for:
 //! - Element-wise operations (add, mul, fma)
-//! - Reductions (sum, dot product, min, max)
+//! - Reductions (sum, dot product, min, max, mean)
 //! - BLAS Level 1 operations (axpy, scal, nrm2, asum)
 //!
-//! All kernels use runtime feature detection (`is_x86_feature_detected!` on
-//! x86_64) and fall back to scalar loops on unsupported platforms.
+//! On x86_64, AVX kernels are selected at runtime via `is_x86_feature_detected!`.
+//! On aarch64, NEON kernels are used unconditionally (always available).
+//! Other platforms fall back to scalar loops.
 //!
 //! # Safety
 //!
@@ -16,11 +17,16 @@
 pub mod f32_ops;
 pub mod f64_ops;
 
-/// Dispatch a SIMD kernel with AVX fallback on x86_64.
+#[cfg(target_arch = "aarch64")]
+pub(crate) mod neon_f32_ops;
+#[cfg(target_arch = "aarch64")]
+pub(crate) mod neon_f64_ops;
+
+/// Dispatch a SIMD kernel: AVX on x86_64, NEON on aarch64, scalar fallback otherwise.
 ///
-/// Usage: `dispatch_f64!(avx_fn, fallback_fn, args...)`
+/// Usage: `dispatch_f64!(avx_fn, neon_fn, fallback_fn, args...)`
 macro_rules! dispatch_f64 {
-    ($avx_fn:expr, $fallback_fn:expr, $($arg:expr),* $(,)?) => {{
+    ($avx_fn:expr, $neon_fn:expr, $fallback_fn:expr, $($arg:expr),* $(,)?) => {{
         #[cfg(target_arch = "x86_64")]
         {
             if is_x86_feature_detected!("avx") {
@@ -30,16 +36,21 @@ macro_rules! dispatch_f64 {
                 $fallback_fn($($arg),*)
             }
         }
-        #[cfg(not(target_arch = "x86_64"))]
+        #[cfg(target_arch = "aarch64")]
+        {
+            // SAFETY: NEON is always available on aarch64.
+            unsafe { $neon_fn($($arg),*) }
+        }
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
         {
             $fallback_fn($($arg),*)
         }
     }};
 }
 
-/// Dispatch a SIMD kernel with AVX fallback on x86_64 (f32 variant).
+/// Dispatch a SIMD kernel: AVX on x86_64, NEON on aarch64, scalar fallback otherwise (f32 variant).
 macro_rules! dispatch_f32 {
-    ($avx_fn:expr, $fallback_fn:expr, $($arg:expr),* $(,)?) => {{
+    ($avx_fn:expr, $neon_fn:expr, $fallback_fn:expr, $($arg:expr),* $(,)?) => {{
         #[cfg(target_arch = "x86_64")]
         {
             if is_x86_feature_detected!("avx") {
@@ -49,7 +60,12 @@ macro_rules! dispatch_f32 {
                 $fallback_fn($($arg),*)
             }
         }
-        #[cfg(not(target_arch = "x86_64"))]
+        #[cfg(target_arch = "aarch64")]
+        {
+            // SAFETY: NEON is always available on aarch64.
+            unsafe { $neon_fn($($arg),*) }
+        }
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
         {
             $fallback_fn($($arg),*)
         }

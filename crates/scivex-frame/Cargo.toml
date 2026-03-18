@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 scivex-core = { path = "../scivex-core" }
+rayon = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 
@@ -23,5 +24,6 @@ name = "frame_benchmarks"
 harness = false
 
 [features]
+parallel = ["dep:rayon"]
 regex = ["dep:regex"]
 serde-support = ["dep:serde", "scivex-core/serde-support"]

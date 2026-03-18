@@ -119,8 +119,8 @@ pub mod prelude {
 
     // Explainability
     pub use crate::explain::{
-        PartialDependence, PermutationImportanceResult, kernel_shap, partial_dependence,
-        permutation_importance, tree_shap,
+        LimeExplanation, PartialDependence, PermutationImportanceResult, kernel_shap, lime,
+        partial_dependence, permutation_importance, tree_shap,
     };
 
     // Online / streaming

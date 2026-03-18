@@ -36,6 +36,7 @@ pub mod backend;
 pub mod device;
 pub mod error;
 pub mod ops;
+pub mod optim;
 pub mod tensor;
 
 #[cfg(feature = "cuda")]
@@ -44,6 +45,8 @@ pub mod cuda;
 pub use backend::GpuBackend;
 pub use device::{GpuDevice, GpuInfo};
 pub use error::GpuError;
+pub use ops::GpuBatch;
+pub use optim::{GpuAdam, GpuSGD};
 pub use tensor::GpuTensor;
 
 #[cfg(feature = "cuda")]

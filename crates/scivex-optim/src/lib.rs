@@ -28,6 +28,10 @@ pub mod minimize;
 pub mod minimize_1d;
 /// ODE initial value problem solvers (Euler, RK45, BDF-2).
 pub mod ode;
+/// Partial differential equation solvers (finite difference methods).
+pub mod pde;
+/// Quadratic programming (active set method).
+pub mod quadprog;
 /// Scalar root-finding (bisection, Newton, Brent).
 pub mod roots;
 
@@ -45,6 +49,8 @@ pub use minimize::{
 };
 pub use minimize_1d::{Minimize1dResult, brent_min, golden_section};
 pub use ode::{OdeMethod, OdeOptions, OdeResult, bdf2, euler, rk45, solve_ivp};
+pub use pde::{BoundaryCondition, PdeResult, heat_equation_1d, laplace_2d, wave_equation_1d};
+pub use quadprog::{QpResult, quadprog};
 pub use roots::{RootOptions, RootResult, bisection, brent_root, newton};
 
 /// Items intended for glob-import: `use scivex_optim::prelude::*;`
@@ -63,5 +69,9 @@ pub mod prelude {
     };
     pub use crate::minimize_1d::{Minimize1dResult, brent_min, golden_section};
     pub use crate::ode::{OdeMethod, OdeOptions, OdeResult, bdf2, euler, rk45, solve_ivp};
+    pub use crate::pde::{
+        BoundaryCondition, PdeResult, heat_equation_1d, laplace_2d, wave_equation_1d,
+    };
+    pub use crate::quadprog::{QpResult, quadprog};
     pub use crate::roots::{RootOptions, RootResult, bisection, brent_root, newton};
 }

@@ -73,6 +73,8 @@ fn mul_scalar_kernel(@builtin(global_invocation_id) gid: vec3<u32>) {
 }
 ";
 
+const TILE_SIZE: usize = 16;
+
 const MATMUL_SHADER: &str = r"
 struct Dims {
     m: u32,
@@ -81,25 +83,59 @@ struct Dims {
     _pad: u32,
 }
 
+const TS: u32 = 16u;
+
 @group(0) @binding(0) var<storage, read> a: array<f32>;
 @group(0) @binding(1) var<storage, read> b: array<f32>;
 @group(0) @binding(2) var<storage, read_write> result: array<f32>;
 @group(0) @binding(3) var<uniform> dims: Dims;
 
+var<workgroup> tile_a: array<f32, 256>;  // TS * TS = 16 * 16
+var<workgroup> tile_b: array<f32, 256>;
+
 @compute @workgroup_size(16, 16)
-fn matmul_kernel(@builtin(global_invocation_id) gid: vec3<u32>) {
+fn matmul_kernel(
+    @builtin(global_invocation_id) gid: vec3<u32>,
+    @builtin(local_invocation_id) lid: vec3<u32>,
+) {
     let row = gid.x;
     let col = gid.y;
-
-    if row >= dims.m || col >= dims.n {
-        return;
-    }
+    let lr = lid.x;
+    let lc = lid.y;
 
     var sum: f32 = 0.0;
-    for (var i: u32 = 0u; i < dims.k; i = i + 1u) {
-        sum = sum + a[row * dims.k + i] * b[i * dims.n + col];
+    let n_tiles = (dims.k + TS - 1u) / TS;
+
+    for (var t: u32 = 0u; t < n_tiles; t = t + 1u) {
+        // Cooperatively load tile from A into shared memory.
+        let a_col = t * TS + lc;
+        if row < dims.m && a_col < dims.k {
+            tile_a[lr * TS + lc] = a[row * dims.k + a_col];
+        } else {
+            tile_a[lr * TS + lc] = 0.0;
+        }
+
+        // Cooperatively load tile from B into shared memory.
+        let b_row = t * TS + lr;
+        if b_row < dims.k && col < dims.n {
+            tile_b[lr * TS + lc] = b[b_row * dims.n + col];
+        } else {
+            tile_b[lr * TS + lc] = 0.0;
+        }
+
+        workgroupBarrier();
+
+        // Accumulate dot product from shared memory tiles.
+        for (var i: u32 = 0u; i < TS; i = i + 1u) {
+            sum = sum + tile_a[lr * TS + i] * tile_b[i * TS + lc];
+        }
+
+        workgroupBarrier();
     }
-    result[row * dims.n + col] = sum;
+
+    if row < dims.m && col < dims.n {
+        result[row * dims.n + col] = sum;
+    }
 }
 ";
 
@@ -516,7 +552,7 @@ pub fn matmul(a: &GpuTensor, b: &GpuTensor) -> Result<GpuTensor> {
         let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
         pass.set_pipeline(&pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
-        pass.dispatch_workgroups(dispatch_size(m, 16), dispatch_size(n, 16), 1);
+        pass.dispatch_workgroups(dispatch_size(m, TILE_SIZE), dispatch_size(n, TILE_SIZE), 1);
     }
     dev.queue.submit(Some(encoder.finish()));
 
@@ -969,6 +1005,309 @@ pub fn sub_scalar(input: &GpuTensor, scalar: f32) -> Result<GpuTensor> {
 }
 
 // ---------------------------------------------------------------------------
+// Batch GPU operations — single command buffer submission
+// ---------------------------------------------------------------------------
+
+/// A batch of GPU operations that share a single command encoder.
+///
+/// Instead of submitting one command buffer per operation (which incurs
+/// driver/kernel overhead each time), `GpuBatch` records multiple dispatches
+/// into a single encoder and submits them all at once via [`GpuBatch::submit`].
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use scivex_gpu::{GpuDevice, GpuTensor, ops};
+/// use scivex_gpu::ops::GpuBatch;
+///
+/// let dev = GpuDevice::new().unwrap();
+/// let a = GpuTensor::from_slice(&dev, &[1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let b = GpuTensor::from_slice(&dev, &[5.0, 6.0, 7.0, 8.0], vec![4]).unwrap();
+///
+/// let mut batch = GpuBatch::new(&dev);
+/// let c = batch.add(&a, &b).unwrap();
+/// let d = batch.mul(&a, &b).unwrap();
+/// batch.submit();
+/// // c and d are now ready to read
+/// ```
+pub struct GpuBatch {
+    device: crate::device::GpuDevice,
+    encoder: Option<wgpu::CommandEncoder>,
+}
+
+impl GpuBatch {
+    /// Create a new batch tied to the given device.
+    pub fn new(device: &crate::device::GpuDevice) -> Self {
+        let encoder = device
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("gpu_batch"),
+            });
+        Self {
+            device: device.clone(),
+            encoder: Some(encoder),
+        }
+    }
+
+    /// Submit all batched operations to the GPU queue.
+    pub fn submit(mut self) {
+        if let Some(encoder) = self.encoder.take() {
+            self.device.queue.submit(Some(encoder.finish()));
+        }
+    }
+
+    /// Batch element-wise add.
+    pub fn add(&mut self, a: &GpuTensor, b: &GpuTensor) -> Result<GpuTensor> {
+        self.run_elementwise_batched(a, b, "add_kernel")
+    }
+
+    /// Batch element-wise sub.
+    pub fn sub(&mut self, a: &GpuTensor, b: &GpuTensor) -> Result<GpuTensor> {
+        self.run_elementwise_batched(a, b, "sub_kernel")
+    }
+
+    /// Batch element-wise mul.
+    pub fn mul(&mut self, a: &GpuTensor, b: &GpuTensor) -> Result<GpuTensor> {
+        self.run_elementwise_batched(a, b, "mul_kernel")
+    }
+
+    /// Batch element-wise div.
+    pub fn div(&mut self, a: &GpuTensor, b: &GpuTensor) -> Result<GpuTensor> {
+        self.run_elementwise_batched(a, b, "div_kernel")
+    }
+
+    /// Batch scalar add.
+    pub fn add_scalar(&mut self, input: &GpuTensor, scalar: f32) -> Result<GpuTensor> {
+        self.run_scalar_batched(input, scalar, "add_scalar_kernel")
+    }
+
+    /// Batch scalar mul.
+    pub fn mul_scalar(&mut self, input: &GpuTensor, scalar: f32) -> Result<GpuTensor> {
+        self.run_scalar_batched(input, scalar, "mul_scalar_kernel")
+    }
+
+    /// Batch unary op (relu, sigmoid, etc.).
+    pub fn relu(&mut self, input: &GpuTensor) -> Result<GpuTensor> {
+        self.run_unary_batched(input, UNARY_SHADER, "relu_kernel")
+    }
+
+    /// Batch sigmoid.
+    pub fn sigmoid(&mut self, input: &GpuTensor) -> Result<GpuTensor> {
+        self.run_unary_batched(input, UNARY_SHADER, "sigmoid_kernel")
+    }
+
+    /// Batch exp.
+    pub fn exp(&mut self, input: &GpuTensor) -> Result<GpuTensor> {
+        self.run_unary_batched(input, UNARY_SHADER, "exp_kernel")
+    }
+
+    /// Batch negate.
+    pub fn negate(&mut self, input: &GpuTensor) -> Result<GpuTensor> {
+        self.run_unary_batched(input, UNARY_SHADER, "negate_kernel")
+    }
+
+    // -- Internal helpers ---------------------------------------------------
+
+    fn run_elementwise_batched(
+        &mut self,
+        a: &GpuTensor,
+        b: &GpuTensor,
+        entry: &str,
+    ) -> Result<GpuTensor> {
+        if a.shape() != b.shape() {
+            return Err(GpuError::DimensionMismatch {
+                expected: a.shape().to_vec(),
+                got: b.shape().to_vec(),
+            });
+        }
+
+        let dev = &self.device;
+        let n = a.numel();
+        let out_buf = dev.create_buffer(
+            a.byte_size(),
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        );
+
+        let module = dev
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("batch_elementwise"),
+                source: wgpu::ShaderSource::Wgsl(ELEMENTWISE_SHADER.into()),
+            });
+
+        let pipeline = dev
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: None,
+                layout: None,
+                module: &module,
+                entry_point: Some(entry),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                cache: None,
+            });
+
+        let bind_group = dev.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: a.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: b.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: out_buf.as_entire_binding(),
+                },
+            ],
+        });
+
+        if let Some(encoder) = &mut self.encoder {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.dispatch_workgroups(dispatch_size(n, 256), 1, 1);
+        }
+
+        Ok(GpuTensor {
+            buffer: Arc::new(out_buf),
+            shape: a.shape().to_vec(),
+            device: dev.clone(),
+        })
+    }
+
+    #[allow(clippy::unnecessary_wraps)]
+    fn run_scalar_batched(
+        &mut self,
+        input: &GpuTensor,
+        scalar: f32,
+        entry: &str,
+    ) -> Result<GpuTensor> {
+        let dev = &self.device;
+        let n = input.numel();
+        let out_buf = dev.create_buffer(
+            input.byte_size(),
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        );
+        let params_buf = dev.create_buffer_init(&[scalar], wgpu::BufferUsages::UNIFORM);
+
+        let module = dev
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("batch_scalar"),
+                source: wgpu::ShaderSource::Wgsl(SCALAR_SHADER.into()),
+            });
+
+        let pipeline = dev
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: None,
+                layout: None,
+                module: &module,
+                entry_point: Some(entry),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                cache: None,
+            });
+
+        let bind_group = dev.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: input.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: out_buf.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: params_buf.as_entire_binding(),
+                },
+            ],
+        });
+
+        if let Some(encoder) = &mut self.encoder {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.dispatch_workgroups(dispatch_size(n, 256), 1, 1);
+        }
+
+        Ok(GpuTensor {
+            buffer: Arc::new(out_buf),
+            shape: input.shape().to_vec(),
+            device: dev.clone(),
+        })
+    }
+
+    #[allow(clippy::unnecessary_wraps)]
+    fn run_unary_batched(
+        &mut self,
+        input: &GpuTensor,
+        shader_src: &str,
+        entry: &str,
+    ) -> Result<GpuTensor> {
+        let dev = &self.device;
+        let n = input.numel();
+        let out_buf = dev.create_buffer(
+            input.byte_size(),
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        );
+
+        let module = dev
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("batch_unary"),
+                source: wgpu::ShaderSource::Wgsl(shader_src.into()),
+            });
+
+        let pipeline = dev
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: None,
+                layout: None,
+                module: &module,
+                entry_point: Some(entry),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                cache: None,
+            });
+
+        let bind_group = dev.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: input.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: out_buf.as_entire_binding(),
+                },
+            ],
+        });
+
+        if let Some(encoder) = &mut self.encoder {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.dispatch_workgroups(dispatch_size(n, 256), 1, 1);
+        }
+
+        Ok(GpuTensor {
+            buffer: Arc::new(out_buf),
+            shape: input.shape().to_vec(),
+            device: dev.clone(),
+        })
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -1192,5 +1531,28 @@ mod tests {
         let c = sub_scalar(&a, 5.0).unwrap();
         let result = c.to_tensor().unwrap();
         assert_eq!(result.as_slice(), &[5.0, 15.0, 25.0]);
+    }
+
+    #[test]
+    fn test_gpu_batch_multi_ops() {
+        let Some(dev) = get_device() else { return };
+        let a = GpuTensor::from_slice(&dev, &[1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+        let b = GpuTensor::from_slice(&dev, &[10.0, 20.0, 30.0, 40.0], vec![4]).unwrap();
+
+        let mut batch = GpuBatch::new(&dev);
+        let c = batch.add(&a, &b).unwrap();
+        let d = batch.mul(&a, &b).unwrap();
+        let e = batch.add_scalar(&a, 100.0).unwrap();
+        batch.submit();
+
+        assert_eq!(c.to_tensor().unwrap().as_slice(), &[11.0, 22.0, 33.0, 44.0]);
+        assert_eq!(
+            d.to_tensor().unwrap().as_slice(),
+            &[10.0, 40.0, 90.0, 160.0]
+        );
+        assert_eq!(
+            e.to_tensor().unwrap().as_slice(),
+            &[101.0, 102.0, 103.0, 104.0]
+        );
     }
 }

@@ -7,6 +7,7 @@ use scivex_core::Scalar;
 use crate::dataframe::DataFrame;
 use crate::dtype::{DType, HasDType};
 use crate::error::{FrameError, Result};
+use crate::series::categorical::CategoricalSeries;
 use crate::series::string::StringSeries;
 use crate::series::{AnySeries, Series};
 
@@ -36,6 +37,9 @@ pub struct GroupBy<'a> {
 
 impl<'a> GroupBy<'a> {
     /// Group `df` by the given columns.
+    ///
+    /// When all group columns are [`CategoricalSeries`], uses a fast path that
+    /// indexes by integer codes instead of hashing display strings.
     pub(crate) fn new(df: &'a DataFrame, cols: &[&str]) -> Result<Self> {
         // Validate that all group columns exist.
         for &col in cols {
@@ -45,7 +49,69 @@ impl<'a> GroupBy<'a> {
         let group_columns: Vec<String> = cols.iter().map(|s| (*s).to_string()).collect();
         let nrows = df.nrows();
 
-        // Build groups by hashing composite string keys.
+        // Try categorical fast path: all group cols must be CategoricalSeries.
+        let cat_cols: Vec<&CategoricalSeries> = cols
+            .iter()
+            .filter_map(|&c| {
+                df.column(c)
+                    .ok()?
+                    .as_any()
+                    .downcast_ref::<CategoricalSeries>()
+            })
+            .collect();
+
+        let groups = if cat_cols.len() == cols.len() {
+            // Fast path: use integer codes instead of string hashing.
+            Self::group_by_codes(nrows, &cat_cols)
+        } else {
+            // Fallback: composite string key hashing.
+            Self::group_by_strings(df, cols, nrows)
+        };
+
+        Ok(Self {
+            df,
+            group_columns,
+            groups,
+        })
+    }
+
+    /// Fast grouping via integer category codes.
+    fn group_by_codes(
+        nrows: usize,
+        cat_cols: &[&CategoricalSeries],
+    ) -> Vec<(Vec<String>, Vec<usize>)> {
+        let mut map: HashMap<Vec<u32>, Vec<usize>> = HashMap::new();
+        let mut order: Vec<Vec<u32>> = Vec::new();
+
+        for row in 0..nrows {
+            let code_key: Vec<u32> = cat_cols.iter().map(|c| c.codes()[row]).collect();
+            if !map.contains_key(&code_key) {
+                order.push(code_key.clone());
+            }
+            map.entry(code_key).or_default().push(row);
+        }
+
+        order
+            .into_iter()
+            .map(|code_key| {
+                // Convert code key back to string key for the result.
+                let str_key: Vec<String> = code_key
+                    .iter()
+                    .zip(cat_cols.iter())
+                    .map(|(&code, col)| col.categories()[code as usize].clone())
+                    .collect();
+                let indices = map.remove(&code_key).expect("key guaranteed by iteration");
+                (str_key, indices)
+            })
+            .collect()
+    }
+
+    /// Fallback grouping via string display values.
+    fn group_by_strings(
+        df: &DataFrame,
+        cols: &[&str],
+        nrows: usize,
+    ) -> Vec<(Vec<String>, Vec<usize>)> {
         let mut map: HashMap<Vec<String>, Vec<usize>> = HashMap::new();
         let mut order: Vec<Vec<String>> = Vec::new();
 
@@ -64,19 +130,13 @@ impl<'a> GroupBy<'a> {
             map.entry(key).or_default().push(row);
         }
 
-        let groups: Vec<(Vec<String>, Vec<usize>)> = order
+        order
             .into_iter()
             .map(|k| {
                 let indices = map.remove(&k).expect("key guaranteed by iteration order");
                 (k, indices)
             })
-            .collect();
-
-        Ok(Self {
-            df,
-            group_columns,
-            groups,
-        })
+            .collect()
     }
 
     /// Number of groups.
@@ -450,6 +510,29 @@ mod tests {
         .unwrap();
         let gb = df.groupby(&["g"]).unwrap();
         assert!(gb.agg("nonexistent", AggFunc::Sum).is_err());
+    }
+
+    #[test]
+    fn test_groupby_categorical_fast_path() {
+        use crate::series::categorical::CategoricalSeries;
+
+        let df = DataFrame::new(vec![
+            Box::new(CategoricalSeries::from_strs(
+                "region",
+                &["East", "West", "East", "West", "East"],
+            )),
+            Box::new(Series::new(
+                "revenue",
+                vec![100.0_f64, 200.0, 150.0, 250.0, 300.0],
+            )),
+        ])
+        .unwrap();
+
+        let result = df.groupby(&["region"]).unwrap().sum().unwrap();
+        assert_eq!(result.nrows(), 2);
+        let rev = result.column_typed::<f64>("revenue").unwrap();
+        // East: 100+150+300 = 550, West: 200+250 = 450
+        assert_eq!(rev.as_slice(), &[550.0, 450.0]);
     }
 
     #[test]
