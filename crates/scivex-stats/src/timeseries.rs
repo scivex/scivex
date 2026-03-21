@@ -783,9 +783,10 @@ pub fn seasonal_decompose<T: Float>(data: &[T], period: usize) -> Result<Decompo
 ///
 /// ```
 /// # use scivex_stats::timeseries::adf_test;
-/// let data: Vec<f64> = (0..100).map(|i| (i as f64).sin()).collect();
-/// let result = adf_test(&data, None).unwrap();
+/// let data: Vec<f64> = (0..100).map(|i| (i as f64).sin() + (i as f64) * 0.01_f64).collect();
+/// let result = adf_test(&data, Some(2)).unwrap();
 /// assert!(result.n_obs > 0);
+/// assert_eq!(result.n_lags, 2);
 /// ```
 #[cfg_attr(
     feature = "serde-support",
