@@ -23,6 +23,16 @@ impl<T: Float> Adam<T> {
     ///
     /// - `params`: parameters to optimize
     /// - `lr`: learning rate (default suggestion: 0.001)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_nn::optim::{Adam, Optimizer};
+    /// let w = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), true);
+    /// let mut adam = Adam::new(vec![w.clone()], 0.001);
+    /// ```
     pub fn new(params: Vec<Variable<T>>, lr: T) -> Self {
         let n = params.len();
         Self {

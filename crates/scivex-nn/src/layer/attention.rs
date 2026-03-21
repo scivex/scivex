@@ -36,6 +36,20 @@ impl<T: Float> MultiHeadAttention<T> {
     /// Create a new MultiHeadAttention layer.
     ///
     /// `d_model` must be divisible by `num_heads`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{MultiHeadAttention, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let attn = MultiHeadAttention::<f64>::new(8, 2, 4, &mut rng);
+    /// // batch=2, seq=4, d_model=8 → input [2, 32]
+    /// let x = Variable::new(Tensor::ones(vec![2, 32]), false);
+    /// let y = attn.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![2, 32]);
+    /// ```
     #[allow(clippy::manual_is_multiple_of)]
     pub fn new(d_model: usize, num_heads: usize, seq_len: usize, rng: &mut Rng) -> Self {
         assert!(
@@ -249,6 +263,19 @@ impl<T: Float> TransformerEncoderLayer<T> {
     /// Create a new TransformerEncoderLayer.
     ///
     /// `d_ff` is the hidden dimension of the feedforward network (typically 4 * d_model).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{TransformerEncoderLayer, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let layer = TransformerEncoderLayer::<f64>::new(8, 2, 32, 4, &mut rng);
+    /// let x = Variable::new(Tensor::ones(vec![1, 32]), false);
+    /// let y = layer.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 32]);
+    /// ```
     pub fn new(
         d_model: usize,
         num_heads: usize,

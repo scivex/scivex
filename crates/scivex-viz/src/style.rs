@@ -1,6 +1,15 @@
 use crate::color::{self, Color};
 
 /// Line/border stroke properties.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::style::Stroke;
+/// # use scivex_viz::color::Color;
+/// let s = Stroke::new(Color::RED, 2.0_f64);
+/// assert_eq!(s.color, Color::RED);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -17,6 +26,15 @@ pub struct Stroke {
 
 impl Stroke {
     /// Create a new stroke with the given color and width.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::style::Stroke;
+    /// # use scivex_viz::color::Color;
+    /// let s = Stroke::new(Color::BLUE, 1.5_f64);
+    /// assert!(s.dash.is_none());
+    /// ```
     #[must_use]
     pub fn new(color: Color, width: f64) -> Self {
         Self {
@@ -27,6 +45,15 @@ impl Stroke {
     }
 
     /// Apply a dash pattern to this stroke.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::style::Stroke;
+    /// # use scivex_viz::color::Color;
+    /// let s = Stroke::new(Color::BLACK, 1.0_f64).dashed(vec![5.0_f64, 3.0_f64]);
+    /// assert!(s.dash.is_some());
+    /// ```
     #[must_use]
     pub fn dashed(mut self, pattern: Vec<f64>) -> Self {
         self.dash = Some(pattern);
@@ -41,6 +68,15 @@ impl Default for Stroke {
 }
 
 /// Fill properties.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::style::Fill;
+/// # use scivex_viz::color::Color;
+/// let f = Fill::new(Color::GREEN);
+/// assert_eq!(f.color, Color::GREEN);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -53,17 +89,34 @@ pub struct Fill {
 
 impl Fill {
     /// Create a new fill with the given color.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::style::Fill;
+    /// # use scivex_viz::color::Color;
+    /// let f = Fill::new(Color::RED);
+    /// assert_eq!(f.color, Color::RED);
+    /// ```
     #[must_use]
     pub const fn new(color: Color) -> Self {
         Self { color }
     }
 }
 
+/// Marker shape for scatter-style plots.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::style::MarkerShape;
+/// let shape = MarkerShape::Circle;
+/// assert_eq!(shape, MarkerShape::Circle);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-/// Marker shape for scatter-style plots.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MarkerShape {
     /// A filled circle.
@@ -81,6 +134,15 @@ pub enum MarkerShape {
 }
 
 /// A point marker (shape + size + color).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::style::{Marker, MarkerShape};
+/// # use scivex_viz::color::Color;
+/// let m = Marker { shape: MarkerShape::Diamond, size: 6.0_f64, color: Color::RED };
+/// assert_eq!(m.shape, MarkerShape::Diamond);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -106,6 +168,15 @@ impl Default for Marker {
 }
 
 /// Font specification for text elements.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::style::Font;
+/// let f = Font::default();
+/// assert_eq!(f.family, "sans-serif");
+/// assert!(!f.bold);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -137,6 +208,15 @@ impl Default for Font {
 }
 
 /// A visual theme controlling default colors and fonts.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::style::Theme;
+/// # use scivex_viz::color::Color;
+/// let t = Theme::default_light();
+/// assert_eq!(t.background, Color::WHITE);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -159,6 +239,15 @@ pub struct Theme {
 
 impl Theme {
     /// Create the default light theme.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::style::Theme;
+    /// # use scivex_viz::color::Color;
+    /// let t = Theme::default_light();
+    /// assert_eq!(t.foreground, Color::BLACK);
+    /// ```
     #[must_use]
     pub fn default_light() -> Self {
         Self {
@@ -172,6 +261,15 @@ impl Theme {
     }
 
     /// Create the default dark theme.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::style::Theme;
+    /// # use scivex_viz::color::Color;
+    /// let t = Theme::default_dark();
+    /// assert_ne!(t.background, Color::WHITE);
+    /// ```
     #[must_use]
     pub fn default_dark() -> Self {
         Self {

@@ -20,6 +20,18 @@ use scivex_core::{Float, Tensor};
 use crate::Result;
 
 /// An incremental learner that can be updated with mini-batches.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::online::{SGDRegressor, IncrementalPredictor};
+/// # use scivex_core::Tensor;
+/// let mut sgd = SGDRegressor::<f64>::new(0.01).unwrap();
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3, 1]).unwrap();
+/// let y = Tensor::from_vec(vec![2.0, 4.0, 6.0], vec![3]).unwrap();
+/// sgd.partial_fit(&x, &y).unwrap();
+/// assert_eq!(sgd.n_samples_seen(), 3);
+/// ```
 pub trait IncrementalPredictor<T: Float> {
     /// Update the model with a new mini-batch of features `x` and targets `y`.
     fn partial_fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()>;

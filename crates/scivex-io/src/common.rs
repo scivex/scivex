@@ -6,6 +6,16 @@ use scivex_frame::{AnySeries, Series, StringSeries};
 use crate::error::Result;
 
 /// The inferred data type for a column of text values.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::common::InferredType;
+///
+/// let t = InferredType::F64;
+/// assert_eq!(t, InferredType::F64);
+/// assert_ne!(t, InferredType::I64);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -27,6 +37,15 @@ pub enum InferredType {
 /// Recognised values (case-insensitive where noted):
 /// `""`, `"NA"`, `"N/A"`, `"null"`, `"NULL"`, `"None"`, `"NaN"`, `"nan"`,
 /// `"."`, `"-"`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_io::common::is_null_sentinel;
+/// assert!(is_null_sentinel("NA"));
+/// assert!(is_null_sentinel(""));
+/// assert!(!is_null_sentinel("hello"));
+/// ```
 pub fn is_null_sentinel(s: &str) -> bool {
     matches!(
         s,
@@ -47,12 +66,30 @@ pub fn is_null_sentinel(s: &str) -> bool {
 }
 
 /// Try to parse `s` as an `i64`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::common::try_parse_i64;
+/// assert_eq!(try_parse_i64("42"), Some(42_i64));
+/// assert_eq!(try_parse_i64("-7"), Some(-7_i64));
+/// assert_eq!(try_parse_i64("abc"), None);
+/// ```
 #[inline]
 pub fn try_parse_i64(s: &str) -> Option<i64> {
     s.parse::<i64>().ok()
 }
 
 /// Try to parse `s` as an `f64`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::common::try_parse_f64;
+/// assert_eq!(try_parse_f64("3.14"), Some(3.14_f64));
+/// assert_eq!(try_parse_f64("1e10"), Some(1e10_f64));
+/// assert_eq!(try_parse_f64("not-a-float"), None);
+/// ```
 #[inline]
 pub fn try_parse_f64(s: &str) -> Option<f64> {
     s.parse::<f64>().ok()
@@ -64,6 +101,16 @@ pub fn try_parse_f64(s: &str) -> Option<f64> {
 /// `"Yes"`, `"YES"`.
 /// Recognised falsy values: `"false"`, `"False"`, `"FALSE"`, `"0"`, `"no"`,
 /// `"No"`, `"NO"`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::common::try_parse_bool;
+/// assert_eq!(try_parse_bool("true"), Some(true));
+/// assert_eq!(try_parse_bool("0"), Some(false));
+/// assert_eq!(try_parse_bool("yes"), Some(true));
+/// assert_eq!(try_parse_bool("maybe"), None);
+/// ```
 pub fn try_parse_bool(s: &str) -> Option<bool> {
     match s {
         "true" | "True" | "TRUE" | "1" | "yes" | "Yes" | "YES" => Some(true),
@@ -75,6 +122,15 @@ pub fn try_parse_bool(s: &str) -> Option<bool> {
 /// Infer the most specific type that can represent all non-null values.
 ///
 /// Priority: `I64` > `F64` > `Bool` > `Str`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_io::common::{infer_column_type, InferredType};
+/// assert_eq!(infer_column_type(&["1", "2", "3"]), InferredType::I64);
+/// assert_eq!(infer_column_type(&["1.5", "2.0"]), InferredType::F64);
+/// assert_eq!(infer_column_type(&["hello", "world"]), InferredType::Str);
+/// ```
 pub fn infer_column_type(values: &[&str]) -> InferredType {
     let non_null: Vec<&str> = values
         .iter()
@@ -108,6 +164,16 @@ pub fn infer_column_type(values: &[&str]) -> InferredType {
 ///
 /// Null sentinels and parse failures are marked as null in the resulting
 /// series.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::common::{InferredType, build_series_from_strings};
+/// let vals: Vec<String> = vec!["1".into(), "2".into(), "NA".into()];
+/// let series = build_series_from_strings("col", &vals, InferredType::I64).unwrap();
+/// assert_eq!(series.len(), 3);
+/// assert!(series.is_null(2));
+/// ```
 pub fn build_series_from_strings(
     name: &str,
     values: &[String],

@@ -7,6 +7,14 @@ use crate::descriptive::{mean, std_dev};
 use crate::error::{Result, StatsError};
 
 /// Which correlation method to use.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::correlation::CorrelationMethod;
+/// let method = CorrelationMethod::Pearson;
+/// assert_eq!(method, CorrelationMethod::Pearson);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -19,6 +27,16 @@ pub enum CorrelationMethod {
 }
 
 /// Pearson product-moment correlation coefficient.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::correlation::pearson;
+/// let x = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let y = vec![2.0_f64, 4.0, 6.0, 8.0, 10.0];
+/// let r = pearson(&x, &y).unwrap();
+/// assert!((r - 1.0).abs() < 1e-10); // perfect positive correlation
+/// ```
 pub fn pearson<T: Float>(x: &[T], y: &[T]) -> Result<T> {
     let n = x.len();
     if n != y.len() {
@@ -54,6 +72,16 @@ pub fn pearson<T: Float>(x: &[T], y: &[T]) -> Result<T> {
 ///
 /// Ranks both arrays (with average tie-breaking), then computes Pearson
 /// on the ranks.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::correlation::spearman;
+/// let x = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let y = vec![5.0_f64, 4.0, 3.0, 2.0, 1.0];
+/// let r = spearman(&x, &y).unwrap();
+/// assert!((r - (-1.0)).abs() < 1e-10); // perfect negative rank correlation
+/// ```
 pub fn spearman<T: Float>(x: &[T], y: &[T]) -> Result<T> {
     if x.len() != y.len() {
         return Err(StatsError::LengthMismatch {
@@ -67,6 +95,16 @@ pub fn spearman<T: Float>(x: &[T], y: &[T]) -> Result<T> {
 }
 
 /// Kendall's tau-b rank correlation coefficient.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::correlation::kendall;
+/// let x = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let y = vec![2.0_f64, 4.0, 6.0, 8.0, 10.0];
+/// let tau = kendall(&x, &y).unwrap();
+/// assert!((tau - 1.0).abs() < 1e-10); // perfect concordance
+/// ```
 pub fn kendall<T: Float>(x: &[T], y: &[T]) -> Result<T> {
     let n = x.len();
     if n != y.len() {

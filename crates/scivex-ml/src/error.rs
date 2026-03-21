@@ -1,6 +1,14 @@
 use std::fmt;
 
 /// Errors produced by `scivex-ml` algorithms.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::error::MlError;
+/// let err = MlError::NotFitted;
+/// assert_eq!(err.to_string(), "model has not been fitted");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

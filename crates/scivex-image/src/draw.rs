@@ -3,6 +3,16 @@ use scivex_core::Scalar;
 use crate::image::Image;
 
 /// Draw a line using Bresenham's algorithm (mutates in-place).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::draw::draw_line;
+/// let mut img = Image::<u8>::new(5, 5, PixelFormat::Gray).unwrap();
+/// draw_line(&mut img, 0, 2, 4, 2, &[255]);
+/// assert_eq!(img.get_pixel(2, 2).unwrap(), vec![255]);
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn draw_line<T: Scalar>(
     img: &mut Image<T>,
@@ -42,6 +52,17 @@ pub fn draw_line<T: Scalar>(
 }
 
 /// Draw a rectangle outline.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::draw;
+/// let mut img = Image::<u8>::new(5, 5, PixelFormat::Gray).unwrap();
+/// draw::draw_rect(&mut img, 1, 1, 3, 3, &[200]);
+/// assert_eq!(img.get_pixel(1, 1).unwrap(), vec![200]);
+/// assert_eq!(img.get_pixel(2, 2).unwrap(), vec![0]); // interior empty
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn draw_rect<T: Scalar>(
     img: &mut Image<T>,
@@ -60,6 +81,16 @@ pub fn draw_rect<T: Scalar>(
 }
 
 /// Fill a rectangle.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::draw;
+/// let mut img = Image::<u8>::new(5, 5, PixelFormat::Gray).unwrap();
+/// draw::fill_rect(&mut img, 1, 1, 3, 2, &[100]);
+/// assert_eq!(img.get_pixel(1, 2).unwrap(), vec![100]);
+/// ```
 pub fn fill_rect<T: Scalar>(
     img: &mut Image<T>,
     x: usize,
@@ -80,6 +111,16 @@ pub fn fill_rect<T: Scalar>(
 }
 
 /// Draw a circle outline using Bresenham's circle algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::draw;
+/// let mut img = Image::<u8>::new(11, 11, PixelFormat::Gray).unwrap();
+/// draw::draw_circle(&mut img, 5, 5, 4, &[255]);
+/// assert_eq!(img.get_pixel(1, 5).unwrap(), vec![255]); // top of circle
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn draw_circle<T: Scalar>(
     img: &mut Image<T>,

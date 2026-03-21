@@ -6,6 +6,16 @@
 use scivex_core::Float;
 
 /// A learning rate scheduler computes the current learning rate given the step/epoch.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::optim::scheduler::{StepLR, LrScheduler};
+/// let sched = StepLR::new(0.1_f64, 10, 0.5);
+/// assert!((sched.get_lr(0) - 0.1).abs() < 1e-10);
+/// assert!((sched.get_lr(10) - 0.05).abs() < 1e-10);
+/// assert_eq!(sched.base_lr(), 0.1);
+/// ```
 pub trait LrScheduler<T: Float> {
     /// Return the learning rate for the given step (0-indexed).
     fn get_lr(&self, step: usize) -> T;
@@ -33,6 +43,15 @@ impl<T: Float> StepLR<T> {
     /// - `base_lr`: initial learning rate
     /// - `step_size`: period of learning rate decay (in epochs/steps)
     /// - `gamma`: multiplicative factor of learning rate decay (default: 0.1)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::optim::scheduler::{StepLR, LrScheduler};
+    /// let sched = StepLR::new(0.1_f64, 10, 0.1);
+    /// assert!((sched.get_lr(0) - 0.1).abs() < 1e-10);
+    /// assert!((sched.get_lr(10) - 0.01).abs() < 1e-10);
+    /// ```
     pub fn new(base_lr: T, step_size: usize, gamma: T) -> Self {
         Self {
             base: base_lr,
@@ -68,6 +87,16 @@ impl<T: Float> ExponentialLR<T> {
     ///
     /// - `base_lr`: initial learning rate
     /// - `gamma`: multiplicative factor applied every step
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::optim::scheduler::{ExponentialLR, LrScheduler};
+    /// let sched = ExponentialLR::new(1.0_f64, 0.9);
+    /// assert!((sched.get_lr(0) - 1.0).abs() < 1e-10);
+    /// assert!((sched.get_lr(1) - 0.9).abs() < 1e-10);
+    /// assert!((sched.get_lr(2) - 0.81).abs() < 1e-10);
+    /// ```
     pub fn new(base_lr: T, gamma: T) -> Self {
         Self {
             base: base_lr,
@@ -106,6 +135,15 @@ impl<T: Float> CosineAnnealingLR<T> {
     /// - `base_lr`: initial learning rate
     /// - `t_max`: maximum number of steps (half-period of cosine)
     /// - `eta_min`: minimum learning rate (default: 0.0)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::optim::scheduler::{CosineAnnealingLR, LrScheduler};
+    /// let sched = CosineAnnealingLR::new(0.1_f64, 100, 0.0);
+    /// assert!((sched.get_lr(0) - 0.1).abs() < 1e-10);
+    /// assert!(sched.get_lr(100).abs() < 1e-10); // decays to eta_min
+    /// ```
     pub fn new(base_lr: T, t_max: usize, eta_min: T) -> Self {
         Self {
             base: base_lr,
@@ -151,6 +189,17 @@ impl<T: Float> LinearLR<T> {
     /// - `start_factor`: multiplier at step 0
     /// - `end_factor`: multiplier at `total_steps`
     /// - `total_steps`: number of steps for the linear ramp
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::optim::scheduler::{LinearLR, LrScheduler};
+    /// let sched = LinearLR::new(0.1_f64, 0.1, 1.0, 10);
+    /// // At step 0: lr = 0.1 * 0.1 = 0.01
+    /// assert!((sched.get_lr(0) - 0.01).abs() < 1e-10);
+    /// // At step 10: lr = 0.1 * 1.0 = 0.1
+    /// assert!((sched.get_lr(10) - 0.1).abs() < 1e-10);
+    /// ```
     pub fn new(base_lr: T, start_factor: T, end_factor: T, total_steps: usize) -> Self {
         Self {
             base: base_lr,
@@ -198,6 +247,19 @@ impl<T: Float> WarmupCosineDecay<T> {
     /// - `warmup_steps`: number of linear warmup steps
     /// - `total_steps`: total training steps
     /// - `eta_min`: minimum learning rate
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::optim::scheduler::{WarmupCosineDecay, LrScheduler};
+    /// let sched = WarmupCosineDecay::new(0.1_f64, 10, 110, 0.0);
+    /// // During warmup: linear ramp
+    /// assert!((sched.get_lr(0) - 0.01).abs() < 1e-10); // 0.1 * 1/10
+    /// // At warmup end: peak LR
+    /// assert!((sched.get_lr(9) - 0.1).abs() < 1e-10);
+    /// // At total_steps: decays to eta_min
+    /// assert!(sched.get_lr(110).abs() < 1e-6);
+    /// ```
     pub fn new(base_lr: T, warmup_steps: usize, total_steps: usize, eta_min: T) -> Self {
         Self {
             base: base_lr,
@@ -265,6 +327,17 @@ impl<T: Float> ReduceLROnPlateau<T> {
     /// - `min_lr`: lower bound on the learning rate
     /// - `mode_min`: if `true`, reduction triggered when metric stops decreasing;
     ///   if `false`, when metric stops increasing.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::optim::scheduler::ReduceLROnPlateau;
+    /// let mut sched = ReduceLROnPlateau::new(0.1_f64, 0.5, 2, 0.001, true);
+    /// sched.report(1.0);  // initial best
+    /// sched.report(1.1);  // bad epoch 1
+    /// let lr = sched.report(1.1);  // bad epoch 2 → triggers reduction
+    /// assert!((lr - 0.05).abs() < 1e-10);
+    /// ```
     pub fn new(initial_lr: T, factor: T, patience: usize, min_lr: T, mode_min: bool) -> Self {
         Self {
             current_lr: initial_lr,

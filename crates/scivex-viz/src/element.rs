@@ -1,6 +1,14 @@
 use crate::style::{Fill, Font, Stroke};
 
 /// Text horizontal alignment.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::element::TextAnchor;
+/// let anchor = TextAnchor::Middle;
+/// assert_eq!(anchor, TextAnchor::Middle);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -18,6 +26,19 @@ pub enum TextAnchor {
 /// Backend-agnostic drawing primitive.
 ///
 /// All coordinates are in **pixel space** (post-transform from data space).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::element::Element;
+/// # use scivex_viz::style::{Stroke, Fill};
+/// # use scivex_viz::color::Color;
+/// let line = Element::Line {
+///     x1: 0.0_f64, y1: 0.0_f64, x2: 100.0_f64, y2: 100.0_f64,
+///     stroke: Stroke::new(Color::BLACK, 1.0_f64),
+/// };
+/// assert!(matches!(line, Element::Line { .. }));
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

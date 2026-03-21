@@ -27,6 +27,18 @@ impl<T: Float> BatchNorm2d<T> {
     /// Create a new 2-D batch normalization layer.
     ///
     /// `num_channels` is the number of input channels (the `C` dimension in NCHW).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{BatchNorm2d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let bn = BatchNorm2d::<f64>::new(3);
+    /// let x = Variable::new(Tensor::ones(vec![2, 3, 4, 4]), false);
+    /// let y = bn.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![2, 3, 4, 4]);
+    /// ```
     pub fn new(num_channels: usize) -> Self {
         let gamma = Variable::new(Tensor::ones(vec![num_channels]), true);
         let beta = Variable::new(Tensor::zeros(vec![num_channels]), true);

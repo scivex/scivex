@@ -57,6 +57,14 @@ const DEFAULT_STRIPE_ROW_LIMIT: usize = 10_000;
 // ---------------------------------------------------------------------------
 
 /// Compression codec for ORC files.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::orc::OrcCompression;
+/// assert_eq!(OrcCompression::None, OrcCompression::None);
+/// assert_ne!(OrcCompression::None, OrcCompression::Zlib);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrcCompression {
     /// No compression.
@@ -79,12 +87,33 @@ impl OrcCompression {
 // ---------------------------------------------------------------------------
 
 /// Read an ORC file from the given path into a [`DataFrame`].
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::orc::read_orc;
+/// let df = read_orc("data.orc").unwrap();
+/// assert!(df.nrows() > 0);
+/// ```
 pub fn read_orc(path: impl AsRef<Path>) -> Result<DataFrame> {
     let data = std::fs::read(path.as_ref())?;
     read_orc_bytes(&data)
 }
 
 /// Read an ORC file from an in-memory byte slice into a [`DataFrame`].
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::orc::{write_orc_to_bytes, read_orc_bytes, OrcCompression};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("x", vec![1_i64, 2, 3]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// let bytes = write_orc_to_bytes(&df, OrcCompression::None, 10_000).unwrap();
+/// let df2 = read_orc_bytes(&bytes).unwrap();
+/// assert_eq!(df2.nrows(), 3);
+/// ```
 pub fn read_orc_bytes(data: &[u8]) -> Result<DataFrame> {
     if data.len() < 4 {
         return Err(IoError::FormatError("ORC file too small".into()));
@@ -347,12 +376,32 @@ fn merge_column_data(
 ///
 /// Uses `OrcCompression::None` by default. For zlib compression, use
 /// [`write_orc_with_options`].
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::orc::write_orc;
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("v", vec![1_i64, 2]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// write_orc(&df, "out.orc").unwrap();
+/// ```
 pub fn write_orc(df: &DataFrame, path: impl AsRef<Path>) -> Result<()> {
     write_orc_with_options(df, path, OrcCompression::None, DEFAULT_STRIPE_ROW_LIMIT)
 }
 
 /// Write a [`DataFrame`] to an ORC file with explicit compression and stripe
 /// size settings.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::orc::{write_orc_with_options, OrcCompression};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("v", vec![1_i64, 2]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// write_orc_with_options(&df, "out.orc", OrcCompression::Zlib, 5_000).unwrap();
+/// ```
 pub fn write_orc_with_options(
     df: &DataFrame,
     path: impl AsRef<Path>,
@@ -365,6 +414,18 @@ pub fn write_orc_with_options(
 }
 
 /// Write a [`DataFrame`] to ORC format in memory, returning the bytes.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::orc::{write_orc_to_bytes, OrcCompression};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("n", vec![10_i64, 20]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// let bytes = write_orc_to_bytes(&df, OrcCompression::None, 10_000).unwrap();
+/// assert!(bytes.starts_with(b"ORC"));
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn write_orc_to_bytes(
     df: &DataFrame,

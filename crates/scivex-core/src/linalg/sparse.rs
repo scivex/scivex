@@ -15,6 +15,16 @@ use crate::tensor::Tensor;
 ///
 /// Stores (row, col, value) triplets. Duplicate entries are summed during
 /// conversion to CSR/CSC.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::linalg::sparse::CooMatrix;
+/// let mut coo = CooMatrix::<f64>::new(3, 3);
+/// coo.push(0, 0, 1.0).unwrap();
+/// coo.push(1, 1, 2.0).unwrap();
+/// assert_eq!(coo.nnz(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -30,6 +40,15 @@ pub struct CooMatrix<T: Scalar> {
 
 impl<T: Scalar> CooMatrix<T> {
     /// Create an empty COO matrix with the given dimensions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CooMatrix;
+    /// let coo = CooMatrix::<f64>::new(3, 3);
+    /// assert_eq!(coo.nnz(), 0);
+    /// assert_eq!(coo.shape(), (3, 3));
+    /// ```
     pub fn new(nrows: usize, ncols: usize) -> Self {
         Self {
             rows: Vec::new(),
@@ -41,6 +60,17 @@ impl<T: Scalar> CooMatrix<T> {
     }
 
     /// Build a COO matrix from triplet arrays.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CooMatrix;
+    /// let coo = CooMatrix::from_triplets(
+    ///     2, 2,
+    ///     vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// assert_eq!(coo.nnz(), 2);
+    /// ```
     pub fn from_triplets(
         nrows: usize,
         ncols: usize,
@@ -70,6 +100,15 @@ impl<T: Scalar> CooMatrix<T> {
     }
 
     /// Append a single entry.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CooMatrix;
+    /// let mut coo = CooMatrix::<f64>::new(2, 2);
+    /// coo.push(0, 1, 3.5).unwrap();
+    /// assert_eq!(coo.nnz(), 1);
+    /// ```
     pub fn push(&mut self, row: usize, col: usize, value: T) -> Result<()> {
         if row >= self.nrows || col >= self.ncols {
             return Err(CoreError::InvalidArgument {
@@ -107,6 +146,19 @@ impl<T: Scalar> CooMatrix<T> {
     }
 
     /// Convert to a dense 2-D tensor. Duplicate entries are summed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CooMatrix;
+    /// let coo = CooMatrix::from_triplets(
+    ///     2, 2,
+    ///     vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let dense = coo.to_dense();
+    /// assert_eq!(dense.shape(), &[2, 2]);
+    /// assert_eq!(dense.as_slice(), &[1.0, 0.0, 0.0, 2.0]);
+    /// ```
     pub fn to_dense(&self) -> Tensor<T> {
         let mut data = vec![T::zero(); self.nrows * self.ncols];
         for ((&r, &c), &v) in self
@@ -123,6 +175,18 @@ impl<T: Scalar> CooMatrix<T> {
     }
 
     /// Convert to CSR format. Duplicate entries at the same position are summed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CooMatrix;
+    /// let coo = CooMatrix::from_triplets(
+    ///     2, 2,
+    ///     vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let csr = coo.to_csr();
+    /// assert_eq!(csr.nnz(), 2);
+    /// ```
     pub fn to_csr(&self) -> CsrMatrix<T> {
         // Count entries per row
         let mut row_counts = vec![0usize; self.nrows + 1];
@@ -164,6 +228,18 @@ impl<T: Scalar> CooMatrix<T> {
     }
 
     /// Convert to CSC format. Duplicate entries at the same position are summed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CooMatrix;
+    /// let coo = CooMatrix::from_triplets(
+    ///     2, 2,
+    ///     vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let csc = coo.to_csc();
+    /// assert_eq!(csc.nnz(), 2);
+    /// ```
     pub fn to_csc(&self) -> CscMatrix<T> {
         // Count entries per column
         let mut col_counts = vec![0usize; self.ncols + 1];
@@ -208,6 +284,18 @@ impl<T: Scalar> CooMatrix<T> {
 // ======================================================================
 
 /// Sparse matrix in CSR (Compressed Sparse Row) format.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::linalg::sparse::CsrMatrix;
+/// let csr = CsrMatrix::from_triplets(
+///     2, 2,
+///     vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+/// ).unwrap();
+/// assert_eq!(csr.nnz(), 2);
+/// assert_eq!(*csr.get(0, 0).unwrap(), 1.0);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -223,6 +311,14 @@ pub struct CsrMatrix<T: Scalar> {
 
 impl<T: Scalar> CsrMatrix<T> {
     /// Create an empty CSR matrix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::<f64>::new(3, 3);
+    /// assert_eq!(csr.nnz(), 0);
+    /// ```
     pub fn new(nrows: usize, ncols: usize) -> Self {
         Self {
             row_ptr: vec![0; nrows + 1],
@@ -234,6 +330,17 @@ impl<T: Scalar> CsrMatrix<T> {
     }
 
     /// Build CSR from triplet data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::from_triplets(
+    ///     2, 2,
+    ///     vec![0, 1], vec![1, 0], vec![3.0, 4.0],
+    /// ).unwrap();
+    /// assert_eq!(csr.nnz(), 2);
+    /// ```
     pub fn from_triplets(
         nrows: usize,
         ncols: usize,
@@ -246,6 +353,16 @@ impl<T: Scalar> CsrMatrix<T> {
     }
 
     /// Build CSR from a dense 2-D tensor, dropping zero entries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let dense = Tensor::from_vec(vec![1.0, 0.0, 0.0, 2.0], vec![2, 2]).unwrap();
+    /// let csr = CsrMatrix::from_dense(&dense).unwrap();
+    /// assert_eq!(csr.nnz(), 2);
+    /// ```
     pub fn from_dense(tensor: &Tensor<T>) -> Result<Self> {
         if tensor.ndim() != 2 {
             return Err(CoreError::InvalidArgument {
@@ -305,6 +422,17 @@ impl<T: Scalar> CsrMatrix<T> {
     }
 
     /// Get the value at `(row, col)`, or `None` if not stored.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::from_triplets(
+    ///     2, 2, vec![0], vec![1], vec![5.0],
+    /// ).unwrap();
+    /// assert_eq!(*csr.get(0, 1).unwrap(), 5.0);
+    /// assert!(csr.get(0, 0).is_none());
+    /// ```
     pub fn get(&self, row: usize, col: usize) -> Option<&T> {
         if row >= self.nrows || col >= self.ncols {
             return None;
@@ -318,6 +446,17 @@ impl<T: Scalar> CsrMatrix<T> {
     }
 
     /// Convert to a dense 2-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::from_triplets(
+    ///     2, 2, vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let dense = csr.to_dense();
+    /// assert_eq!(dense.as_slice(), &[1.0, 0.0, 0.0, 2.0]);
+    /// ```
     pub fn to_dense(&self) -> Tensor<T> {
         let mut data = vec![T::zero(); self.nrows * self.ncols];
         for r in 0..self.nrows {
@@ -333,9 +472,22 @@ impl<T: Scalar> CsrMatrix<T> {
             .expect("dense data length equals nrows*ncols by construction")
     }
 
-    /// Sparse matrix × dense vector multiplication.
+    /// Sparse matrix x dense vector multiplication.
     ///
     /// `x` must be a 1-D tensor of length `ncols`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::from_triplets(
+    ///     2, 2, vec![0, 1], vec![0, 1], vec![3.0, 4.0],
+    /// ).unwrap();
+    /// let x = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+    /// let y = csr.matvec(&x).unwrap();
+    /// assert_eq!(y.as_slice(), &[3.0, 8.0]);
+    /// ```
     pub fn matvec(&self, x: &Tensor<T>) -> Result<Tensor<T>> {
         if x.ndim() != 1 || x.numel() != self.ncols {
             return Err(CoreError::DimensionMismatch {
@@ -360,6 +512,18 @@ impl<T: Scalar> CsrMatrix<T> {
     }
 
     /// Transpose, returning a CSC matrix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::from_triplets(
+    ///     2, 3, vec![0, 1], vec![1, 2], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let csc = csr.transpose();
+    /// assert_eq!(csc.nrows(), 3);
+    /// assert_eq!(csc.ncols(), 2);
+    /// ```
     pub fn transpose(&self) -> CscMatrix<T> {
         CscMatrix {
             col_ptr: self.row_ptr.clone(),
@@ -371,6 +535,17 @@ impl<T: Scalar> CsrMatrix<T> {
     }
 
     /// Convert to COO format.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::from_triplets(
+    ///     2, 2, vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let coo = csr.to_coo();
+    /// assert_eq!(coo.nnz(), 2);
+    /// ```
     pub fn to_coo(&self) -> CooMatrix<T> {
         let mut rows = Vec::with_capacity(self.nnz());
         let mut cols = Vec::with_capacity(self.nnz());
@@ -396,6 +571,17 @@ impl<T: Scalar> CsrMatrix<T> {
     }
 
     /// Convert to CSC format.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CsrMatrix;
+    /// let csr = CsrMatrix::from_triplets(
+    ///     2, 2, vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let csc = csr.to_csc();
+    /// assert_eq!(csc.nnz(), 2);
+    /// ```
     pub fn to_csc(&self) -> CscMatrix<T> {
         self.to_coo().to_csc()
     }
@@ -458,6 +644,17 @@ impl<T: Scalar> CsrMatrix<T> {
 // ======================================================================
 
 /// Sparse matrix in CSC (Compressed Sparse Column) format.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::linalg::sparse::CscMatrix;
+/// let csc = CscMatrix::from_triplets(
+///     2, 2,
+///     vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+/// ).unwrap();
+/// assert_eq!(csc.nnz(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -473,6 +670,14 @@ pub struct CscMatrix<T: Scalar> {
 
 impl<T: Scalar> CscMatrix<T> {
     /// Create an empty CSC matrix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CscMatrix;
+    /// let csc = CscMatrix::<f64>::new(3, 3);
+    /// assert_eq!(csc.nnz(), 0);
+    /// ```
     pub fn new(nrows: usize, ncols: usize) -> Self {
         Self {
             col_ptr: vec![0; ncols + 1],
@@ -484,6 +689,17 @@ impl<T: Scalar> CscMatrix<T> {
     }
 
     /// Build CSC from triplet data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CscMatrix;
+    /// let csc = CscMatrix::from_triplets(
+    ///     2, 2,
+    ///     vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// assert_eq!(csc.nnz(), 2);
+    /// ```
     pub fn from_triplets(
         nrows: usize,
         ncols: usize,
@@ -520,6 +736,17 @@ impl<T: Scalar> CscMatrix<T> {
     }
 
     /// Convert to a dense 2-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::linalg::sparse::CscMatrix;
+    /// let csc = CscMatrix::from_triplets(
+    ///     2, 2, vec![0, 1], vec![0, 1], vec![1.0, 2.0],
+    /// ).unwrap();
+    /// let dense = csc.to_dense();
+    /// assert_eq!(dense.as_slice(), &[1.0, 0.0, 0.0, 2.0]);
+    /// ```
     pub fn to_dense(&self) -> Tensor<T> {
         let mut data = vec![T::zero(); self.nrows * self.ncols];
         for c in 0..self.ncols {

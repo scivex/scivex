@@ -22,6 +22,18 @@ pub struct Flatten;
 
 impl Flatten {
     /// Create a new Flatten layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{Flatten, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let flat = Flatten::new();
+    /// let x = Variable::new(Tensor::<f64>::ones(vec![2, 3, 4, 5]), false);
+    /// let y = flat.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![2, 60]);
+    /// ```
     pub fn new() -> Self {
         Self
     }

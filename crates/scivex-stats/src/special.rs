@@ -14,6 +14,14 @@ const MAX_ITER: usize = 200;
 
 /// Compute the error function erf(x) using the Abramowitz & Stegun 7.1.26
 /// rational approximation.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::erf;
+/// assert!(erf(0.0_f64).abs() < 1e-10); // erf(0) = 0
+/// assert!((erf(100.0_f64) - 1.0).abs() < 1e-10); // erf(∞) ≈ 1
+/// ```
 pub fn erf<T: Float>(x: T) -> T {
     let zero = T::from_f64(0.0);
     let one = T::from_f64(1.0);
@@ -40,6 +48,13 @@ pub fn erf<T: Float>(x: T) -> T {
 }
 
 /// Compute the complementary error function erfc(x) = 1 - erf(x).
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::erfc;
+/// assert!((erfc(0.0_f64) - 1.0).abs() < 1e-10);
+/// ```
 #[allow(dead_code)]
 pub fn erfc<T: Float>(x: T) -> T {
     T::from_f64(1.0) - erf(x)
@@ -64,6 +79,15 @@ const LANCZOS_COEFF: [f64; 9] = [
 ];
 
 /// Compute ln(Gamma(x)) for x > 0 using the Lanczos approximation.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::ln_gamma;
+/// // Gamma(5) = 4! = 24, so ln(Gamma(5)) = ln(24)
+/// let val = ln_gamma(5.0_f64);
+/// assert!((val - 24.0_f64.ln()).abs() < 1e-8);
+/// ```
 pub fn ln_gamma<T: Float>(x: T) -> T {
     let half = T::from_f64(0.5);
     let g = T::from_f64(LANCZOS_G);
@@ -80,6 +104,13 @@ pub fn ln_gamma<T: Float>(x: T) -> T {
 }
 
 /// Compute Gamma(x) = exp(ln_gamma(x)).
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::gamma;
+/// assert!((gamma(5.0_f64) - 24.0).abs() < 1e-6);
+/// ```
 #[allow(dead_code)]
 pub fn gamma<T: Float>(x: T) -> T {
     ln_gamma(x).exp()
@@ -90,6 +121,15 @@ pub fn gamma<T: Float>(x: T) -> T {
 // ---------------------------------------------------------------------------
 
 /// Compute ln(Beta(a, b)) = ln(Gamma(a)) + ln(Gamma(b)) - ln(Gamma(a+b)).
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::ln_beta;
+/// let val = ln_beta(2.0_f64, 3.0);
+/// // Beta(2,3) = 1/12, so ln(Beta(2,3)) = ln(1/12)
+/// assert!((val - (1.0_f64 / 12.0).ln()).abs() < 1e-8);
+/// ```
 pub fn ln_beta<T: Float>(a: T, b: T) -> T {
     ln_gamma(a) + ln_gamma(b) - ln_gamma(a + b)
 }
@@ -101,6 +141,15 @@ pub fn ln_beta<T: Float>(a: T, b: T) -> T {
 /// Lower regularized incomplete gamma function P(a, x) = gamma(a,x)/Gamma(a).
 ///
 /// Uses series expansion when x < a+1, continued fraction otherwise.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::regularized_gamma_p;
+/// let p = regularized_gamma_p(1.0_f64, 1.0).unwrap();
+/// // P(1, 1) = 1 - e^(-1) ≈ 0.6321
+/// assert!((p - (1.0 - (-1.0_f64).exp())).abs() < 1e-8);
+/// ```
 pub fn regularized_gamma_p<T: Float>(a: T, x: T) -> Result<T> {
     let zero = T::from_f64(0.0);
     let one = T::from_f64(1.0);
@@ -124,6 +173,15 @@ pub fn regularized_gamma_p<T: Float>(a: T, x: T) -> Result<T> {
 }
 
 /// Upper regularized incomplete gamma function Q(a, x) = 1 - P(a, x).
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::regularized_gamma_q;
+/// let q = regularized_gamma_q(1.0_f64, 1.0).unwrap();
+/// // Q(1, 1) = e^(-1) ≈ 0.3679
+/// assert!((q - (-1.0_f64).exp()).abs() < 1e-8);
+/// ```
 pub fn regularized_gamma_q<T: Float>(a: T, x: T) -> Result<T> {
     let one = T::from_f64(1.0);
     Ok(one - regularized_gamma_p(a, x)?)
@@ -195,6 +253,15 @@ fn gamma_cf<T: Float>(a: T, x: T, eps: T) -> Result<T> {
 /// Regularized incomplete beta function I_x(a, b).
 ///
 /// Uses the Lentz continued fraction expansion.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_stats::special::regularized_beta;
+/// let val = regularized_beta(0.5_f64, 1.0, 1.0).unwrap();
+/// // I_{0.5}(1,1) = 0.5 (uniform distribution)
+/// assert!((val - 0.5).abs() < 1e-8);
+/// ```
 pub fn regularized_beta<T: Float>(x: T, a: T, b: T) -> Result<T> {
     let zero = T::from_f64(0.0);
     let one = T::from_f64(1.0);

@@ -20,6 +20,17 @@ pub struct Linear1d<T: Float> {
 impl<T: Float> Linear1d<T> {
     /// Create a new linear interpolator.
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Linear1d, Extrapolate};
+    /// let xs = [0.0_f64, 1.0, 2.0];
+    /// let ys = [0.0_f64, 2.0, 4.0];
+    /// let interp = Linear1d::new(&xs, &ys, Extrapolate::Error).unwrap();
+    /// let y = interp.eval(0.5).unwrap();
+    /// assert!((y - 1.0).abs() < 1e-10);
+    /// ```
+    ///
     /// # Errors
     ///
     /// - `xs` and `ys` must have the same length (>= 2).
@@ -44,6 +55,15 @@ impl<T: Float> Linear1d<T> {
     }
 
     /// Evaluate the interpolant at a single point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Linear1d, Extrapolate};
+    /// let interp = Linear1d::new(&[0.0_f64, 1.0, 2.0], &[0.0_f64, 1.0, 4.0], Extrapolate::Error).unwrap();
+    /// let y = interp.eval(1.5).unwrap();
+    /// assert!((y - 2.5).abs() < 1e-10);
+    /// ```
     pub fn eval(&self, x: T) -> Result<T> {
         let (i, xq) = find_interval(&self.xs, x, self.extrap)?;
         let dx = self.xs[i + 1] - self.xs[i];
@@ -52,6 +72,16 @@ impl<T: Float> Linear1d<T> {
     }
 
     /// Evaluate the interpolant at many points.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Linear1d, Extrapolate};
+    /// let interp = Linear1d::new(&[0.0_f64, 1.0, 2.0], &[0.0, 2.0, 4.0], Extrapolate::Error).unwrap();
+    /// let ys = interp.eval_many(&[0.5, 1.5]).unwrap();
+    /// assert!((ys[0] - 1.0).abs() < 1e-10);
+    /// assert!((ys[1] - 3.0).abs() < 1e-10);
+    /// ```
     pub fn eval_many(&self, xs: &[T]) -> Result<Vec<T>> {
         xs.iter().map(|&x| self.eval(x)).collect()
     }

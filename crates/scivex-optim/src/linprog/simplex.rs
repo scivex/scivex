@@ -27,6 +27,19 @@ use super::LinProgResult;
 /// # Errors
 ///
 /// Returns `InvalidParameter` if the problem is infeasible or unbounded.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::linprog::linprog;
+/// // Minimize -x - y subject to x + y <= 4, x <= 3, y <= 3, x,y >= 0
+/// let c = [-1.0_f64, -1.0];
+/// let a_ub = vec![vec![1.0, 1.0], vec![1.0, 0.0], vec![0.0, 1.0]];
+/// let b_ub = [4.0, 3.0, 3.0];
+/// let result = linprog(&c, &a_ub, &b_ub).unwrap();
+/// assert!(result.converged);
+/// assert!((result.fun - (-4.0)).abs() < 1e-6);
+/// ```
 pub fn linprog<T: Float>(c: &[T], a_ub: &[Vec<T>], b_ub: &[T]) -> Result<LinProgResult<T>> {
     let n = c.len();
     let m = a_ub.len();

@@ -1,6 +1,14 @@
 use scivex_core::Float;
 
 /// Distance metrics for vector search.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::neighbors::DistanceMetric;
+/// let metric = DistanceMetric::L2;
+/// assert_eq!(metric, DistanceMetric::L2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -21,6 +29,16 @@ pub enum DistanceMetric {
 ///
 /// Both slices must have the same length. This function does **not** check
 /// lengths for performance; the caller is responsible for ensuring they match.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::neighbors::distance::{DistanceMetric, compute_distance};
+/// let a = [3.0_f64, 0.0];
+/// let b = [0.0, 4.0];
+/// let d = compute_distance(&a, &b, DistanceMetric::L2);
+/// assert!((d - 5.0).abs() < 1e-10);
+/// ```
 pub fn compute_distance<T: Float>(a: &[T], b: &[T], metric: DistanceMetric) -> T {
     match metric {
         DistanceMetric::L2 => l2_distance(a, b),

@@ -15,6 +15,14 @@ use crate::variable::Variable;
 
 /// Dynamic loss scaler for mixed-precision training.
 ///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::training::GradScaler;
+/// let scaler = GradScaler::<f64>::new();
+/// assert!((scaler.get_scale() - 65536.0).abs() < 1e-6);
+/// ```
+///
 /// # Usage
 ///
 /// ```ignore
@@ -45,6 +53,14 @@ impl<T: Float> GradScaler<T> {
     /// - Growth factor: 2.0
     /// - Backoff factor: 0.5
     /// - Growth interval: 2000 steps without overflow
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::training::GradScaler;
+    /// let scaler = GradScaler::<f64>::new();
+    /// assert!((scaler.get_scale() - 65536.0).abs() < 1e-6);
+    /// ```
     pub fn new() -> Self {
         Self {
             scale: T::from_f64(65536.0),

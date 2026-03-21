@@ -8,6 +8,15 @@ use crate::error::{Result, StatsError};
 use crate::special::regularized_beta;
 
 /// Result of a hypothesis test.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::t_test_one_sample;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let result = t_test_one_sample(&data, 3.0).unwrap();
+/// assert!(result.p_value > 0.05); // not significantly different from 3.0
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -23,6 +32,15 @@ pub struct TestResult<T: Float> {
 }
 
 /// One-sample t-test: test whether the population mean equals `mu_0`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::t_test_one_sample;
+/// let data = vec![2.0_f64, 4.0, 6.0, 8.0, 10.0];
+/// let result = t_test_one_sample(&data, 6.0).unwrap();
+/// assert!(result.p_value > 0.05); // mean is close to 6.0
+/// ```
 pub fn t_test_one_sample<T: Float>(data: &[T], mu_0: T) -> Result<TestResult<T>> {
     let n = data.len();
     if n < 2 {
@@ -55,6 +73,16 @@ pub fn t_test_one_sample<T: Float>(data: &[T], mu_0: T) -> Result<TestResult<T>>
 }
 
 /// Welch's two-sample t-test (unequal variances).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::t_test_two_sample;
+/// let x = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let y = vec![2.0_f64, 3.0, 4.0, 5.0, 6.0];
+/// let result = t_test_two_sample(&x, &y).unwrap();
+/// assert!(result.df.is_some());
+/// ```
 pub fn t_test_two_sample<T: Float>(x: &[T], y: &[T]) -> Result<TestResult<T>> {
     let nx = x.len();
     let ny = y.len();
@@ -103,6 +131,16 @@ pub fn t_test_two_sample<T: Float>(x: &[T], y: &[T]) -> Result<TestResult<T>> {
 /// Chi-square goodness-of-fit test.
 ///
 /// `observed` and `expected` must have the same length and all `expected > 0`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::chi_square_test;
+/// let observed = vec![50.0_f64, 30.0, 20.0];
+/// let expected = vec![40.0_f64, 30.0, 30.0];
+/// let result = chi_square_test(&observed, &expected).unwrap();
+/// assert!(result.statistic > 0.0);
+/// ```
 pub fn chi_square_test<T: Float>(observed: &[T], expected: &[T]) -> Result<TestResult<T>> {
     let n = observed.len();
     if n != expected.len() {
@@ -143,6 +181,16 @@ pub fn chi_square_test<T: Float>(observed: &[T], expected: &[T]) -> Result<TestR
 /// Two-sample Kolmogorov–Smirnov test.
 ///
 /// Tests whether two samples come from the same distribution.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::ks_test_two_sample;
+/// let x = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let y = vec![1.5_f64, 2.5, 3.5, 4.5, 5.5];
+/// let result = ks_test_two_sample(&x, &y).unwrap();
+/// assert!(result.statistic >= 0.0);
+/// ```
 pub fn ks_test_two_sample<T: Float>(x: &[T], y: &[T]) -> Result<TestResult<T>> {
     if x.is_empty() || y.is_empty() {
         return Err(StatsError::EmptyInput);
@@ -218,6 +266,17 @@ pub fn ks_test_two_sample<T: Float>(x: &[T], y: &[T]) -> Result<TestResult<T>> {
 /// One-way ANOVA (analysis of variance).
 ///
 /// Tests whether the means of multiple groups are equal.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::anova_oneway;
+/// let a = vec![1.0_f64, 2.0, 3.0];
+/// let b = vec![4.0_f64, 5.0, 6.0];
+/// let c = vec![7.0_f64, 8.0, 9.0];
+/// let result = anova_oneway(&[&a, &b, &c]).unwrap();
+/// assert!(result.p_value < 0.05); // groups differ significantly
+/// ```
 pub fn anova_oneway<T: Float>(groups: &[&[T]]) -> Result<TestResult<T>> {
     let k = groups.len();
     if k < 2 {
@@ -281,6 +340,16 @@ pub fn anova_oneway<T: Float>(groups: &[&[T]]) -> Result<TestResult<T>> {
 /// Mann–Whitney U test (non-parametric two-sample test).
 ///
 /// Uses the normal approximation for the p-value.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::mann_whitney_u;
+/// let x = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let y = [6.0_f64, 7.0, 8.0, 9.0, 10.0];
+/// let result = mann_whitney_u(&x, &y).unwrap();
+/// assert!(result.p_value < 0.05); // significantly different
+/// ```
 pub fn mann_whitney_u<T: Float>(x: &[T], y: &[T]) -> Result<TestResult<T>> {
     let nx = x.len();
     let ny = y.len();

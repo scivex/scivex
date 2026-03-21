@@ -9,6 +9,16 @@ use crate::distributions::{Distribution, Normal, StudentT};
 use crate::error::{Result, StatsError};
 
 /// A confidence interval with lower and upper bounds.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::confidence::ci_mean;
+/// let data = vec![2.0_f64, 4.0, 6.0, 8.0, 10.0];
+/// let ci = ci_mean(&data, 0.95).unwrap();
+/// assert!(ci.lower < ci.estimate);
+/// assert!(ci.upper > ci.estimate);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -32,6 +42,15 @@ pub struct ConfidenceInterval<T: Float> {
 /// # Arguments
 /// * `data` — sample data
 /// * `confidence` — confidence level (e.g. 0.95 for 95% CI)
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::confidence::ci_mean;
+/// let data = vec![2.0_f64, 4.0, 6.0, 8.0, 10.0];
+/// let ci = ci_mean(&data, 0.95).unwrap();
+/// assert!(ci.lower < 6.0 && ci.upper > 6.0);
+/// ```
 pub fn ci_mean<T: Float>(data: &[T], confidence: T) -> Result<ConfidenceInterval<T>> {
     if data.len() < 2 {
         return Err(StatsError::InsufficientData {
@@ -69,6 +88,15 @@ pub fn ci_mean<T: Float>(data: &[T], confidence: T) -> Result<ConfidenceInterval
 /// * `successes` — number of successes
 /// * `total` — total number of trials
 /// * `confidence` — confidence level (e.g. 0.95)
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::confidence::ci_proportion;
+/// let ci = ci_proportion::<f64>(50, 100, 0.95).unwrap();
+/// assert!((ci.estimate - 0.5).abs() < 1e-10);
+/// assert!(ci.lower < 0.5 && ci.upper > 0.5);
+/// ```
 pub fn ci_proportion<T: Float>(
     successes: usize,
     total: usize,
@@ -115,6 +143,15 @@ pub fn ci_proportion<T: Float>(
 /// * `data` — sample data
 /// * `sigma` — known population standard deviation
 /// * `confidence` — confidence level (e.g. 0.95)
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::confidence::ci_mean_z;
+/// let data = vec![2.0_f64, 4.0, 6.0, 8.0, 10.0];
+/// let ci = ci_mean_z(&data, 3.0, 0.95).unwrap();
+/// assert!(ci.lower < ci.upper);
+/// ```
 pub fn ci_mean_z<T: Float>(data: &[T], sigma: T, confidence: T) -> Result<ConfidenceInterval<T>> {
     if data.is_empty() {
         return Err(StatsError::EmptyInput);

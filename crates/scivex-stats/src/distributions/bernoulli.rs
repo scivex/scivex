@@ -17,6 +17,14 @@ pub struct Bernoulli<T: Float> {
 
 impl<T: Float> Bernoulli<T> {
     /// Create a new Bernoulli distribution with `p` in [0, 1].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Bernoulli, Distribution};
+    /// let b = Bernoulli::new(0.3_f64).unwrap();
+    /// assert!((b.mean() - 0.3).abs() < 1e-10);
+    /// ```
     pub fn new(p: T) -> Result<Self> {
         let zero = T::from_f64(0.0);
         let one = T::from_f64(1.0);

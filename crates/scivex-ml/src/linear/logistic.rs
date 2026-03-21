@@ -4,6 +4,21 @@ use crate::error::{MlError, Result};
 use crate::traits::{Classifier, Predictor};
 
 /// Binary logistic regression trained via gradient descent.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(
+///     vec![-2.0_f64, -1.0, -1.5, -0.5, 2.0, 1.0, 1.5, 0.5],
+///     vec![4, 2],
+/// ).unwrap();
+/// let y = Tensor::from_vec(vec![0.0, 0.0, 1.0, 1.0], vec![4]).unwrap();
+/// let mut lr = LogisticRegression::new(0.5, 1000, 1e-8).unwrap();
+/// lr.fit(&x, &y).unwrap();
+/// let preds = lr.predict(&x).unwrap();
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

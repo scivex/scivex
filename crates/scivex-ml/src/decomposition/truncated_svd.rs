@@ -32,6 +32,19 @@ pub struct TruncatedSVD<T: Float> {
 
 impl<T: Float> TruncatedSVD<T> {
     /// Create a new TruncatedSVD retaining `n_components` dimensions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::decomposition::TruncatedSVD;
+    /// # use scivex_ml::traits::Transformer;
+    /// # use scivex_core::Tensor;
+    /// let mut svd = TruncatedSVD::<f64>::new(2).unwrap();
+    /// let x = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+    /// svd.fit(&x).unwrap();
+    /// let reduced = svd.transform(&x).unwrap();
+    /// assert_eq!(reduced.shape(), &[2, 2]);
+    /// ```
     pub fn new(n_components: usize) -> Result<Self> {
         if n_components == 0 {
             return Err(MlError::InvalidParameter {

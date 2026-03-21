@@ -25,6 +25,18 @@ pub struct BatchNorm1d<T: Float> {
 
 impl<T: Float> BatchNorm1d<T> {
     /// Create a new batch normalization layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_nn::layer::{BatchNorm1d, Layer};
+    /// let bn = BatchNorm1d::<f64>::new(3);
+    /// let x = Variable::new(Tensor::ones(vec![4, 3]), false);
+    /// let y = bn.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![4, 3]);
+    /// ```
     pub fn new(num_features: usize) -> Self {
         let gamma = Variable::new(Tensor::ones(vec![num_features]), true);
         let beta = Variable::new(Tensor::zeros(vec![num_features]), true);

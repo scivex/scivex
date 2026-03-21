@@ -7,6 +7,14 @@ use crate::special::erf;
 use super::Distribution;
 
 /// Normal (Gaussian) distribution with mean mu and standard deviation sigma.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::distributions::{Normal, Distribution};
+/// let n = Normal::new(0.0_f64, 1.0).unwrap();
+/// assert!((n.pdf(0.0) - 0.398_942_280_4).abs() < 1e-6);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -19,6 +27,15 @@ pub struct Normal<T: Float> {
 
 impl<T: Float> Normal<T> {
     /// Create a new normal distribution with mean `mu` and standard deviation `sigma > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Normal, Distribution};
+    /// let n = Normal::new(0.0_f64, 1.0).unwrap();
+    /// assert!((n.cdf(0.0) - 0.5).abs() < 1e-6);
+    /// assert!((n.mean()).abs() < 1e-10);
+    /// ```
     pub fn new(mu: T, sigma: T) -> Result<Self> {
         if sigma <= T::from_f64(0.0) {
             return Err(StatsError::InvalidParameter {
@@ -30,6 +47,14 @@ impl<T: Float> Normal<T> {
     }
 
     /// Standard normal distribution N(0, 1).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Normal, Distribution};
+    /// let n = Normal::<f64>::standard();
+    /// assert!((n.mean()).abs() < 1e-10);
+    /// ```
     pub fn standard() -> Self {
         Self {
             mu: T::from_f64(0.0),

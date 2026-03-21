@@ -13,6 +13,15 @@ pub use newton::newton;
 use scivex_core::Float;
 
 /// Result of a root-finding algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::prelude::*;
+/// let result = bisection(|x: f64| x * x - 2.0, 1.0, 2.0, &RootOptions::default()).unwrap();
+/// assert!(result.converged);
+/// assert!((result.root - std::f64::consts::SQRT_2).abs() < 1e-10);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -30,6 +39,19 @@ pub struct RootResult<T: Float> {
 }
 
 /// Options controlling root-finding algorithms.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::prelude::*;
+/// let opts = RootOptions {
+///     xtol: 1e-8,
+///     ftol: 1e-8,
+///     max_iter: 50,
+/// };
+/// let result = bisection(|x: f64| x * x - 2.0, 1.0, 2.0, &opts).unwrap();
+/// assert!(result.converged);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

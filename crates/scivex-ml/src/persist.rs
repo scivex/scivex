@@ -28,6 +28,19 @@ const FORMAT_VERSION: u32 = 1;
 // ── Persistable Trait ───────────────────────────────────────────────────
 
 /// A model that can be saved to and loaded from disk.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let mut model = LinearRegression::<f64>::new();
+/// let x = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4, 1]).unwrap();
+/// let y = Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0], vec![4]).unwrap();
+/// model.fit(&x, &y).unwrap();
+/// model.save("model.bin").unwrap();
+/// let loaded = LinearRegression::<f64>::load("model.bin").unwrap();
+/// ```
 pub trait Persistable: Sized {
     /// Save the model to a file in binary format.
     fn save(&self, path: &str) -> Result<()>;

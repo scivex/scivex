@@ -22,6 +22,14 @@ pub struct RollingWindow {
 
 impl RollingWindow {
     /// Create a new rolling window with the given size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let w = RollingWindow::new(3);
+    /// assert_eq!(w.window_size, 3);
+    /// ```
     pub fn new(window_size: usize) -> Self {
         Self {
             window_size,
@@ -31,12 +39,28 @@ impl RollingWindow {
     }
 
     /// Set the minimum number of non-null observations required.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let w = RollingWindow::new(5).min_periods(2);
+    /// assert_eq!(w.min_periods, 2);
+    /// ```
     pub fn min_periods(mut self, n: usize) -> Self {
         self.min_periods = n;
         self
     }
 
     /// Whether to center the window label.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let w = RollingWindow::new(3).center(true);
+    /// assert!(w.center);
+    /// ```
     pub fn center(mut self, c: bool) -> Self {
         self.center = c;
         self
@@ -71,6 +95,19 @@ impl<T: Float> Series<T> {
     }
 
     /// Rolling mean.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let s = Series::new("x", vec![1.0_f64, 2.0, 3.0, 4.0, 5.0]);
+    /// let w = RollingWindow::new(3);
+    /// let rm = s.rolling_mean(&w).unwrap();
+    /// // First two are null (not enough values), third = mean(1,2,3) = 2.0
+    /// assert!(rm.is_null_at(0));
+    /// assert!((rm.get(2).unwrap() - 2.0_f64).abs() < 1e-10);
+    /// ```
     pub fn rolling_mean(&self, w: &RollingWindow) -> Result<Series<T>> {
         if w.window_size == 0 {
             return Err(FrameError::InvalidArgument {
@@ -101,6 +138,18 @@ impl<T: Float> Series<T> {
     }
 
     /// Rolling sum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let s = Series::new("x", vec![1.0_f64, 2.0, 3.0, 4.0]);
+    /// let w = RollingWindow::new(2);
+    /// let rs = s.rolling_sum(&w).unwrap();
+    /// assert!(rs.is_null_at(0));
+    /// assert!((rs.get(1).unwrap() - 3.0).abs() < 1e-10);
+    /// ```
     pub fn rolling_sum(&self, w: &RollingWindow) -> Result<Series<T>> {
         if w.window_size == 0 {
             return Err(FrameError::InvalidArgument {
@@ -130,6 +179,17 @@ impl<T: Float> Series<T> {
     }
 
     /// Rolling minimum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let s = Series::new("x", vec![3.0_f64, 1.0, 4.0, 1.0, 5.0]);
+    /// let w = RollingWindow::new(3);
+    /// let rm = s.rolling_min(&w).unwrap();
+    /// assert!((rm.get(2).unwrap() - 1.0).abs() < 1e-10);
+    /// ```
     pub fn rolling_min(&self, w: &RollingWindow) -> Result<Series<T>> {
         if w.window_size == 0 {
             return Err(FrameError::InvalidArgument {
@@ -163,6 +223,17 @@ impl<T: Float> Series<T> {
     }
 
     /// Rolling maximum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let s = Series::new("x", vec![3.0_f64, 1.0, 4.0, 1.0, 5.0]);
+    /// let w = RollingWindow::new(3);
+    /// let rm = s.rolling_max(&w).unwrap();
+    /// assert!((rm.get(2).unwrap() - 4.0).abs() < 1e-10);
+    /// ```
     pub fn rolling_max(&self, w: &RollingWindow) -> Result<Series<T>> {
         if w.window_size == 0 {
             return Err(FrameError::InvalidArgument {
@@ -196,6 +267,18 @@ impl<T: Float> Series<T> {
     }
 
     /// Rolling standard deviation (population).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// # use scivex_frame::series::window::RollingWindow;
+    /// let s = Series::new("x", vec![1.0_f64, 2.0, 3.0, 4.0, 5.0]);
+    /// let w = RollingWindow::new(3);
+    /// let rs = s.rolling_std(&w).unwrap();
+    /// assert!(rs.is_null_at(0));
+    /// assert!(rs.get(2).unwrap() > 0.0);
+    /// ```
     pub fn rolling_std(&self, w: &RollingWindow) -> Result<Series<T>> {
         if w.window_size == 0 {
             return Err(FrameError::InvalidArgument {
@@ -232,6 +315,15 @@ impl<T: Float> Series<T> {
     // -----------------------------------------------------------------------
 
     /// Expanding (cumulative) sum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1.0_f64, 2.0, 3.0, 4.0]);
+    /// let es = s.expanding_sum();
+    /// assert_eq!(es.as_slice(), &[1.0, 3.0, 6.0, 10.0]);
+    /// ```
     pub fn expanding_sum(&self) -> Series<T> {
         let mut data = Vec::with_capacity(self.len());
         let mut acc = T::zero();
@@ -249,6 +341,16 @@ impl<T: Float> Series<T> {
     }
 
     /// Expanding (cumulative) mean.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![2.0_f64, 4.0, 6.0]);
+    /// let em = s.expanding_mean();
+    /// assert!((em.get(0).unwrap() - 2.0).abs() < 1e-10);
+    /// assert!((em.get(2).unwrap() - 4.0).abs() < 1e-10);
+    /// ```
     pub fn expanding_mean(&self) -> Series<T> {
         let mut data = Vec::with_capacity(self.len());
         let mut sum = T::zero();
@@ -272,6 +374,15 @@ impl<T: Float> Series<T> {
     }
 
     /// Expanding (cumulative) minimum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![3.0_f64, 1.0, 4.0]);
+    /// let em = s.expanding_min();
+    /// assert_eq!(em.as_slice(), &[3.0, 1.0, 1.0]);
+    /// ```
     pub fn expanding_min(&self) -> Series<T> {
         let mut data = Vec::with_capacity(self.len());
         let mut current_min = T::infinity();
@@ -289,6 +400,15 @@ impl<T: Float> Series<T> {
     }
 
     /// Expanding (cumulative) maximum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![3.0_f64, 1.0, 4.0]);
+    /// let em = s.expanding_max();
+    /// assert_eq!(em.as_slice(), &[3.0, 3.0, 4.0]);
+    /// ```
     pub fn expanding_max(&self) -> Series<T> {
         let mut data = Vec::with_capacity(self.len());
         let mut current_max = T::neg_infinity();
@@ -313,6 +433,17 @@ impl<T: Float> Series<T> {
     ///
     /// `alpha` must be in `(0, 1]`. Each value is weighted by `alpha * (1-alpha)^i`
     /// where `i` is the distance from the current position.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1.0_f64, 2.0, 3.0]);
+    /// let ewm = s.ewm_mean(1.0).unwrap();
+    /// // alpha=1 means no memory — each value equals itself
+    /// assert_eq!(ewm.get(0), Some(1.0));
+    /// assert_eq!(ewm.get(2), Some(3.0));
+    /// ```
     pub fn ewm_mean(&self, alpha: T) -> Result<Series<T>> {
         if alpha <= T::zero() || alpha > T::one() {
             return Err(FrameError::InvalidArgument {

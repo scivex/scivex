@@ -17,6 +17,20 @@ use super::LeastSquaresResult;
 /// `x_data` and `y_data` are the observed data points. `p0` is the initial parameter
 /// guess. The algorithm iterates until the cost change is below `tol` or `max_iter`
 /// iterations are reached.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::curve_fit::levenberg_marquardt;
+/// // Fit y = a*x + b to data points
+/// let x_data = [1.0_f64, 2.0, 3.0, 4.0];
+/// let y_data = [2.0, 4.0, 6.0, 8.0]; // y = 2x
+/// let result = levenberg_marquardt(
+///     |x: f64, p: &[f64]| p[0] * x + p[1],
+///     &x_data, &y_data, &[1.0, 0.0], 100, 1e-10,
+/// ).unwrap();
+/// assert!((result.params[0] - 2.0).abs() < 1e-6);
+/// ```
 pub fn levenberg_marquardt<T, F>(
     model: F,
     x_data: &[T],

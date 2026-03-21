@@ -9,15 +9,21 @@ use super::Layer;
 
 /// A sequential container that runs layers in order.
 ///
-/// # Example
+/// # Examples
 ///
-/// ```ignore
-/// let model = Sequential::new(vec![
-///     Box::new(Linear::new(784, 128, true, &mut rng)),
+/// ```
+/// # use scivex_nn::layer::{Sequential, Linear, ReLU, Layer};
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_core::{Tensor, random::Rng};
+/// let mut rng = Rng::new(42);
+/// let model: Sequential<f64> = Sequential::new(vec![
+///     Box::new(Linear::new(4, 3, true, &mut rng)),
 ///     Box::new(ReLU),
-///     Box::new(Linear::new(128, 10, true, &mut rng)),
+///     Box::new(Linear::new(3, 2, true, &mut rng)),
 /// ]);
-/// let output = model.forward(&input)?;
+/// let x = Variable::new(Tensor::ones(vec![1, 4]), false);
+/// let y = model.forward(&x).unwrap();
+/// assert_eq!(y.shape(), vec![1, 2]);
 /// ```
 pub struct Sequential<T: Float> {
     layers: Vec<Box<dyn Layer<T>>>,

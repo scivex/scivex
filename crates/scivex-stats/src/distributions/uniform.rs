@@ -18,6 +18,15 @@ pub struct Uniform<T: Float> {
 
 impl<T: Float> Uniform<T> {
     /// Create a new uniform distribution on [a, b].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Uniform, Distribution};
+    /// let u = Uniform::new(0.0_f64, 1.0).unwrap();
+    /// assert!((u.cdf(0.5) - 0.5).abs() < 1e-10);
+    /// assert!((u.mean() - 0.5).abs() < 1e-10);
+    /// ```
     pub fn new(a: T, b: T) -> Result<Self> {
         if a >= b {
             return Err(StatsError::InvalidParameter {

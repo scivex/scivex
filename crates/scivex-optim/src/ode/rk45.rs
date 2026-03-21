@@ -61,6 +61,21 @@ const C5: f64 = 8.0 / 9.0;
 ///
 /// `f(t, y) -> dy/dt` defines the system. `y0` is the initial state vector.
 /// Step size is automatically adjusted to maintain the specified tolerances.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::ode::{rk45, OdeOptions};
+/// // dy/dt = -y, y(0) = 1 → y(t) = e^(-t)
+/// let result = rk45(
+///     |_t: f64, y: &[f64]| vec![-y[0]],
+///     [0.0, 1.0],
+///     &[1.0],
+///     &OdeOptions::default(),
+/// ).unwrap();
+/// let y_final = result.y.last().unwrap()[0];
+/// assert!((y_final - (-1.0_f64).exp()).abs() < 1e-6);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn rk45<T, F>(f: F, t_span: [T; 2], y0: &[T], options: &OdeOptions<T>) -> Result<OdeResult<T>>
 where

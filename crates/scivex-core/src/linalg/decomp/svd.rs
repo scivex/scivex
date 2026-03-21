@@ -12,6 +12,16 @@ use crate::error::{CoreError, Result};
 use crate::tensor::Tensor;
 
 /// Result of a Singular Value Decomposition.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::linalg::decomp::SvdDecomposition;
+/// let a = Tensor::from_vec(vec![3.0_f64, 0.0, 0.0, 4.0], vec![2, 2]).unwrap();
+/// let svd = SvdDecomposition::decompose(&a).unwrap();
+/// assert_eq!(svd.singular_values().len(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -255,11 +265,34 @@ impl<T: Float> SvdDecomposition<T> {
     }
 
     /// The singular values in descending order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::SvdDecomposition;
+    /// let a = Tensor::from_vec(vec![3.0_f64, 0.0, 0.0, 4.0], vec![2, 2]).unwrap();
+    /// let svd = SvdDecomposition::decompose(&a).unwrap();
+    /// let s = svd.singular_values();
+    /// assert!((s[0] - 4.0).abs() < 1e-10);
+    /// assert!((s[1] - 3.0).abs() < 1e-10);
+    /// ```
     pub fn singular_values(&self) -> &[T] {
         &self.s
     }
 
     /// The left singular vectors `U` (m x m).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::SvdDecomposition;
+    /// let a = Tensor::from_vec(vec![1.0_f64, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+    /// let svd = SvdDecomposition::decompose(&a).unwrap();
+    /// let u = svd.u();
+    /// assert_eq!(u.shape(), &[2, 2]);
+    /// ```
     pub fn u(&self) -> Tensor<T> {
         // SAFETY: u always has exactly m*m elements, matching the [m, m] shape.
         Tensor::from_vec(self.u.clone(), vec![self.m, self.m])
@@ -267,6 +300,17 @@ impl<T: Float> SvdDecomposition<T> {
     }
 
     /// The right singular vectors transposed `V^T` (n x n).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::SvdDecomposition;
+    /// let a = Tensor::from_vec(vec![1.0_f64, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+    /// let svd = SvdDecomposition::decompose(&a).unwrap();
+    /// let vt = svd.vt();
+    /// assert_eq!(vt.shape(), &[2, 2]);
+    /// ```
     pub fn vt(&self) -> Tensor<T> {
         // SAFETY: vt always has exactly n*n elements, matching the [n, n] shape.
         Tensor::from_vec(self.vt.clone(), vec![self.n, self.n])
@@ -274,6 +318,17 @@ impl<T: Float> SvdDecomposition<T> {
     }
 
     /// The singular values as a 1-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::SvdDecomposition;
+    /// let a = Tensor::from_vec(vec![3.0_f64, 0.0, 0.0, 4.0], vec![2, 2]).unwrap();
+    /// let svd = SvdDecomposition::decompose(&a).unwrap();
+    /// let s = svd.s();
+    /// assert_eq!(s.shape(), &[2]);
+    /// ```
     pub fn s(&self) -> Tensor<T> {
         // SAFETY: shape [len] trivially matches the vec length.
         Tensor::from_vec(self.s.clone(), vec![self.s.len()])
@@ -281,11 +336,32 @@ impl<T: Float> SvdDecomposition<T> {
     }
 
     /// Compute the matrix rank (number of singular values above a tolerance).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::SvdDecomposition;
+    /// // Rank-1 matrix
+    /// let a = Tensor::from_vec(vec![1.0_f64, 2.0, 2.0, 4.0], vec![2, 2]).unwrap();
+    /// let svd = SvdDecomposition::decompose(&a).unwrap();
+    /// assert_eq!(svd.rank(1e-8), 1);
+    /// ```
     pub fn rank(&self, tol: T) -> usize {
         self.s.iter().filter(|&&sv| sv > tol).count()
     }
 
     /// Compute the condition number (ratio of largest to smallest singular value).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::SvdDecomposition;
+    /// let eye = Tensor::<f64>::eye(2);
+    /// let svd = SvdDecomposition::decompose(&eye).unwrap();
+    /// assert!((svd.condition_number() - 1.0).abs() < 1e-10);
+    /// ```
     pub fn condition_number(&self) -> T {
         if self.s.is_empty() {
             return T::zero();

@@ -93,6 +93,18 @@ impl DataFrame {
     ///
     /// Large DataFrames are truncated the same way as the text display
     /// (first 10 + last 10 rows with an ellipsis row in between).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::{DataFrame, Series};
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1_i32, 2])
+    ///     .build()
+    ///     .unwrap();
+    /// let html = df.to_html();
+    /// assert!(html.contains("<table"));
+    /// ```
     pub fn to_html(&self) -> String {
         if self.is_empty() {
             return "<p><em>(empty DataFrame)</em></p>".to_string();

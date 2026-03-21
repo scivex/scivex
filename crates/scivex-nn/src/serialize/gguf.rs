@@ -51,6 +51,20 @@ fn io_err() -> NnError {
 // ---------------------------------------------------------------------------
 
 /// A value in a GGUF metadata key-value store.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::serialize::GgufValue;
+/// let v = GgufValue::Uint32(42);
+/// if let GgufValue::Uint32(n) = v {
+///     assert_eq!(n, 42);
+/// }
+/// let s = GgufValue::String("hello".to_string());
+/// if let GgufValue::String(text) = s {
+///     assert_eq!(text, "hello");
+/// }
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -70,6 +84,20 @@ pub enum GgufValue {
 }
 
 /// A GGUF file containing metadata and tensors.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::serialize::{GgufFile, GgufValue};
+/// # use scivex_core::Tensor;
+/// let t = Tensor::<f64>::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+/// let file: GgufFile<f64> = GgufFile {
+///     metadata: vec![("layers".to_string(), GgufValue::Uint32(12))],
+///     tensors: vec![("weight".to_string(), t)],
+/// };
+/// assert_eq!(file.tensors.len(), 1);
+/// assert_eq!(file.metadata.len(), 1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -380,6 +408,14 @@ fn tensor_info_wire_size(name: &str, n_dims: usize) -> usize {
 // ---------------------------------------------------------------------------
 
 /// Load a GGUF file from disk.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::serialize::gguf::load_gguf;
+/// let file = load_gguf::<f64>("/path/to/model.gguf").unwrap();
+/// println!("tensors: {}", file.tensors.len());
+/// ```
 pub fn load_gguf<T: Float>(path: &str) -> Result<GgufFile<T>> {
     let f = File::open(path).map_err(|_| ser_err("cannot open GGUF file"))?;
     let mut r = BufReader::new(f);
@@ -469,6 +505,16 @@ pub fn load_gguf<T: Float>(path: &str) -> Result<GgufFile<T>> {
 }
 
 /// Save a `GgufFile` to disk.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::serialize::gguf::{GgufFile, save_gguf};
+/// # use scivex_core::Tensor;
+/// let t = Tensor::<f64>::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+/// let file = GgufFile { metadata: vec![], tensors: vec![("w".to_string(), t)] };
+/// save_gguf("/tmp/model.gguf", &file).unwrap();
+/// ```
 pub fn save_gguf<T: Float>(path: &str, file: &GgufFile<T>) -> Result<()> {
     let f = File::create(path).map_err(|_| ser_err("cannot create GGUF file"))?;
     let mut w = BufWriter::new(f);

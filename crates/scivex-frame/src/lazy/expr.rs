@@ -57,32 +57,80 @@ pub enum BinaryOp {
 // ---------------------------------------------------------------------------
 
 /// Create a column reference expression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::lazy::expr::col;
+/// let e = col("x");
+/// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Col(_)));
+/// ```
 pub fn col(name: &str) -> Expr {
     Expr::Col(name.to_string())
 }
 
 /// Create a literal f64 expression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::lazy::expr::lit_f64;
+/// let e = lit_f64(3.14);
+/// assert!(matches!(e, scivex_frame::lazy::expr::Expr::LitF64(_)));
+/// ```
 pub fn lit_f64(val: f64) -> Expr {
     Expr::LitF64(val)
 }
 
 /// Create a literal i64 expression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::lazy::expr::lit_i64;
+/// let e = lit_i64(42);
+/// assert!(matches!(e, scivex_frame::lazy::expr::Expr::LitI64(_)));
+/// ```
 pub fn lit_i64(val: i64) -> Expr {
     Expr::LitI64(val)
 }
 
 /// Create a literal string expression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::lazy::expr::lit_str;
+/// let e = lit_str("hello");
+/// assert!(matches!(e, scivex_frame::lazy::expr::Expr::LitStr(_)));
+/// ```
 pub fn lit_str(val: &str) -> Expr {
     Expr::LitStr(val.to_string())
 }
 
 /// Create a literal boolean expression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::lazy::expr::lit_bool;
+/// let e = lit_bool(true);
+/// assert!(matches!(e, scivex_frame::lazy::expr::Expr::LitBool(true)));
+/// ```
 pub fn lit_bool(val: bool) -> Expr {
     Expr::LitBool(val)
 }
 
 impl Expr {
     /// Alias this expression (rename the output column).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").alias("renamed");
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Alias { .. }));
+    /// ```
     pub fn alias(self, name: &str) -> Self {
         Self::Alias {
             expr: Box::new(self),
@@ -91,6 +139,14 @@ impl Expr {
     }
 
     /// Aggregate: sum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").sum();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Agg { .. }));
+    /// ```
     pub fn sum(self) -> Self {
         Self::Agg {
             expr: Box::new(self),
@@ -99,6 +155,14 @@ impl Expr {
     }
 
     /// Aggregate: mean.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").mean();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Agg { .. }));
+    /// ```
     pub fn mean(self) -> Self {
         Self::Agg {
             expr: Box::new(self),
@@ -107,6 +171,14 @@ impl Expr {
     }
 
     /// Aggregate: min.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").min();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Agg { .. }));
+    /// ```
     pub fn min(self) -> Self {
         Self::Agg {
             expr: Box::new(self),
@@ -115,6 +187,14 @@ impl Expr {
     }
 
     /// Aggregate: max.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").max();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Agg { .. }));
+    /// ```
     pub fn max(self) -> Self {
         Self::Agg {
             expr: Box::new(self),
@@ -123,6 +203,14 @@ impl Expr {
     }
 
     /// Aggregate: count.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").count();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Agg { .. }));
+    /// ```
     pub fn count(self) -> Self {
         Self::Agg {
             expr: Box::new(self),
@@ -131,6 +219,14 @@ impl Expr {
     }
 
     /// Aggregate: first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").first();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Agg { .. }));
+    /// ```
     pub fn first(self) -> Self {
         Self::Agg {
             expr: Box::new(self),
@@ -139,6 +235,14 @@ impl Expr {
     }
 
     /// Aggregate: last.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").last();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Agg { .. }));
+    /// ```
     pub fn last(self) -> Self {
         Self::Agg {
             expr: Box::new(self),
@@ -147,6 +251,14 @@ impl Expr {
     }
 
     /// Sort ascending.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").sort_asc();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Sort { ascending: true, .. }));
+    /// ```
     pub fn sort_asc(self) -> Self {
         Self::Sort {
             expr: Box::new(self),
@@ -155,6 +267,14 @@ impl Expr {
     }
 
     /// Sort descending.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::col;
+    /// let e = col("x").sort_desc();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Sort { ascending: false, .. }));
+    /// ```
     pub fn sort_desc(self) -> Self {
         Self::Sort {
             expr: Box::new(self),
@@ -163,6 +283,14 @@ impl Expr {
     }
 
     /// Equality comparison.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let e = col("x").eq(lit_i64(10));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn eq(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -172,6 +300,14 @@ impl Expr {
     }
 
     /// Not-equal comparison.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let e = col("x").neq(lit_i64(0));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn neq(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -181,6 +317,14 @@ impl Expr {
     }
 
     /// Less-than comparison.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_f64};
+    /// let e = col("x").lt(lit_f64(3.0));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn lt(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -190,6 +334,14 @@ impl Expr {
     }
 
     /// Less-than-or-equal comparison.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let e = col("x").lt_eq(lit_i64(5));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn lt_eq(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -199,6 +351,14 @@ impl Expr {
     }
 
     /// Greater-than comparison.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let e = col("x").gt(lit_i64(5));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn gt(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -208,6 +368,14 @@ impl Expr {
     }
 
     /// Greater-than-or-equal comparison.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let e = col("x").gt_eq(lit_i64(0));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn gt_eq(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -217,6 +385,14 @@ impl Expr {
     }
 
     /// Logical AND.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let e = col("x").gt(lit_i64(0)).and(col("x").lt(lit_i64(10)));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn and(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -226,6 +402,14 @@ impl Expr {
     }
 
     /// Logical OR.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let e = col("x").lt(lit_i64(0)).or(col("x").gt(lit_i64(100)));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     pub fn or(self, other: Self) -> Self {
         Self::BinaryOp {
             left: Box::new(self),
@@ -235,12 +419,28 @@ impl Expr {
     }
 
     /// Logical NOT.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::lit_bool;
+    /// let e = lit_bool(true).not();
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::Not(_)));
+    /// ```
     #[allow(clippy::should_implement_trait)]
     pub fn not(self) -> Self {
         Self::Not(Box::new(self))
     }
 
     /// Add two expressions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_f64};
+    /// let e = col("x").add(lit_f64(1.0));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     #[allow(clippy::should_implement_trait)]
     pub fn add(self, other: Self) -> Self {
         Self::BinaryOp {
@@ -251,6 +451,14 @@ impl Expr {
     }
 
     /// Subtract two expressions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_f64};
+    /// let e = col("x").sub(lit_f64(1.0));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     #[allow(clippy::should_implement_trait)]
     pub fn sub(self, other: Self) -> Self {
         Self::BinaryOp {
@@ -261,6 +469,14 @@ impl Expr {
     }
 
     /// Multiply two expressions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_f64};
+    /// let e = col("x").mul(lit_f64(2.0));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     #[allow(clippy::should_implement_trait)]
     pub fn mul(self, other: Self) -> Self {
         Self::BinaryOp {
@@ -271,6 +487,14 @@ impl Expr {
     }
 
     /// Divide two expressions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::lazy::expr::{col, lit_f64};
+    /// let e = col("x").div(lit_f64(2.0));
+    /// assert!(matches!(e, scivex_frame::lazy::expr::Expr::BinaryOp { .. }));
+    /// ```
     #[allow(clippy::should_implement_trait)]
     pub fn div(self, other: Self) -> Self {
         Self::BinaryOp {

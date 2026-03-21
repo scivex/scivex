@@ -5,6 +5,14 @@ use scivex_core::{Float, Tensor};
 use crate::error::{MlError, Result};
 
 /// Linkage criterion for agglomerative clustering.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::cluster::Linkage;
+/// let linkage = Linkage::Ward;
+/// assert_eq!(linkage, Linkage::Ward);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -22,6 +30,14 @@ pub enum Linkage {
 }
 
 /// A single merge step in the dendrogram.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::cluster::DendrogramNode;
+/// let node = DendrogramNode { left: 0, right: 1, distance: 1.5_f64, size: 2 };
+/// assert_eq!(node.size, 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

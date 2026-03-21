@@ -40,6 +40,19 @@ use crate::error::Result;
 use crate::variable::Variable;
 
 /// A neural network layer.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::layer::{Linear, Layer};
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_core::{Tensor, random::Rng};
+/// let mut rng = Rng::new(42);
+/// let layer = Linear::<f64>::new(4, 2, true, &mut rng);
+/// let x = Variable::new(Tensor::ones(vec![1, 4]), false);
+/// let y = layer.forward(&x).unwrap();
+/// assert_eq!(y.shape(), vec![1, 2]);
+/// ```
 pub trait Layer<T: Float> {
     /// Forward pass.
     fn forward(&self, x: &Variable<T>) -> Result<Variable<T>>;

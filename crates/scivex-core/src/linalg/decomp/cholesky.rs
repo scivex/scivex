@@ -10,6 +10,17 @@ use crate::tensor::Tensor;
 /// Result of a Cholesky decomposition.
 ///
 /// Stores the factorization `A = L L^T` where `L` is lower triangular.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::linalg::decomp::CholeskyDecomposition;
+/// let a = Tensor::from_vec(vec![4.0_f64, 2.0, 2.0, 3.0], vec![2, 2]).unwrap();
+/// let chol = CholeskyDecomposition::decompose(&a).unwrap();
+/// let l = chol.l();
+/// assert_eq!(l.shape(), &[2, 2]);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -83,6 +94,19 @@ impl<T: Float> CholeskyDecomposition<T> {
     }
 
     /// Extract the lower triangular factor `L`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::CholeskyDecomposition;
+    /// let a = Tensor::from_vec(vec![4.0_f64, 2.0, 2.0, 3.0], vec![2, 2]).unwrap();
+    /// let chol = CholeskyDecomposition::decompose(&a).unwrap();
+    /// let l = chol.l();
+    /// // L is lower triangular
+    /// assert_eq!(l.shape(), &[2, 2]);
+    /// assert!((l.as_slice()[1] - 0.0).abs() < 1e-10); // upper-right is zero
+    /// ```
     pub fn l(&self) -> Tensor<T> {
         // SAFETY: l_data always has exactly n*n elements, matching the [n, n] shape.
         Tensor::from_vec(self.l_data.clone(), vec![self.n, self.n])
@@ -92,6 +116,18 @@ impl<T: Float> CholeskyDecomposition<T> {
     /// Solve the linear system `Ax = b` using the Cholesky factorization.
     ///
     /// Since `A = L L^T`, solves `L y = b` (forward) then `L^T x = y` (backward).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::CholeskyDecomposition;
+    /// let a = Tensor::from_vec(vec![4.0_f64, 2.0, 2.0, 3.0], vec![2, 2]).unwrap();
+    /// let b = Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap();
+    /// let chol = CholeskyDecomposition::decompose(&a).unwrap();
+    /// let x = chol.solve(&b).unwrap();
+    /// assert_eq!(x.shape(), &[2]);
+    /// ```
     pub fn solve(&self, b: &Tensor<T>) -> Result<Tensor<T>> {
         if b.ndim() != 1 {
             return Err(CoreError::InvalidArgument {
@@ -132,6 +168,17 @@ impl<T: Float> CholeskyDecomposition<T> {
     }
 
     /// Compute the inverse using the Cholesky factorization.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::CholeskyDecomposition;
+    /// let a = Tensor::from_vec(vec![4.0_f64, 2.0, 2.0, 3.0], vec![2, 2]).unwrap();
+    /// let chol = CholeskyDecomposition::decompose(&a).unwrap();
+    /// let inv = chol.inverse().unwrap();
+    /// assert_eq!(inv.shape(), &[2, 2]);
+    /// ```
     pub fn inverse(&self) -> Result<Tensor<T>> {
         let n = self.n;
         let mut inv_data = vec![T::zero(); n * n];
@@ -153,6 +200,18 @@ impl<T: Float> CholeskyDecomposition<T> {
     /// Compute the log-determinant (useful for avoiding overflow).
     ///
     /// `log(det(A)) = 2 * sum(log(diag(L)))`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::CholeskyDecomposition;
+    /// let a = Tensor::from_vec(vec![4.0_f64, 2.0, 2.0, 3.0], vec![2, 2]).unwrap();
+    /// let chol = CholeskyDecomposition::decompose(&a).unwrap();
+    /// // det(A) = 4*3 - 2*2 = 8
+    /// let log_det = chol.log_det();
+    /// assert!((log_det - 8.0_f64.ln()).abs() < 1e-12);
+    /// ```
     pub fn log_det(&self) -> T {
         let n = self.n;
         let mut sum = T::zero();

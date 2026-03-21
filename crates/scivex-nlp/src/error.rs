@@ -1,6 +1,14 @@
 use std::fmt;
 
 /// Errors that can occur in NLP operations.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::NlpError;
+/// let err = NlpError::EmptyInput;
+/// assert_eq!(format!("{err}"), "input is empty");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

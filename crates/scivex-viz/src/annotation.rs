@@ -6,6 +6,14 @@ use crate::scale::Scale;
 use crate::style::{Font, Stroke};
 
 /// An annotation to draw on an axes.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::annotation::Annotation;
+/// let line = Annotation::hline(5.0_f64);
+/// assert!(matches!(line, Annotation::HLine { .. }));
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -28,6 +36,14 @@ pub enum Annotation {
 }
 
 /// Position for the legend box.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::annotation::LegendPosition;
+/// let pos = LegendPosition::TopRight;
+/// assert_eq!(pos, LegendPosition::TopRight);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -42,6 +58,14 @@ pub enum LegendPosition {
 
 impl Annotation {
     /// Create a horizontal reference line.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::annotation::Annotation;
+    /// let ann = Annotation::hline(3.5_f64);
+    /// assert!(matches!(ann, Annotation::HLine { .. }));
+    /// ```
     #[must_use]
     pub fn hline(y: f64) -> Self {
         Self::HLine {
@@ -51,6 +75,14 @@ impl Annotation {
     }
 
     /// Create a vertical reference line.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::annotation::Annotation;
+    /// let ann = Annotation::vline(2.0_f64);
+    /// assert!(matches!(ann, Annotation::VLine { .. }));
+    /// ```
     #[must_use]
     pub fn vline(x: f64) -> Self {
         Self::VLine {
@@ -60,6 +92,14 @@ impl Annotation {
     }
 
     /// Create a text annotation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::annotation::Annotation;
+    /// let ann = Annotation::text(1.0_f64, 2.0_f64, "hello");
+    /// assert!(matches!(ann, Annotation::Text { .. }));
+    /// ```
     #[must_use]
     pub fn text(x: f64, y: f64, text: &str) -> Self {
         Self::Text {
@@ -71,6 +111,14 @@ impl Annotation {
     }
 
     /// Create a legend with the default position (top-right).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::annotation::{Annotation, LegendPosition};
+    /// let ann = Annotation::legend();
+    /// assert!(matches!(ann, Annotation::Legend { position: LegendPosition::TopRight }));
+    /// ```
     #[must_use]
     pub fn legend() -> Self {
         Self::Legend {

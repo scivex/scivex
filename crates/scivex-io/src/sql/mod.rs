@@ -15,6 +15,15 @@ use scivex_frame::{AnySeries, DType, DataFrame, Series, StringSeries};
 use crate::error::Result;
 
 /// Behavior when writing to a table that already exists.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::sql::IfExists;
+/// let behavior = IfExists::Append;
+/// assert_eq!(behavior, IfExists::Append);
+/// assert_ne!(behavior, IfExists::Replace);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

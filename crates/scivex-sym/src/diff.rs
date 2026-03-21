@@ -4,6 +4,20 @@ use crate::simplify::simplify;
 /// Compute the symbolic derivative of `expr` with respect to `var`.
 ///
 /// The result is automatically simplified.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::{var, diff};
+/// # use std::collections::HashMap;
+/// let x = var("x");
+/// // d/dx(x²) = 2x
+/// let x_squared = x.clone() * x.clone();
+/// let derivative = diff(&x_squared, "x");
+/// let vars = HashMap::from([("x".to_string(), 3.0)]);
+/// let val = derivative.eval(&vars).unwrap();
+/// assert!((val - 6.0).abs() < 1e-10);
+/// ```
 #[must_use]
 pub fn diff(expr: &Expr, var: &str) -> Expr {
     let raw = diff_raw(expr, var);
@@ -11,6 +25,18 @@ pub fn diff(expr: &Expr, var: &str) -> Expr {
 }
 
 /// Compute the `n`-th derivative of `expr` with respect to `var`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::{var, diff_n};
+/// # use std::collections::HashMap;
+/// let x = var("x");
+/// let cubic = x.clone() * x.clone() * x.clone(); // x³
+/// let d2 = diff_n(&cubic, "x", 2); // 6x
+/// let vars = HashMap::from([("x".to_string(), 1.0)]);
+/// assert!((d2.eval(&vars).unwrap() - 6.0).abs() < 1e-10);
+/// ```
 #[must_use]
 pub fn diff_n(expr: &Expr, var: &str, n: usize) -> Expr {
     let mut result = expr.clone();

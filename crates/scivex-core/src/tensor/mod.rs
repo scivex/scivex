@@ -26,6 +26,15 @@ use crate::error::{CoreError, Result};
 /// # Type Parameters
 ///
 /// - `T`: The element type, which must implement [`Scalar`].
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+/// assert_eq!(t.shape(), &[2, 2]);
+/// assert_eq!(t.numel(), 4);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -109,48 +118,116 @@ impl<T: Scalar> Tensor<T> {
     // ------------------------------------------------------------------
 
     /// The shape of the tensor as a slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// assert_eq!(t.shape(), &[2, 3]);
+    /// ```
     #[inline]
     pub fn shape(&self) -> &[usize] {
         &self.shape
     }
 
     /// The strides of the tensor as a slice (in number of elements).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// assert_eq!(t.strides(), &[3, 1]);
+    /// ```
     #[inline]
     pub fn strides(&self) -> &[usize] {
         &self.strides
     }
 
     /// The number of dimensions (rank) of the tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// assert_eq!(t.ndim(), 2);
+    /// ```
     #[inline]
     pub fn ndim(&self) -> usize {
         self.shape.len()
     }
 
     /// The total number of elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// assert_eq!(t.numel(), 6);
+    /// ```
     #[inline]
     pub fn numel(&self) -> usize {
         self.data.len()
     }
 
     /// Whether the tensor has zero elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let empty = Tensor::<f64>::zeros(vec![0]);
+    /// assert!(empty.is_empty());
+    /// let nonempty = Tensor::<f64>::ones(vec![3]);
+    /// assert!(!nonempty.is_empty());
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
     /// A flat slice of all elements in storage order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// assert_eq!(t.as_slice(), &[1, 2, 3]);
+    /// ```
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         &self.data
     }
 
     /// A mutable flat slice of all elements in storage order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let mut t = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// t.as_mut_slice()[0] = 99;
+    /// assert_eq!(t.as_slice(), &[99, 2, 3]);
+    /// ```
     #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         &mut self.data
     }
 
     /// Consume the tensor and return the underlying `Vec<T>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// let v: Vec<i32> = t.into_vec();
+    /// assert_eq!(v, vec![1, 2, 3]);
+    /// ```
     #[inline]
     pub fn into_vec(self) -> Vec<T> {
         self.data
@@ -197,6 +274,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Get a mutable reference to the element at the given index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let mut t = Tensor::from_vec(vec![1, 2, 3, 4], vec![2, 2]).unwrap();
+    /// *t.get_mut(&[0, 0]).unwrap() = 42;
+    /// assert_eq!(*t.get(&[0, 0]).unwrap(), 42);
+    /// ```
     pub fn get_mut(&mut self, index: &[usize]) -> Result<&mut T> {
         let flat = self.flat_index(index)?;
         Ok(&mut self.data[flat])
@@ -223,11 +309,31 @@ impl<T: Scalar> Tensor<T> {
     // ------------------------------------------------------------------
 
     /// Iterate over all elements in storage order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![10, 20, 30], vec![3]).unwrap();
+    /// let sum: i32 = t.iter().sum();
+    /// assert_eq!(sum, 60);
+    /// ```
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.data.iter()
     }
 
     /// Iterate mutably over all elements in storage order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let mut t = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// for x in t.iter_mut() {
+    ///     *x *= 10;
+    /// }
+    /// assert_eq!(t.as_slice(), &[10, 20, 30]);
+    /// ```
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         self.data.iter_mut()
     }
@@ -261,6 +367,15 @@ impl<T: Scalar> Tensor<T> {
     ///
     /// Uses `to_f64()` / `from_f64()` for the conversion, which is lossless for
     /// f32→f64 and lossy (but intentionally so) for f64→f32 or f32→f16.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+    /// let t32: Tensor<f32> = t.cast();
+    /// assert_eq!(t32.as_slice(), &[1.0_f32, 2.0, 3.0]);
+    /// ```
     pub fn cast<U: Scalar + Float>(&self) -> Tensor<U>
     where
         T: Float,
@@ -273,6 +388,16 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Apply a function element-wise to two tensors of the same shape.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// let b = Tensor::from_vec(vec![10, 20, 30], vec![3]).unwrap();
+    /// let c = a.zip_map(&b, |x, y| x + y).unwrap();
+    /// assert_eq!(c.as_slice(), &[11, 22, 33]);
+    /// ```
     pub fn zip_map<F>(&self, other: &Tensor<T>, f: F) -> Result<Tensor<T>>
     where
         F: Fn(T, T) -> T,
@@ -297,6 +422,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Apply a function to every element in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let mut t = Tensor::from_vec(vec![1, 2, 3, 4], vec![2, 2]).unwrap();
+    /// t.apply(|x| x * x);
+    /// assert_eq!(t.as_slice(), &[1, 4, 9, 16]);
+    /// ```
     pub fn apply<F>(&mut self, f: F)
     where
         F: Fn(T) -> T,

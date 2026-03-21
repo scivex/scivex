@@ -23,6 +23,17 @@ pub enum ConvolveMode {
 /// 1-D linear convolution of two signals.
 ///
 /// Both `a` and `b` must be 1-D tensors.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::convolution::{convolve, ConvolveMode};
+/// let a = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+/// let b = Tensor::from_vec(vec![1.0_f64, 1.0], vec![2]).unwrap();
+/// let c = convolve(&a, &b, ConvolveMode::Full).unwrap();
+/// assert_eq!(c.as_slice(), &[1.0, 3.0, 5.0, 3.0]);
+/// ```
 pub fn convolve<T: Float>(a: &Tensor<T>, b: &Tensor<T>, mode: ConvolveMode) -> Result<Tensor<T>> {
     if a.ndim() != 1 || b.ndim() != 1 {
         return Err(SignalError::InvalidParameter {
@@ -68,6 +79,21 @@ pub fn convolve<T: Float>(a: &Tensor<T>, b: &Tensor<T>, mode: ConvolveMode) -> R
 }
 
 /// 1-D cross-correlation: convolve `a` with time-reversed `b`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::convolution::{correlate, ConvolveMode};
+/// let a = Tensor::from_vec(vec![0.0_f64, 0.0, 1.0, 0.0, 0.0], vec![5]).unwrap();
+/// let c = correlate(&a, &a, ConvolveMode::Full).unwrap();
+/// // Auto-correlation peak is at the center.
+/// let s = c.as_slice();
+/// let max_idx = s.iter().enumerate()
+///     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+///     .unwrap().0;
+/// assert_eq!(max_idx, 4);
+/// ```
 pub fn correlate<T: Float>(a: &Tensor<T>, b: &Tensor<T>, mode: ConvolveMode) -> Result<Tensor<T>> {
     if b.ndim() != 1 {
         return Err(SignalError::InvalidParameter {

@@ -19,6 +19,15 @@ use crate::error::{Result, StatsError};
 ///
 /// Returns a vector of length `max_lag + 1` where element `k` is the
 /// autocorrelation at lag `k`. ACF(0) is always 1.0.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::acf;
+/// let data = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+/// let result = acf(&data, 3).unwrap();
+/// assert!((result[0] - 1.0).abs() < 1e-10); // ACF(0) is always 1
+/// ```
 pub fn acf<T: Float>(data: &[T], max_lag: usize) -> Result<Vec<T>> {
     let n = data.len();
     if n < 2 {
@@ -55,6 +64,15 @@ pub fn acf<T: Float>(data: &[T], max_lag: usize) -> Result<Vec<T>> {
 ///
 /// Returns a vector of length `max_lag + 1` where element `k` is the
 /// partial autocorrelation at lag `k`. PACF(0) is always 1.0.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::pacf;
+/// let data = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+/// let result = pacf(&data, 3).unwrap();
+/// assert!((result[0] - 1.0).abs() < 1e-10); // PACF(0) is always 1
+/// ```
 pub fn pacf<T: Float>(data: &[T], max_lag: usize) -> Result<Vec<T>> {
     let acf_vals = acf(data, max_lag)?;
     let m = acf_vals.len();
@@ -119,6 +137,17 @@ fn difference<T: Float>(data: &[T], d: usize) -> Vec<T> {
 ///
 /// Fitting uses conditional least squares for the AR coefficients and
 /// sets MA coefficients via residual estimation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::Arima;
+/// let data: Vec<f64> = (0..50).map(|i| (i as f64).sin()).collect();
+/// let mut model = Arima::<f64>::new(2, 0, 1).unwrap();
+/// model.fit(&data).unwrap();
+/// let fc = model.forecast(5).unwrap();
+/// assert_eq!(fc.len(), 5);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -138,6 +167,14 @@ pub struct Arima<T: Float> {
 
 impl<T: Float> Arima<T> {
     /// Create a new ARIMA(p, d, q) model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::Arima;
+    /// let model = Arima::<f64>::new(1, 1, 1).unwrap();
+    /// assert!(Arima::<f64>::new(0, 0, 0).is_err());
+    /// ```
     pub fn new(p: usize, d: usize, q: usize) -> Result<Self> {
         if p == 0 && q == 0 {
             return Err(StatsError::InvalidParameter {
@@ -159,6 +196,15 @@ impl<T: Float> Arima<T> {
     }
 
     /// Fit the ARIMA model to data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::Arima;
+    /// let data: Vec<f64> = (0..50).map(|i| (i as f64).sin()).collect();
+    /// let mut model = Arima::<f64>::new(1, 0, 1).unwrap();
+    /// model.fit(&data).unwrap();
+    /// ```
     #[allow(clippy::too_many_lines)]
     pub fn fit(&mut self, data: &[T]) -> Result<()> {
         let min_len = self.p + self.d + self.q + 2;
@@ -252,6 +298,17 @@ impl<T: Float> Arima<T> {
     }
 
     /// Forecast `steps` steps ahead.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::Arima;
+    /// let data: Vec<f64> = (0..50).map(|i| (i as f64).sin()).collect();
+    /// let mut model = Arima::<f64>::new(2, 0, 1).unwrap();
+    /// model.fit(&data).unwrap();
+    /// let fc = model.forecast(3).unwrap();
+    /// assert_eq!(fc.len(), 3);
+    /// ```
     pub fn forecast(&self, steps: usize) -> Result<Vec<T>> {
         if !self.fitted {
             return Err(StatsError::InvalidParameter {
@@ -311,6 +368,14 @@ impl<T: Float> Arima<T> {
 // ── Exponential Smoothing ───────────────────────────────────────────────
 
 /// Exponential smoothing method selection.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::SmoothingMethod;
+/// let m = SmoothingMethod::Holt;
+/// assert_eq!(m, SmoothingMethod::Holt);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -326,6 +391,17 @@ pub enum SmoothingMethod {
 }
 
 /// Exponential smoothing model.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::ExponentialSmoothing;
+/// let data = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let mut model = ExponentialSmoothing::simple(0.3).unwrap();
+/// model.fit(&data).unwrap();
+/// let fc = model.forecast(3).unwrap();
+/// assert_eq!(fc.len(), 3);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -346,6 +422,13 @@ pub struct ExponentialSmoothing<T: Float> {
 
 impl<T: Float> ExponentialSmoothing<T> {
     /// Create a simple exponential smoothing model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::ExponentialSmoothing;
+    /// let model = ExponentialSmoothing::<f64>::simple(0.5).unwrap();
+    /// ```
     pub fn simple(alpha: T) -> Result<Self> {
         validate_alpha(alpha)?;
         Ok(Self {
@@ -363,6 +446,13 @@ impl<T: Float> ExponentialSmoothing<T> {
     }
 
     /// Create a Holt's linear trend model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::ExponentialSmoothing;
+    /// let model = ExponentialSmoothing::<f64>::holt(0.5, 0.1).unwrap();
+    /// ```
     pub fn holt(alpha: T, beta: T) -> Result<Self> {
         validate_alpha(alpha)?;
         validate_alpha(beta)?;
@@ -381,6 +471,13 @@ impl<T: Float> ExponentialSmoothing<T> {
     }
 
     /// Create a Holt-Winters additive seasonal model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::ExponentialSmoothing;
+    /// let model = ExponentialSmoothing::<f64>::holt_winters(0.5, 0.1, 0.1, 4).unwrap();
+    /// ```
     pub fn holt_winters(alpha: T, beta: T, gamma: T, season_length: usize) -> Result<Self> {
         validate_alpha(alpha)?;
         validate_alpha(beta)?;
@@ -406,6 +503,15 @@ impl<T: Float> ExponentialSmoothing<T> {
     }
 
     /// Fit the model to data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::ExponentialSmoothing;
+    /// let data = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0];
+    /// let mut model = ExponentialSmoothing::simple(0.3).unwrap();
+    /// model.fit(&data).unwrap();
+    /// ```
     pub fn fit(&mut self, data: &[T]) -> Result<()> {
         let n = data.len();
         match self.method {
@@ -473,6 +579,17 @@ impl<T: Float> ExponentialSmoothing<T> {
     }
 
     /// Forecast `steps` steps ahead.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::ExponentialSmoothing;
+    /// let data = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+    /// let mut model = ExponentialSmoothing::simple(0.3).unwrap();
+    /// model.fit(&data).unwrap();
+    /// let fc = model.forecast(3).unwrap();
+    /// assert_eq!(fc.len(), 3);
+    /// ```
     pub fn forecast(&self, steps: usize) -> Result<Vec<T>> {
         if !self.fitted {
             return Err(StatsError::InvalidParameter {
@@ -522,6 +639,14 @@ fn validate_alpha<T: Float>(alpha: T) -> Result<()> {
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
 )]
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::seasonal_decompose;
+/// let data: Vec<f64> = (0..40).map(|i| (i as f64).sin() + (i as f64) * 0.1).collect();
+/// let result = seasonal_decompose(&data, 4).unwrap();
+/// assert_eq!(result.trend.len(), 40);
+/// ```
 #[derive(Debug, Clone)]
 pub struct DecomposeResult<T: Float> {
     /// Trend component.
@@ -537,6 +662,15 @@ pub struct DecomposeResult<T: Float> {
 /// Decomposes `y = trend + seasonal + residual`.
 ///
 /// `period` is the length of one seasonal cycle.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::seasonal_decompose;
+/// let data: Vec<f64> = (0..40).map(|i| (i as f64).sin() + (i as f64) * 0.1).collect();
+/// let result = seasonal_decompose(&data, 4).unwrap();
+/// assert_eq!(result.seasonal.len(), 40);
+/// ```
 pub fn seasonal_decompose<T: Float>(data: &[T], period: usize) -> Result<DecomposeResult<T>> {
     let n = data.len();
     if period < 2 {
@@ -644,6 +778,16 @@ pub fn seasonal_decompose<T: Float>(data: &[T], period: usize) -> Result<Decompo
 // ── Augmented Dickey-Fuller Test ────────────────────────────────────────
 
 /// Result of the Augmented Dickey-Fuller test.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::adf_test;
+/// let data: Vec<f64> = (0..100).map(|i| (i as f64).sin() + (i as f64) * 0.01_f64).collect();
+/// let result = adf_test(&data, Some(2)).unwrap();
+/// assert!(result.n_obs > 0);
+/// assert_eq!(result.n_lags, 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -668,6 +812,15 @@ pub struct AdfResult<T: Float> {
 ///
 /// `max_lags` controls the number of lagged difference terms. If `None`,
 /// uses `floor(12 * (n/100)^{1/4})`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::timeseries::adf_test;
+/// let data: Vec<f64> = (0..100).map(|i| (i as f64).sin()).collect();
+/// let result = adf_test(&data, Some(2)).unwrap();
+/// assert_eq!(result.n_lags, 2);
+/// ```
 pub fn adf_test<T: Float>(data: &[T], max_lags: Option<usize>) -> Result<AdfResult<T>> {
     let n = data.len();
     if n < 10 {
@@ -954,6 +1107,13 @@ impl<T: Float> Sarimax<T> {
     /// Create a new SARIMAX model.
     ///
     /// `seasonal` is a tuple `(P, D, Q, m)` for seasonal orders and period.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::timeseries::Sarimax;
+    /// let model = Sarimax::<f64>::new(1, 0, 0, (1, 0, 0, 12)).unwrap();
+    /// ```
     pub fn new(
         p: usize,
         d: usize,

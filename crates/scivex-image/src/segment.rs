@@ -63,6 +63,17 @@ impl UnionFind {
 /// # Errors
 ///
 /// Returns [`ImageError::UnsupportedChannels`] if the image is not grayscale.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::segment::connected_components;
+/// let data = vec![1u8, 0, 1, 0, 1]; // three separate blobs
+/// let img = Image::from_raw(data, 5, 1, PixelFormat::Gray).unwrap();
+/// let (_labels, count) = connected_components(&img, 0).unwrap();
+/// assert_eq!(count, 3);
+/// ```
 pub fn connected_components(img: &Image<u8>, threshold: u8) -> Result<(Image<u32>, usize)> {
     if img.format() != PixelFormat::Gray {
         return Err(ImageError::UnsupportedChannels {
@@ -154,6 +165,16 @@ pub fn connected_components(img: &Image<u8>, threshold: u8) -> Result<(Image<u32
 ///
 /// Returns [`ImageError::UnsupportedChannels`] if the image is not grayscale.
 /// Returns [`ImageError::InvalidParameter`] if a seed is out of bounds.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::segment::region_growing;
+/// let img = Image::from_raw(vec![100u8; 9], 3, 3, PixelFormat::Gray).unwrap();
+/// let mask = region_growing(&img, &[(1, 1)], 0).unwrap();
+/// assert!(mask.as_slice().iter().all(|&v| v == 255)); // uniform → all filled
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn region_growing(
     img: &Image<u8>,
@@ -252,6 +273,13 @@ impl PartialOrd for WatershedEntry {
 }
 
 /// Boundary label used by the watershed algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::segment::WATERSHED_BOUNDARY;
+/// assert_eq!(WATERSHED_BOUNDARY, u32::MAX);
+/// ```
 pub const WATERSHED_BOUNDARY: u32 = u32::MAX;
 
 /// Simplified marker-based watershed segmentation.
@@ -267,6 +295,18 @@ pub const WATERSHED_BOUNDARY: u32 = u32::MAX;
 /// grayscale.
 /// Returns [`ImageError::InvalidDimensions`] if the marker image dimensions
 /// do not match the gradient image.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::segment::watershed;
+/// let gradient = Image::from_raw(vec![0u8, 1, 2, 1, 0], 5, 1, PixelFormat::Gray).unwrap();
+/// let markers = Image::from_raw(vec![1u32, 0, 0, 0, 2], 5, 1, PixelFormat::Gray).unwrap();
+/// let result = watershed(&gradient, &markers).unwrap();
+/// assert_eq!(result.as_slice()[0], 1);
+/// assert_eq!(result.as_slice()[4], 2);
+/// ```
 #[allow(clippy::too_many_lines, clippy::cast_possible_wrap)]
 pub fn watershed(img: &Image<u8>, markers: &Image<u32>) -> Result<Image<u32>> {
     if img.format() != PixelFormat::Gray {

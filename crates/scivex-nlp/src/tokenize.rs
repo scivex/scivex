@@ -11,6 +11,15 @@ pub trait Tokenizer {
 // ---------------------------------------------------------------------------
 
 /// Splits text on whitespace boundaries.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::tokenize::{Tokenizer, WhitespaceTokenizer};
+/// let tok = WhitespaceTokenizer;
+/// let tokens = tok.tokenize("hello world foo");
+/// assert_eq!(tokens, vec!["hello", "world", "foo"]);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -32,12 +41,30 @@ impl Tokenizer for WhitespaceTokenizer {
     derive(serde::Serialize, serde::Deserialize)
 )]
 /// Splits text on non-alphanumeric boundaries, producing word tokens.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::tokenize::{Tokenizer, WordTokenizer};
+/// let tok = WordTokenizer::new();
+/// let tokens = tok.tokenize("hello world");
+/// assert_eq!(tokens, vec!["hello", "world"]);
+/// ```
 pub struct WordTokenizer {
     pub to_lowercase: bool,
 }
 
 impl WordTokenizer {
     /// Create a new word tokenizer (case-preserving by default).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::tokenize::WordTokenizer;
+    /// let tok = WordTokenizer::new().with_lowercase(true);
+    /// let tokens = tok.tokenize_owned("Hello, World!");
+    /// assert_eq!(tokens, vec!["hello", "world"]);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -46,6 +73,15 @@ impl WordTokenizer {
     }
 
     /// Enable or disable lowercase conversion for owned tokenization.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::tokenize::WordTokenizer;
+    /// let tok = WordTokenizer::new().with_lowercase(true);
+    /// let tokens = tok.tokenize_owned("Hello World");
+    /// assert_eq!(tokens, vec!["hello", "world"]);
+    /// ```
     #[must_use]
     pub fn with_lowercase(mut self, yes: bool) -> Self {
         self.to_lowercase = yes;
@@ -62,6 +98,15 @@ impl Default for WordTokenizer {
 impl WordTokenizer {
     /// Tokenize text into word tokens. When `to_lowercase` is true, returns
     /// owned `String`s (lowered). Otherwise returns borrowed slices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::tokenize::WordTokenizer;
+    /// let tok = WordTokenizer::new();
+    /// let tokens = tok.tokenize_owned("Hello, World!");
+    /// assert_eq!(tokens, vec!["Hello", "World"]);
+    /// ```
     pub fn tokenize_owned(&self, text: &str) -> Vec<String> {
         let tokens = Self::tokenize_borrowed(text);
         if self.to_lowercase {
@@ -102,6 +147,15 @@ impl Tokenizer for WordTokenizer {
 // ---------------------------------------------------------------------------
 
 /// Splits text into individual character tokens.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::tokenize::{Tokenizer, CharTokenizer};
+/// let tok = CharTokenizer;
+/// let tokens = tok.tokenize("abc");
+/// assert_eq!(tokens, vec!["a", "b", "c"]);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -121,6 +175,15 @@ impl Tokenizer for CharTokenizer {
 // ---------------------------------------------------------------------------
 
 /// Produces character-level n-grams from text.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::tokenize::{Tokenizer, NGramTokenizer};
+/// let tok = NGramTokenizer::new(2);
+/// let grams = tok.tokenize("abc");
+/// assert_eq!(grams, vec!["ab", "bc"]);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -131,6 +194,14 @@ pub struct NGramTokenizer {
 
 impl NGramTokenizer {
     /// Create an n-gram tokenizer with the given gram size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::tokenize::NGramTokenizer;
+    /// let tok = NGramTokenizer::new(3);
+    /// assert_eq!(tok.n, 3);
+    /// ```
     #[must_use]
     pub fn new(n: usize) -> Self {
         Self { n }

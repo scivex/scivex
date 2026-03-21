@@ -9,6 +9,21 @@ use super::kernel::Kernel;
 ///
 /// Supports binary classification with arbitrary kernel functions.
 /// Multi-class is handled via one-vs-one decomposition.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(
+///     vec![1.0_f64, 1.0, 2.0, 2.0, 8.0, 8.0, 9.0, 9.0],
+///     vec![4, 2],
+/// ).unwrap();
+/// let y = Tensor::from_vec(vec![0.0, 0.0, 1.0, 1.0], vec![4]).unwrap();
+/// let mut svc = SVC::new(Kernel::Linear, 1.0).unwrap();
+/// svc.fit(&x, &y).unwrap();
+/// let preds = svc.predict(&x).unwrap();
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

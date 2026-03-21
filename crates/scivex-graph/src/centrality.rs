@@ -9,6 +9,20 @@ use crate::graph::Graph;
 /// Degree centrality for each node: `degree(v) / (n - 1)`.
 ///
 /// Returns a vector indexed by node slot. Inactive nodes have centrality 0.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, centrality};
+/// let mut g = Graph::<f64>::new();
+/// let a = g.add_node();
+/// let b = g.add_node();
+/// let c = g.add_node();
+/// g.add_edge(a, b, 1.0).unwrap();
+/// g.add_edge(a, c, 1.0).unwrap();
+/// let dc = centrality::degree_centrality(&g);
+/// assert!((dc[a] - 1.0).abs() < 1e-10); // a connects to both b and c
+/// ```
 pub fn degree_centrality<T: Float>(graph: &Graph<T>) -> Vec<T> {
     let n = graph.capacity();
     let nc = graph.node_count();
@@ -28,6 +42,15 @@ pub fn degree_centrality<T: Float>(graph: &Graph<T>) -> Vec<T> {
 }
 
 /// In-degree centrality for each node in a directed graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, centrality};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (2, 1, 1.0)]).unwrap();
+/// let ic = centrality::in_degree_centrality(&g);
+/// assert!((ic[1] - 1.0).abs() < 1e-10); // node 1 receives 2 edges / (3-1)
+/// ```
 pub fn in_degree_centrality<T: Float>(graph: &DiGraph<T>) -> Vec<T> {
     let n = graph.capacity();
     let nc = graph.node_count();
@@ -47,6 +70,15 @@ pub fn in_degree_centrality<T: Float>(graph: &DiGraph<T>) -> Vec<T> {
 }
 
 /// Out-degree centrality for each node in a directed graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, centrality};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (0, 2, 1.0)]).unwrap();
+/// let oc = centrality::out_degree_centrality(&g);
+/// assert!((oc[0] - 1.0).abs() < 1e-10); // node 0 has 2 out-edges / (3-1)
+/// ```
 pub fn out_degree_centrality<T: Float>(graph: &DiGraph<T>) -> Vec<T> {
     let n = graph.capacity();
     let nc = graph.node_count();
@@ -69,6 +101,16 @@ pub fn out_degree_centrality<T: Float>(graph: &DiGraph<T>) -> Vec<T> {
 ///
 /// Computes the fraction of shortest paths through each node.
 /// The result is normalized by `2 / ((n-1)(n-2))` for undirected graphs.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, centrality};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+/// let bc = centrality::betweenness_centrality(&g);
+/// // Node 1 is the bridge between 0 and 2
+/// assert!(bc[1] > bc[0]);
+/// ```
 pub fn betweenness_centrality<T: Float>(graph: &Graph<T>) -> Vec<T> {
     let n = graph.capacity();
     let nc = graph.node_count();
@@ -136,6 +178,16 @@ pub fn betweenness_centrality<T: Float>(graph: &Graph<T>) -> Vec<T> {
 /// - `damping`: damping factor (typically 0.85)
 /// - `max_iter`: maximum iterations
 /// - `tol`: convergence tolerance
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, centrality};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0), (2, 0, 1.0)]).unwrap();
+/// let pr = centrality::pagerank(&g, 0.85_f64, 100, 1e-6_f64).unwrap();
+/// // Symmetric cycle → all nodes should have roughly equal PageRank
+/// assert!((pr[0] - pr[1]).abs() < 0.01);
+/// ```
 pub fn pagerank<T: Float>(
     graph: &DiGraph<T>,
     damping: T,

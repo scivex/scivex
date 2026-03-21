@@ -22,6 +22,14 @@ use crate::error::{IoError, Result};
 ///
 /// All columns are read by default. Use [`ParquetReaderBuilder`] for
 /// column selection and batch size control.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::parquet::read_parquet;
+/// let df = read_parquet("data.parquet").unwrap();
+/// assert!(df.nrows() > 0);
+/// ```
 pub fn read_parquet(path: impl AsRef<Path>) -> Result<DataFrame> {
     ParquetReaderBuilder::new().read_path(path)
 }
@@ -30,11 +38,42 @@ pub fn read_parquet(path: impl AsRef<Path>) -> Result<DataFrame> {
 ///
 /// Uses Snappy compression by default. Use [`ParquetWriterBuilder`] for
 /// custom compression and writer settings.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::parquet::write_parquet;
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("x", vec![1_i64, 2, 3]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// write_parquet(&df, "out.parquet").unwrap();
+/// ```
 pub fn write_parquet(df: &DataFrame, path: impl AsRef<Path>) -> Result<()> {
     ParquetWriterBuilder::new().write_path(df, path)
 }
 
 /// Builder for configuring Parquet reading.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::parquet::{ParquetReaderBuilder, ParquetWriterBuilder, ParquetCompression};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("v", vec![10_i64, 20]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+///
+/// let mut buf = Vec::new();
+/// ParquetWriterBuilder::new()
+///     .compression(ParquetCompression::None)
+///     .write(&df, &mut buf)
+///     .unwrap();
+///
+/// let read_df = ParquetReaderBuilder::new()
+///     .read_bytes(bytes::Bytes::from(buf))
+///     .unwrap();
+/// assert_eq!(read_df.nrows(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -139,6 +178,14 @@ impl ParquetReaderBuilder {
 }
 
 /// Compression codec for Parquet writing.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::parquet::ParquetCompression;
+/// assert_eq!(ParquetCompression::Snappy, ParquetCompression::Snappy);
+/// assert_ne!(ParquetCompression::None, ParquetCompression::Gzip);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -170,6 +217,25 @@ impl ParquetCompression {
 }
 
 /// Builder for configuring Parquet writing.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::parquet::{ParquetWriterBuilder, ParquetCompression, ParquetReaderBuilder};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("y", vec![1_i64, 2, 3]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// let mut buf = Vec::new();
+/// ParquetWriterBuilder::new()
+///     .compression(ParquetCompression::None)
+///     .write(&df, &mut buf)
+///     .unwrap();
+/// let df2 = ParquetReaderBuilder::new()
+///     .read_bytes(bytes::Bytes::from(buf))
+///     .unwrap();
+/// assert_eq!(df2.nrows(), 3);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

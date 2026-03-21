@@ -3,6 +3,14 @@ use core::fmt;
 use scivex_core::CoreError;
 
 /// All errors returned by `scivex-sym`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::SymError;
+/// let err = SymError::DivisionByZero;
+/// assert_eq!(format!("{err}"), "division by zero");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

@@ -21,6 +21,14 @@ pub struct Weibull<T: Float> {
 
 impl<T: Float> Weibull<T> {
     /// Create a new Weibull distribution with shape `k > 0` and scale `lambda > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Weibull, Distribution};
+    /// let w = Weibull::new(1.0_f64, 2.0).unwrap();
+    /// assert!(w.pdf(1.0) > 0.0);
+    /// ```
     pub fn new(k: T, lambda: T) -> Result<Self> {
         if k <= T::zero() {
             return Err(StatsError::InvalidParameter {

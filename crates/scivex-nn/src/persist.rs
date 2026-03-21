@@ -62,6 +62,18 @@ fn to_f64<T: Float>(v: T) -> f64 {
 ///
 /// Extracts the underlying tensor data from each `Variable` and writes
 /// shapes and values in a portable binary format.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::layer::{Linear, Layer};
+/// # use scivex_nn::persist::{save_weights, load_weights};
+/// # use scivex_core::random::Rng;
+/// let mut rng = Rng::new(42);
+/// let layer = Linear::<f64>::new(4, 2, true, &mut rng);
+/// let params = layer.parameters();
+/// save_weights("/tmp/model.bin", &params).unwrap();
+/// ```
 pub fn save_weights<T: Float>(path: &str, params: &[Variable<T>]) -> Result<()> {
     let f = File::create(path).map_err(|_| io_err())?;
     let mut w = BufWriter::new(f);
@@ -103,6 +115,14 @@ pub fn save_weights<T: Float>(path: &str, params: &[Variable<T>]) -> Result<()> 
 /// Returns a vector of `Tensor<T>` in the same order they were saved.
 /// The caller is responsible for mapping these back to the model's
 /// `Variable` parameters (typically via `Variable::set_data`).
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::persist::load_weights;
+/// // Assuming "model.bin" was previously saved with save_weights.
+/// let tensors = load_weights::<f64>("/tmp/model.bin").unwrap();
+/// ```
 pub fn load_weights<T: Float>(path: &str) -> Result<Vec<Tensor<T>>> {
     let f = File::open(path).map_err(|_| io_err())?;
     let mut r = BufReader::new(f);

@@ -27,6 +27,15 @@ pub struct CategoricalSeries {
 
 impl CategoricalSeries {
     /// Create from string slices, automatically building the dictionary.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::categorical::CategoricalSeries;
+    /// let cat = CategoricalSeries::from_strs("color", &["red", "blue", "red"]);
+    /// assert_eq!(cat.n_categories(), 2);
+    /// assert_eq!(cat.get(0), Some("red"));
+    /// ```
     pub fn from_strs(name: impl Into<String>, data: &[&str]) -> Self {
         let mut categories = Vec::new();
         let mut cat_map: HashMap<String, u32> = HashMap::new();
@@ -53,6 +62,18 @@ impl CategoricalSeries {
     }
 
     /// Create with explicit categories and codes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::categorical::CategoricalSeries;
+    /// let cat = CategoricalSeries::new(
+    ///     "x",
+    ///     vec!["a".into(), "b".into()],
+    ///     vec![0, 1, 0],
+    /// ).unwrap();
+    /// assert_eq!(cat.get(2), Some("a"));
+    /// ```
     pub fn new(name: impl Into<String>, categories: Vec<String>, codes: Vec<u32>) -> Result<Self> {
         let n_cats = categories.len() as u32;
         for &c in &codes {
@@ -145,6 +166,16 @@ impl CategoricalSeries {
     }
 
     /// Convert to a [`StringSeries`] (decoding all values).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::categorical::CategoricalSeries;
+    /// let cat = CategoricalSeries::from_strs("x", &["a", "b", "a"]);
+    /// let ss = cat.to_string_series();
+    /// assert_eq!(ss.get(0), Some("a"));
+    /// assert_eq!(ss.get(1), Some("b"));
+    /// ```
     pub fn to_string_series(&self) -> StringSeries {
         let data: Vec<String> = self
             .codes
@@ -160,6 +191,15 @@ impl CategoricalSeries {
     }
 
     /// Add a new category to the dictionary.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::categorical::CategoricalSeries;
+    /// let mut cat = CategoricalSeries::from_strs("x", &["a", "b"]);
+    /// cat.add_category("c");
+    /// assert_eq!(cat.n_categories(), 3);
+    /// ```
     pub fn add_category(&mut self, category: &str) {
         if !self.categories.iter().any(|c| c == category) {
             self.categories.push(category.to_string());
@@ -167,6 +207,15 @@ impl CategoricalSeries {
     }
 
     /// Rename an existing category.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::categorical::CategoricalSeries;
+    /// let mut cat = CategoricalSeries::from_strs("x", &["a", "b"]);
+    /// cat.rename_category("a", "alpha").unwrap();
+    /// assert_eq!(cat.get(0), Some("alpha"));
+    /// ```
     pub fn rename_category(&mut self, old: &str, new: &str) -> Result<()> {
         let pos =
             self.categories
@@ -180,6 +229,15 @@ impl CategoricalSeries {
     }
 
     /// Reorder categories to match the given order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::categorical::CategoricalSeries;
+    /// let mut cat = CategoricalSeries::from_strs("x", &["a", "b", "c"]);
+    /// cat.reorder_categories(&["c", "b", "a"]).unwrap();
+    /// assert_eq!(cat.categories(), &["c", "b", "a"]);
+    /// ```
     pub fn reorder_categories(&mut self, new_order: &[&str]) -> Result<()> {
         if new_order.len() != self.categories.len() {
             return Err(FrameError::InvalidArgument {

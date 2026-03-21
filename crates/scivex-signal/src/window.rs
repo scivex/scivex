@@ -5,6 +5,15 @@ use scivex_core::{Float, Tensor};
 use crate::error::{Result, SignalError};
 
 /// Hann (raised-cosine) window: `0.5 * (1 - cos(2*pi*k / (N-1)))`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::window;
+/// let w = window::hann::<f64>(5).unwrap();
+/// assert_eq!(w.shape(), &[5]);
+/// assert!((w.as_slice()[0]).abs() < 1e-10); // first sample ≈ 0
+/// ```
 pub fn hann<T: Float>(n: usize) -> Result<Tensor<T>> {
     if n == 0 {
         return Err(SignalError::InvalidParameter {
@@ -25,6 +34,14 @@ pub fn hann<T: Float>(n: usize) -> Result<Tensor<T>> {
 }
 
 /// Hamming window: `0.54 - 0.46 * cos(2*pi*k / (N-1))`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::window;
+/// let w = window::hamming::<f64>(5).unwrap();
+/// assert_eq!(w.shape(), &[5]);
+/// ```
 pub fn hamming<T: Float>(n: usize) -> Result<Tensor<T>> {
     if n == 0 {
         return Err(SignalError::InvalidParameter {
@@ -46,6 +63,14 @@ pub fn hamming<T: Float>(n: usize) -> Result<Tensor<T>> {
 }
 
 /// Blackman window: `0.42 - 0.5*cos(2*pi*k/(N-1)) + 0.08*cos(4*pi*k/(N-1))`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::window;
+/// let w = window::blackman::<f64>(5).unwrap();
+/// assert_eq!(w.shape(), &[5]);
+/// ```
 pub fn blackman<T: Float>(n: usize) -> Result<Tensor<T>> {
     if n == 0 {
         return Err(SignalError::InvalidParameter {
@@ -72,6 +97,15 @@ pub fn blackman<T: Float>(n: usize) -> Result<Tensor<T>> {
 }
 
 /// Bartlett (triangular) window.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::window;
+/// let w = window::bartlett::<f64>(5).unwrap();
+/// assert_eq!(w.shape(), &[5]);
+/// assert!((w.as_slice()[2] - 1.0).abs() < 1e-10); // peak at center
+/// ```
 pub fn bartlett<T: Float>(n: usize) -> Result<Tensor<T>> {
     if n == 0 {
         return Err(SignalError::InvalidParameter {
@@ -92,6 +126,14 @@ pub fn bartlett<T: Float>(n: usize) -> Result<Tensor<T>> {
 }
 
 /// Rectangular (boxcar) window — all ones.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::window;
+/// let w = window::rectangular::<f64>(4).unwrap();
+/// assert!(w.as_slice().iter().all(|&x| (x - 1.0).abs() < 1e-10));
+/// ```
 pub fn rectangular<T: Float>(n: usize) -> Result<Tensor<T>> {
     if n == 0 {
         return Err(SignalError::InvalidParameter {

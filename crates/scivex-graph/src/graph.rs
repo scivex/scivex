@@ -8,6 +8,15 @@ use crate::error::{GraphError, Result};
 /// Nodes are identified by `usize` indices. Removed nodes leave a tombstone
 /// (empty adjacency list, `active[u] = false`) so that existing node IDs
 /// remain stable.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::Graph;
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+/// assert_eq!(g.node_count(), 3);
+/// assert_eq!(g.edge_count(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -42,6 +51,16 @@ impl<T: Float> Graph<T> {
     }
 
     /// Add a node and return its ID.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let mut g = Graph::<f64>::new();
+    /// let a = g.add_node();
+    /// let b = g.add_node();
+    /// assert_eq!(g.node_count(), 2);
+    /// ```
     pub fn add_node(&mut self) -> usize {
         let id = self.adj.len();
         self.adj.push(Vec::new());
@@ -53,6 +72,17 @@ impl<T: Float> Graph<T> {
     /// Add an undirected edge between `u` and `v` with the given weight.
     ///
     /// If the edge already exists, its weight is overwritten.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let mut g = Graph::<f64>::new();
+    /// let a = g.add_node();
+    /// let b = g.add_node();
+    /// g.add_edge(a, b, 1.5).unwrap();
+    /// assert_eq!(g.edge_count(), 1);
+    /// ```
     pub fn add_edge(&mut self, u: usize, v: usize, weight: T) -> Result<()> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -72,6 +102,16 @@ impl<T: Float> Graph<T> {
     }
 
     /// Remove a node and all its edges.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let mut g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// g.remove_node(1).unwrap();
+    /// assert_eq!(g.node_count(), 2);
+    /// assert_eq!(g.edge_count(), 0);
+    /// ```
     pub fn remove_node(&mut self, u: usize) -> Result<()> {
         self.check_node(u)?;
 
@@ -97,6 +137,15 @@ impl<T: Float> Graph<T> {
     }
 
     /// Remove the edge between `u` and `v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let mut g = Graph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// g.remove_edge(0, 1).unwrap();
+    /// assert_eq!(g.edge_count(), 0);
+    /// ```
     pub fn remove_edge(&mut self, u: usize, v: usize) -> Result<()> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -114,30 +163,73 @@ impl<T: Float> Graph<T> {
     }
 
     /// Return the neighbors of node `u` as `(neighbor_id, weight)` pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (0, 2, 2.0)]).unwrap();
+    /// let nbrs = g.neighbors(0).unwrap();
+    /// assert_eq!(nbrs.len(), 2);
+    /// ```
     pub fn neighbors(&self, u: usize) -> Result<&[(usize, T)]> {
         self.check_node(u)?;
         Ok(&self.adj[u])
     }
 
     /// Return the degree of node `u`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (0, 2, 2.0)]).unwrap();
+    /// assert_eq!(g.degree(0).unwrap(), 2);
+    /// assert_eq!(g.degree(1).unwrap(), 1);
+    /// ```
     pub fn degree(&self, u: usize) -> Result<usize> {
         self.check_node(u)?;
         Ok(self.adj[u].len())
     }
 
     /// Number of active nodes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// assert_eq!(g.node_count(), 2);
+    /// ```
     #[must_use]
     pub fn node_count(&self) -> usize {
         self.node_count
     }
 
     /// Number of undirected edges.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// assert_eq!(g.edge_count(), 2);
+    /// ```
     #[must_use]
     pub fn edge_count(&self) -> usize {
         self.edge_count
     }
 
     /// Check if an edge exists between `u` and `v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// assert!(g.has_edge(0, 1).unwrap());
+    /// assert!(!g.has_edge(0, 2).unwrap_or(false));
+    /// ```
     pub fn has_edge(&self, u: usize, v: usize) -> Result<bool> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -145,6 +237,14 @@ impl<T: Float> Graph<T> {
     }
 
     /// Get the weight of the edge between `u` and `v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 3.5_f64)]).unwrap();
+    /// assert_eq!(g.get_weight(0, 1).unwrap(), 3.5);
+    /// ```
     pub fn get_weight(&self, u: usize, v: usize) -> Result<T> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -158,6 +258,15 @@ impl<T: Float> Graph<T> {
     /// Build a CSR adjacency matrix. The matrix is `n x n` where `n` is the
     /// total capacity (including tombstoned nodes). Inactive nodes have empty
     /// rows/columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// let mat = g.adjacency_matrix().unwrap();
+    /// assert_eq!(mat.shape(), (3, 3));
+    /// ```
     pub fn adjacency_matrix(&self) -> Result<CsrMatrix<T>> {
         let n = self.adj.len();
         let mut coo = CooMatrix::new(n, n);
@@ -173,6 +282,16 @@ impl<T: Float> Graph<T> {
     }
 
     /// Build a graph from a symmetric CSR adjacency matrix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g1 = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// let mat = g1.adjacency_matrix().unwrap();
+    /// let g2 = Graph::from_adjacency_matrix(&mat).unwrap();
+    /// assert_eq!(g2.node_count(), 3);
+    /// ```
     pub fn from_adjacency_matrix(mat: &CsrMatrix<T>) -> Result<Self> {
         let (nrows, ncols) = mat.shape();
         if nrows != ncols {
@@ -201,6 +320,15 @@ impl<T: Float> Graph<T> {
     /// Build a graph from a list of `(u, v, weight)` edges.
     ///
     /// Nodes are created as needed up to the maximum node ID referenced.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0), (0, 2, 3.0)]).unwrap();
+    /// assert_eq!(g.node_count(), 3);
+    /// assert_eq!(g.edge_count(), 3);
+    /// ```
     pub fn from_edges(edges: &[(usize, usize, T)]) -> Result<Self> {
         let max_node = edges
             .iter()
@@ -218,6 +346,15 @@ impl<T: Float> Graph<T> {
     }
 
     /// Iterate over all active node IDs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// let ids: Vec<_> = g.node_ids().collect();
+    /// assert_eq!(ids, vec![0, 1]);
+    /// ```
     pub fn node_ids(&self) -> impl Iterator<Item = usize> + '_ {
         self.active
             .iter()
@@ -228,6 +365,15 @@ impl<T: Float> Graph<T> {
 
     /// Iterate over all edges as `(u, v, weight)` — each undirected edge
     /// appears once with `u <= v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::Graph;
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// let edges: Vec<_> = g.edges().collect();
+    /// assert_eq!(edges.len(), 2);
+    /// ```
     pub fn edges(&self) -> impl Iterator<Item = (usize, usize, T)> + '_ {
         self.adj
             .iter()

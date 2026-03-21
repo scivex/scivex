@@ -14,6 +14,16 @@ use crate::window;
 ///
 /// Returns a complex tensor of shape `[num_frames, freq_bins, 2]` where
 /// `freq_bins = padded_window_size / 2 + 1` and padded is the next power of two >= `window_size`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::spectral::stft;
+/// let signal = Tensor::from_vec(vec![0.0_f64; 256], vec![256]).unwrap();
+/// let result = stft(&signal, 64, 32, None).unwrap();
+/// assert_eq!(result.shape()[2], 2); // complex: [re, im]
+/// ```
 pub fn stft<T: Float>(
     x: &Tensor<T>,
     window_size: usize,
@@ -99,6 +109,17 @@ pub fn stft<T: Float>(
 /// `win` — optional window tensor. Defaults to Hann.
 ///
 /// Returns the reconstructed real signal.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::spectral::{stft, istft};
+/// let x = Tensor::from_vec(vec![1.0_f64; 64], vec![64]).unwrap();
+/// let s = stft(&x, 16, 8, None).unwrap();
+/// let y = istft(&s, 16, 8, None).unwrap();
+/// assert!(y.numel() >= 64);
+/// ```
 pub fn istft<T: Float>(
     stft_result: &Tensor<T>,
     window_size: usize,
@@ -163,6 +184,16 @@ pub fn istft<T: Float>(
 /// Compute a power spectrogram: `|STFT|^2`.
 ///
 /// Returns a real tensor of shape `[num_frames, freq_bins]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::spectral::spectrogram;
+/// let x = Tensor::from_vec(vec![0.0_f64; 128], vec![128]).unwrap();
+/// let spec = spectrogram(&x, 32, 16).unwrap();
+/// assert_eq!(spec.ndim(), 2);
+/// ```
 pub fn spectrogram<T: Float>(
     x: &Tensor<T>,
     window_size: usize,
@@ -190,6 +221,17 @@ pub fn spectrogram<T: Float>(
 ///
 /// Returns `(frequencies, psd)` where both are 1-D tensors.
 /// Frequencies are normalized to [0, 0.5] (fraction of sample rate).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::spectral::periodogram;
+/// let x = Tensor::from_vec(vec![1.0_f64, 0.5, -0.3, 0.7], vec![4]).unwrap();
+/// let (freqs, psd) = periodogram(&x).unwrap();
+/// assert_eq!(freqs.numel(), psd.numel());
+/// assert!(psd.as_slice().iter().all(|&v| v >= 0.0));
+/// ```
 pub fn periodogram<T: Float>(x: &Tensor<T>) -> Result<(Tensor<T>, Tensor<T>)> {
     if x.ndim() != 1 {
         return Err(SignalError::InvalidParameter {
@@ -238,6 +280,18 @@ pub fn periodogram<T: Float>(x: &Tensor<T>) -> Result<(Tensor<T>, Tensor<T>)> {
 /// `overlap` — number of overlapping samples between segments.
 ///
 /// Returns `(frequencies, psd)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::spectral::welch;
+/// let data: Vec<f64> = (0..256).map(|i| (f64::from(i) * 0.1).sin()).collect();
+/// let x = Tensor::from_vec(data, vec![256]).unwrap();
+/// let (freqs, psd) = welch(&x, 64, 32).unwrap();
+/// assert_eq!(freqs.numel(), psd.numel());
+/// assert!(psd.as_slice().iter().all(|&v| v >= 0.0));
+/// ```
 pub fn welch<T: Float>(
     x: &Tensor<T>,
     segment_size: usize,

@@ -33,6 +33,21 @@ pub struct LimeExplanation<T: Float> {
 /// - `n_perturbations` — number of perturbed samples per instance
 /// - `kernel_width` — width of exponential kernel (default: `sqrt(n_features) * 0.75`)
 /// - `seed` — random seed
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_ml::{tree::DecisionTreeRegressor, traits::Predictor, explain::lime};
+/// let x = Tensor::from_vec(vec![1.0_f64,2.0, 3.0,4.0, 5.0,6.0], vec![3, 2]).unwrap();
+/// let y = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+/// let mut model = DecisionTreeRegressor::new(Some(3), 1);
+/// model.fit(&x, &y).unwrap();
+/// let x_explain = Tensor::from_vec(vec![2.0, 3.0], vec![1, 2]).unwrap();
+/// let explanations = lime(&model, &x, &x_explain, 200, None, 42).unwrap();
+/// assert_eq!(explanations.len(), 1);
+/// assert_eq!(explanations[0].weights.len(), 2);
+/// ```
 pub fn lime<T, P>(
     model: &P,
     x_train: &Tensor<T>,

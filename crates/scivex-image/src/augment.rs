@@ -10,6 +10,14 @@ use crate::error::{ImageError, Result};
 use crate::image::Image;
 
 /// A single augmentation operation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::augment::AugmentStep;
+/// let flip = AugmentStep::RandomFlipH { prob: 0.5 };
+/// let noise = AugmentStep::GaussianNoise { sigma: 0.01 };
+/// ```
 #[derive(Debug, Clone)]
 pub enum AugmentStep {
     /// Flip horizontally with probability `prob`.
@@ -44,6 +52,21 @@ pub enum AugmentStep {
 /// A composable augmentation pipeline.
 ///
 /// Steps are applied in the order they are added.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::augment::{AugmentPipeline, AugmentStep};
+/// # use scivex_core::random::Rng;
+/// let img = Image::from_raw(vec![0.5f32; 12], 2, 2, PixelFormat::Rgb).unwrap();
+/// let pipeline = AugmentPipeline::new()
+///     .add(AugmentStep::RandomFlipH { prob: 1.0 })
+///     .add(AugmentStep::RandomBrightness { delta: 0.1 });
+/// let mut rng = Rng::new(42);
+/// let out = pipeline.apply(&img, &mut rng).unwrap();
+/// assert_eq!(out.dimensions(), (2, 2));
+/// ```
 #[derive(Debug, Clone)]
 pub struct AugmentPipeline {
     steps: Vec<AugmentStep>,
@@ -51,12 +74,27 @@ pub struct AugmentPipeline {
 
 impl AugmentPipeline {
     /// Create a new empty pipeline.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::augment::AugmentPipeline;
+    /// let pipeline = AugmentPipeline::new();
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self { steps: Vec::new() }
     }
 
     /// Append a step to the pipeline (builder pattern).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::augment::{AugmentPipeline, AugmentStep};
+    /// let pipeline = AugmentPipeline::new()
+    ///     .add(AugmentStep::RandomFlipH { prob: 0.5_f64 });
+    /// ```
     #[must_use]
     #[allow(clippy::should_implement_trait)]
     pub fn add(mut self, step: AugmentStep) -> Self {
@@ -65,6 +103,19 @@ impl AugmentPipeline {
     }
 
     /// Apply all steps in order, returning a new image.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::prelude::*;
+    /// # use scivex_image::augment::{AugmentPipeline, AugmentStep};
+    /// # use scivex_core::random::Rng;
+    /// let img = Image::from_raw(vec![0.5f32; 4], 2, 2, PixelFormat::Gray).unwrap();
+    /// let pipeline = AugmentPipeline::new().add(AugmentStep::RandomFlipH { prob: 1.0_f64 });
+    /// let mut rng = Rng::new(0);
+    /// let out = pipeline.apply(&img, &mut rng).unwrap();
+    /// assert_eq!(out.dimensions(), (2, 2));
+    /// ```
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_sign_loss)]
     pub fn apply<T: Float>(&self, img: &Image<T>, rng: &mut Rng) -> Result<Image<T>> {

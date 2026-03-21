@@ -67,6 +67,13 @@ impl<T: Float> OnlineKMeans<T> {
     /// # Errors
     ///
     /// Returns [`MlError::InvalidParameter`] if `n_clusters` is zero.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::online::OnlineKMeans;
+    /// let km = OnlineKMeans::<f64>::new(3, 42).unwrap();
+    /// ```
     pub fn new(n_clusters: usize, seed: u64) -> Result<Self> {
         if n_clusters == 0 {
             return Err(MlError::InvalidParameter {

@@ -6,6 +6,14 @@ use crate::error::{ImageError, Result};
 use crate::image::{Image, PixelFormat};
 
 /// A detected corner / keypoint.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::features::Corner;
+/// let c = Corner { row: 5, col: 10, response: 0.42 };
+/// assert_eq!(c.row, 5);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Corner {
     /// Row (y) coordinate.
@@ -25,6 +33,18 @@ pub struct Corner {
 /// 4. Suppress responses below `threshold` and apply 3x3 non-maximum suppression.
 ///
 /// Only grayscale images are accepted (convert to gray first).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::features::harris_corners;
+/// let data = vec![0.5f32; 10 * 10];
+/// let img = Image::from_raw(data, 10, 10, PixelFormat::Gray).unwrap();
+/// let corners = harris_corners(&img, 0.04_f32, 0.001_f32, 3).unwrap();
+/// // Uniform image produces no corners
+/// assert!(corners.is_empty());
+/// ```
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::cast_possible_truncation)]
 #[allow(clippy::cast_possible_wrap)]
@@ -155,6 +175,17 @@ pub fn harris_corners<T: Float>(
 ///
 /// If `nonmax` is true, 3x3 non-maximum suppression is applied using the
 /// number of contiguous pixels as the score.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::features::fast_features;
+/// let img = Image::from_raw(vec![128u8; 20 * 20], 20, 20, PixelFormat::Gray).unwrap();
+/// let corners = fast_features(&img, 50, true).unwrap();
+/// // Uniform image produces no features
+/// assert!(corners.is_empty());
+/// ```
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::cast_possible_truncation)]
 #[allow(clippy::cast_sign_loss)]

@@ -11,6 +11,21 @@ use crate::error::Result;
 /// Solve an ODE system using the forward Euler method.
 ///
 /// `f(t, y) -> dy/dt` defines the system. `y0` is the initial state vector.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::ode::{euler, OdeOptions};
+/// // dy/dt = -y, y(0) = 1 → y(t) = e^(-t)
+/// let result = euler(
+///     |_t: f64, y: &[f64]| vec![-y[0]],
+///     [0.0, 1.0],
+///     &[1.0],
+///     &OdeOptions::default(),
+/// ).unwrap();
+/// let y_final = result.y.last().unwrap()[0];
+/// assert!((y_final - (-1.0_f64).exp()).abs() < 0.02);
+/// ```
 pub fn euler<T, F>(f: F, t_span: [T; 2], y0: &[T], options: &OdeOptions<T>) -> Result<OdeResult<T>>
 where
     T: Float,

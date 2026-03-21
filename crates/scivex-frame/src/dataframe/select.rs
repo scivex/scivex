@@ -32,6 +32,19 @@ impl DataFrame {
     }
 
     /// Return a new `DataFrame` without the named columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32, 2])
+    ///     .add_column("b", vec![3_i32, 4])
+    ///     .build()
+    ///     .unwrap();
+    /// let dropped = df.drop_columns(&["b"]).unwrap();
+    /// assert_eq!(dropped.column_names(), vec!["a"]);
+    /// ```
     pub fn drop_columns(&self, names: &[&str]) -> Result<DataFrame> {
         // Validate that all names exist.
         for &name in names {
@@ -47,6 +60,18 @@ impl DataFrame {
     }
 
     /// Rename a column in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let mut df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32, 2])
+    ///     .build()
+    ///     .unwrap();
+    /// df.rename("a", "alpha").unwrap();
+    /// assert_eq!(df.column_names()[0], "alpha");
+    /// ```
     pub fn rename(&mut self, old: &str, new: &str) -> Result<()> {
         // Check the new name doesn't already exist (unless it's the same column).
         if old != new && self.columns.iter().any(|c| c.name() == new) {
@@ -61,6 +86,18 @@ impl DataFrame {
 
     /// Add a column. Fails if the name is a duplicate or if the length
     /// doesn't match existing columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let mut df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32, 2])
+    ///     .build()
+    ///     .unwrap();
+    /// df.add_column(Box::new(Series::new("b", vec![3_i32, 4]))).unwrap();
+    /// assert_eq!(df.ncols(), 2);
+    /// ```
     pub fn add_column(&mut self, col: Box<dyn AnySeries>) -> Result<()> {
         if self.columns.iter().any(|c| c.name() == col.name()) {
             return Err(FrameError::DuplicateColumnName {
@@ -78,6 +115,20 @@ impl DataFrame {
     }
 
     /// Remove and return a column by name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let mut df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32, 2])
+    ///     .add_column("b", vec![3_i32, 4])
+    ///     .build()
+    ///     .unwrap();
+    /// let removed = df.remove_column("b").unwrap();
+    /// assert_eq!(removed.name(), "b");
+    /// assert_eq!(df.ncols(), 1);
+    /// ```
     pub fn remove_column(&mut self, name: &str) -> Result<Box<dyn AnySeries>> {
         let idx = self.column_index(name)?;
         Ok(self.columns.remove(idx))

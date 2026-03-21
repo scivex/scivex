@@ -27,6 +27,20 @@ impl<T: Float> Dropout<T> {
     ///
     /// - `p`: probability of zeroing an element (0.0 to 1.0)
     /// - `rng`: random number generator
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_nn::layer::{Dropout, Layer};
+    /// let mut dropout = Dropout::<f64>::new(0.5, Rng::new(42));
+    /// dropout.eval(); // disable dropout for inference
+    /// let x = Variable::new(Tensor::ones(vec![2, 3]), false);
+    /// let y = dropout.forward(&x).unwrap();
+    /// // In eval mode, output equals input
+    /// assert_eq!(y.data().as_slice(), x.data().as_slice());
+    /// ```
     pub fn new(p: T, rng: Rng) -> Self {
         Self {
             p,

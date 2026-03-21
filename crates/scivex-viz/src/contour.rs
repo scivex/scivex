@@ -20,6 +20,16 @@ pub struct ContourPlot {
 
 impl ContourPlot {
     /// Create a contour plot from a 2-D grid and a number of contour levels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::contour::ContourPlot;
+    /// let cp = ContourPlot::new(
+    ///     vec![vec![0.0_f64, 1.0_f64], vec![1.0_f64, 2.0_f64]],
+    ///     5,
+    /// );
+    /// ```
     #[must_use]
     pub fn new(data: Vec<Vec<f64>>, n_levels: usize) -> Self {
         Self {
@@ -32,6 +42,14 @@ impl ContourPlot {
     }
 
     /// Set the colormap used to color contour levels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::contour::ContourPlot;
+    /// # use scivex_viz::color::ColorMap;
+    /// let cp = ContourPlot::new(vec![vec![0.0_f64]], 3).colormap(ColorMap::plasma());
+    /// ```
     #[must_use]
     pub fn colormap(mut self, cm: ColorMap) -> Self {
         self.colormap = cm;
@@ -39,6 +57,13 @@ impl ContourPlot {
     }
 
     /// Set the contour line width.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::contour::ContourPlot;
+    /// let cp = ContourPlot::new(vec![vec![0.0_f64]], 3).stroke_width(2.0_f64);
+    /// ```
     #[must_use]
     pub fn stroke_width(mut self, w: f64) -> Self {
         self.stroke_width = w;
@@ -46,6 +71,15 @@ impl ContourPlot {
     }
 
     /// Set the legend label for this contour plot.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::contour::ContourPlot;
+    /// # use scivex_viz::plot::PlotBuilder;
+    /// let cp = ContourPlot::new(vec![vec![0.0_f64]], 3).label("contours");
+    /// assert!(PlotBuilder::label(&cp) == Some("contours"));
+    /// ```
     #[must_use]
     pub fn label(mut self, l: &str) -> Self {
         self.plot_label = Some(l.to_string());

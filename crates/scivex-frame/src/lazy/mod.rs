@@ -45,6 +45,17 @@ pub struct LazyFrame {
 
 impl LazyFrame {
     /// Create a new `LazyFrame` from an existing `DataFrame`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::lazy::LazyFrame;
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32]).build().unwrap();
+    /// let lazy = LazyFrame::new(df);
+    /// let result = lazy.collect().unwrap();
+    /// assert_eq!(result.nrows(), 1);
+    /// ```
     pub fn new(df: DataFrame) -> Self {
         Self {
             plan: LogicalPlan::Scan(df),
@@ -52,6 +63,16 @@ impl LazyFrame {
     }
 
     /// Filter rows by a boolean predicate expression.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::lazy::expr::{col, lit_i64};
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32, 2, 3]).build().unwrap();
+    /// let result = df.lazy().filter(col("x").gt(lit_i64(1))).collect().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn filter(self, predicate: Expr) -> Self {
         Self {
             plan: LogicalPlan::Filter {
@@ -62,6 +83,19 @@ impl LazyFrame {
     }
 
     /// Select expressions (column projections or computed columns).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::lazy::expr::col;
+    /// let df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32, 2])
+    ///     .add_column("b", vec![3_i32, 4])
+    ///     .build().unwrap();
+    /// let result = df.lazy().select(&[col("a")]).collect().unwrap();
+    /// assert_eq!(result.ncols(), 1);
+    /// ```
     pub fn select(self, exprs: &[Expr]) -> Self {
         Self {
             plan: LogicalPlan::Select {
@@ -72,6 +106,16 @@ impl LazyFrame {
     }
 
     /// Sort by a column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder().add_column("x", vec![3_i32, 1, 2]).build().unwrap();
+    /// let result = df.lazy().sort("x", true).collect().unwrap();
+    /// let col = result.column_typed::<i32>("x").unwrap();
+    /// assert_eq!(col.as_slice(), &[1, 2, 3]);
+    /// ```
     pub fn sort(self, column: &str, ascending: bool) -> Self {
         Self {
             plan: LogicalPlan::Sort {
@@ -83,6 +127,15 @@ impl LazyFrame {
     }
 
     /// Limit to the first `n` rows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32, 2, 3, 4]).build().unwrap();
+    /// let result = df.lazy().limit(2).collect().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn limit(self, n: usize) -> Self {
         Self {
             plan: LogicalPlan::Limit {
@@ -96,6 +149,21 @@ impl LazyFrame {
     ///
     /// Each expression in `agg_exprs` should be an `Expr::Agg` or
     /// `Expr::Alias(Expr::Agg(...))`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::lazy::expr::col;
+    /// let df = DataFrame::builder()
+    ///     .add_column("g", vec![1_i32, 1, 2])
+    ///     .add_column("v", vec![10.0_f64, 20.0, 30.0])
+    ///     .build().unwrap();
+    /// let result = df.lazy()
+    ///     .groupby_agg(&["g"], &[col("v").sum()])
+    ///     .collect().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn groupby_agg(self, group_cols: &[&str], agg_exprs: &[Expr]) -> Self {
         Self {
             plan: LogicalPlan::GroupByAgg {
@@ -112,6 +180,15 @@ impl LazyFrame {
     }
 
     /// Execute the plan and return the materialized `DataFrame`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32]).build().unwrap();
+    /// let result = df.lazy().collect().unwrap();
+    /// assert_eq!(result.nrows(), 1);
+    /// ```
     pub fn collect(self) -> Result<DataFrame> {
         executor::execute(&self.plan)
     }
@@ -123,6 +200,15 @@ impl LazyFrame {
 
 impl DataFrame {
     /// Convert this `DataFrame` into a [`LazyFrame`] for lazy evaluation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32, 2]).build().unwrap();
+    /// let result = df.lazy().collect().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn lazy(self) -> LazyFrame {
         LazyFrame::new(self)
     }

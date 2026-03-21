@@ -5,6 +5,19 @@ use crate::model_selection::cross_val_score;
 use crate::traits::Predictor;
 
 /// Result of a hyperparameter search (grid or random).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::search::SearchResult;
+/// let result = SearchResult::<f64> {
+///     best_index: 1,
+///     best_score: 0.95_f64,
+///     mean_scores: vec![0.90, 0.95, 0.92],
+///     all_scores: vec![vec![0.90], vec![0.95], vec![0.92]],
+/// };
+/// assert_eq!(result.best_index, 1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

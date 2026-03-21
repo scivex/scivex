@@ -11,6 +11,19 @@
 use crate::error::{Result, SignalError};
 
 /// Audio data loaded from a WAV file.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::audio::AudioData;
+/// let audio = AudioData {
+///     samples: vec![0.0, 0.5, -0.5, 0.0],
+///     channels: 1,
+///     sample_rate: 44100,
+///     bits_per_sample: 16,
+/// };
+/// assert_eq!(audio.num_frames(), 4);
+/// ```
 #[derive(Debug, Clone)]
 pub struct AudioData {
     /// Interleaved sample data, normalised to [-1.0, 1.0].
@@ -25,6 +38,19 @@ pub struct AudioData {
 
 impl AudioData {
     /// Number of frames (samples per channel).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_signal::audio::AudioData;
+    /// let audio = AudioData {
+    ///     samples: vec![0.0; 100],
+    ///     channels: 2,
+    ///     sample_rate: 44100,
+    ///     bits_per_sample: 16,
+    /// };
+    /// assert_eq!(audio.num_frames(), 50);
+    /// ```
     pub fn num_frames(&self) -> usize {
         if self.channels == 0 {
             return 0;
@@ -33,6 +59,20 @@ impl AudioData {
     }
 
     /// Extract a single channel (0-indexed) as a `Vec<f64>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_signal::audio::AudioData;
+    /// let audio = AudioData {
+    ///     samples: vec![0.1, 0.2, 0.3, 0.4],
+    ///     channels: 2,
+    ///     sample_rate: 44100,
+    ///     bits_per_sample: 16,
+    /// };
+    /// let left = audio.channel(0).unwrap();
+    /// assert_eq!(left, vec![0.1, 0.3]);
+    /// ```
     pub fn channel(&self, ch: usize) -> Result<Vec<f64>> {
         let nc = self.channels as usize;
         if ch >= nc {
@@ -45,6 +85,21 @@ impl AudioData {
     }
 
     /// Convert stereo to mono by averaging channels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_signal::audio::AudioData;
+    /// let audio = AudioData {
+    ///     samples: vec![0.2, 0.4, 0.6, 0.8],
+    ///     channels: 2,
+    ///     sample_rate: 44100,
+    ///     bits_per_sample: 16,
+    /// };
+    /// let mono = audio.to_mono();
+    /// assert_eq!(mono.len(), 2);
+    /// assert!((mono[0] - 0.3).abs() < 1e-10);
+    /// ```
     pub fn to_mono(&self) -> Vec<f64> {
         let nc = self.channels as usize;
         if nc <= 1 {
@@ -66,6 +121,22 @@ impl AudioData {
 /// Read a WAV file from bytes.
 ///
 /// Supports PCM (8/16/32-bit) and IEEE float (32-bit) formats.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::audio::{AudioData, read_wav, write_wav};
+/// let audio = AudioData {
+///     samples: vec![0.0, 0.5, -0.5, 0.0],
+///     channels: 1,
+///     sample_rate: 44100,
+///     bits_per_sample: 16,
+/// };
+/// let wav_bytes = write_wav(&audio).unwrap();
+/// let loaded = read_wav(&wav_bytes).unwrap();
+/// assert_eq!(loaded.channels, 1);
+/// assert_eq!(loaded.sample_rate, 44100);
+/// ```
 pub fn read_wav(data: &[u8]) -> Result<AudioData> {
     if data.len() < 44 {
         return Err(SignalError::InvalidParameter {
@@ -137,11 +208,39 @@ pub fn read_wav(data: &[u8]) -> Result<AudioData> {
 }
 
 /// Write audio data to WAV format bytes (16-bit PCM).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::audio::{AudioData, write_wav};
+/// let audio = AudioData {
+///     samples: vec![0.0_f64, 0.5, -0.5, 0.0],
+///     channels: 1,
+///     sample_rate: 44100,
+///     bits_per_sample: 16,
+/// };
+/// let wav_bytes = write_wav(&audio).unwrap();
+/// assert!(wav_bytes.len() > 44); // header + data
+/// ```
 pub fn write_wav(audio: &AudioData) -> Result<Vec<u8>> {
     write_wav_bits(audio, 16)
 }
 
 /// Write audio data to WAV format bytes with specified bit depth.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::audio::{AudioData, write_wav_bits};
+/// let audio = AudioData {
+///     samples: vec![0.0_f64, 0.5],
+///     channels: 1,
+///     sample_rate: 16000,
+///     bits_per_sample: 8,
+/// };
+/// let wav = write_wav_bits(&audio, 8).unwrap();
+/// assert!(wav.len() > 44);
+/// ```
 pub fn write_wav_bits(audio: &AudioData, bits: u16) -> Result<Vec<u8>> {
     if audio.samples.is_empty() {
         return Err(SignalError::EmptyInput);

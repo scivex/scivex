@@ -35,6 +35,13 @@ impl<T: Float> TSNE<T> {
     ///
     /// - `n_components`: output dimensionality (typically 2)
     /// - `perplexity`: effective number of neighbours (typically 5–50)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::decomposition::TSNE;
+    /// let tsne = TSNE::<f64>::new(2, 30.0).unwrap();
+    /// ```
     pub fn new(n_components: usize, perplexity: f64) -> Result<Self> {
         if n_components == 0 {
             return Err(MlError::InvalidParameter {

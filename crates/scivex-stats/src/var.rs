@@ -10,6 +10,18 @@ use crate::error::{Result, StatsError};
 // ── Granger causality result ────────────────────────────────────────────
 
 /// Result of a Granger causality test.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::var::VarModel;
+/// let s1: Vec<f64> = (0..50).map(|i| (i as f64).sin()).collect();
+/// let s2: Vec<f64> = (0..50).map(|i| (i as f64).cos()).collect();
+/// let mut model = VarModel::<f64>::new(1).unwrap();
+/// model.fit(&[s1.clone(), s2.clone()]).unwrap();
+/// let gc = model.granger_causality(&[s1, s2], 0, 1).unwrap();
+/// assert!(gc.p_value >= 0.0);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -30,6 +42,18 @@ pub struct GrangerResult<T: Float> {
 ///
 /// Models `k` interrelated time series where each variable is regressed on
 /// its own lagged values and the lagged values of all other variables.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::var::VarModel;
+/// let mut model = VarModel::<f64>::new(1).unwrap();
+/// let s1: Vec<f64> = (0..30).map(|i| (i as f64).sin()).collect();
+/// let s2: Vec<f64> = (0..30).map(|i| (i as f64).cos()).collect();
+/// model.fit(&[s1, s2]).unwrap();
+/// let fc = model.forecast(5).unwrap();
+/// assert_eq!(fc.len(), 2); // two variables
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -58,6 +82,14 @@ impl<T: Float> VarModel<T> {
     /// # Errors
     ///
     /// Returns [`StatsError::InvalidParameter`] if `p < 1`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::var::VarModel;
+    /// let model = VarModel::<f64>::new(2).unwrap();
+    /// assert!(VarModel::<f64>::new(0).is_err());
+    /// ```
     pub fn new(p: usize) -> Result<Self> {
         if p < 1 {
             return Err(StatsError::InvalidParameter {
@@ -86,6 +118,16 @@ impl<T: Float> VarModel<T> {
     /// - [`StatsError::LengthMismatch`] if the series have different lengths.
     /// - [`StatsError::InsufficientData`] if there are not enough observations.
     /// - [`StatsError::SingularMatrix`] if the normal equations are singular.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::var::VarModel;
+    /// let mut model = VarModel::<f64>::new(1).unwrap();
+    /// let s1: Vec<f64> = (0..30).map(|i| (i as f64).sin()).collect();
+    /// let s2: Vec<f64> = (0..30).map(|i| (i as f64).cos()).collect();
+    /// model.fit(&[s1, s2]).unwrap();
+    /// ```
     #[allow(clippy::too_many_lines)]
     pub fn fit(&mut self, data: &[Vec<T>]) -> Result<()> {
         let k = data.len();
@@ -219,6 +261,18 @@ impl<T: Float> VarModel<T> {
     /// # Errors
     ///
     /// Returns [`StatsError::InvalidParameter`] if the model has not been fitted.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::var::VarModel;
+    /// let mut model = VarModel::<f64>::new(1).unwrap();
+    /// let s1: Vec<f64> = (0..30).map(|i| (i as f64).sin()).collect();
+    /// let s2: Vec<f64> = (0..30).map(|i| (i as f64).cos()).collect();
+    /// model.fit(&[s1, s2]).unwrap();
+    /// let fc = model.forecast(3).unwrap();
+    /// assert_eq!(fc[0].len(), 3);
+    /// ```
     pub fn forecast(&self, steps: usize) -> Result<Vec<Vec<T>>> {
         if !self.fitted {
             return Err(StatsError::InvalidParameter {
@@ -267,6 +321,17 @@ impl<T: Float> VarModel<T> {
     ///
     /// Returns `p` matrices, each `k × k`. Element `[lag][i][j]` is the
     /// effect of variable `j` at lag `lag+1` on variable `i`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::var::VarModel;
+    /// let mut model = VarModel::<f64>::new(1).unwrap();
+    /// let s1: Vec<f64> = (0..30).map(|i| (i as f64).sin()).collect();
+    /// let s2: Vec<f64> = (0..30).map(|i| (i as f64).cos()).collect();
+    /// model.fit(&[s1, s2]).unwrap();
+    /// assert_eq!(model.coefficients().len(), 1); // 1 lag
+    /// ```
     pub fn coefficients(&self) -> &[Vec<Vec<T>>] {
         &self.coefficients
     }
@@ -280,6 +345,18 @@ impl<T: Float> VarModel<T> {
     ///
     /// Returns an error if the model has not been fitted, or if `data`
     /// dimensions do not match.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::var::VarModel;
+    /// let s1: Vec<f64> = (0..30).map(|i| (i as f64).sin()).collect();
+    /// let s2: Vec<f64> = (0..30).map(|i| (i as f64).cos()).collect();
+    /// let mut model = VarModel::<f64>::new(1).unwrap();
+    /// model.fit(&[s1.clone(), s2.clone()]).unwrap();
+    /// let resid = model.residuals(&[s1, s2]).unwrap();
+    /// assert_eq!(resid.len(), 2);
+    /// ```
     pub fn residuals(&self, data: &[Vec<T>]) -> Result<Vec<Vec<T>>> {
         if !self.fitted {
             return Err(StatsError::InvalidParameter {
@@ -345,6 +422,18 @@ impl<T: Float> VarModel<T> {
     ///
     /// Returns an error if the model is not fitted, indices are out of range,
     /// or a linear system is singular.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::var::VarModel;
+    /// let s1: Vec<f64> = (0..50).map(|i| (i as f64).sin()).collect();
+    /// let s2: Vec<f64> = (0..50).map(|i| (i as f64).cos()).collect();
+    /// let mut model = VarModel::<f64>::new(1).unwrap();
+    /// model.fit(&[s1.clone(), s2.clone()]).unwrap();
+    /// let gc = model.granger_causality(&[s1, s2], 0, 1).unwrap();
+    /// assert!(gc.p_value >= 0.0);
+    /// ```
     #[allow(clippy::too_many_lines)]
     pub fn granger_causality(
         &self,

@@ -73,6 +73,16 @@ impl Rng {
     }
 
     /// Re-seed the generator, discarding all previous state.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::random::Rng;
+    /// let mut rng = Rng::new(1);
+    /// let first = rng.next_u64();
+    /// rng.seed(1);
+    /// assert_eq!(rng.next_u64(), first);
+    /// ```
     pub fn seed(&mut self, seed: u64) {
         *self = Self::new(seed);
     }
@@ -82,11 +92,29 @@ impl Rng {
     /// Each child receives a unique seed derived from the parent's state.
     /// This is useful for parallel workloads where each thread needs its
     /// own RNG to avoid contention.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::random::Rng;
+    /// let mut rng = Rng::new(42);
+    /// let children = rng.fork(4);
+    /// assert_eq!(children.len(), 4);
+    /// ```
     pub fn fork(&mut self, n: usize) -> Vec<Self> {
         (0..n).map(|_| Self::new(self.next_u64())).collect()
     }
 
     /// Generate the next random `u64`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::random::Rng;
+    /// let mut rng = Rng::new(1);
+    /// let v = rng.next_u64(); // some pseudo-random u64
+    /// let _ = v; // value is deterministic but not checked here
+    /// ```
     #[inline]
     pub fn next_u64(&mut self) -> u64 {
         let result = (self.s[1].wrapping_mul(5)).rotate_left(7).wrapping_mul(9);
@@ -116,6 +144,16 @@ impl Rng {
     ///
     /// Internally caches the spare value so every other call is essentially
     /// free.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::random::Rng;
+    /// let mut rng = Rng::new(0);
+    /// // Draw 1000 samples and verify mean is near 0
+    /// let mean: f64 = (0..1000).map(|_| rng.next_normal_f64()).sum::<f64>() / 1000.0;
+    /// assert!(mean.abs() < 0.2);
+    /// ```
     pub fn next_normal_f64(&mut self) -> f64 {
         if let Some(spare) = self.spare_normal.take() {
             return spare;
@@ -164,6 +202,15 @@ pub fn uniform<T: Float>(rng: &mut Rng, shape: Vec<usize>) -> Tensor<T> {
 /// Create a tensor filled with values uniformly distributed in [`low`, `high`).
 ///
 /// Returns an error if `low >= high`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::random::{Rng, uniform_range};
+/// let mut rng = Rng::new(0);
+/// let t = uniform_range::<f64>(&mut rng, vec![5], 2.0_f64, 5.0_f64).unwrap();
+/// assert!(t.iter().all(|&x| (2.0_f64..5.0_f64).contains(&x)));
+/// ```
 pub fn uniform_range<T: Float>(
     rng: &mut Rng,
     shape: Vec<usize>,
@@ -186,6 +233,15 @@ pub fn uniform_range<T: Float>(
 /// Create a tensor of samples from a Gaussian distribution.
 ///
 /// Uses the Box-Muller transform internally.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::random::{Rng, normal};
+/// let mut rng = Rng::new(1);
+/// let t = normal::<f64>(&mut rng, vec![3], 0.0_f64, 1.0_f64);
+/// assert_eq!(t.shape(), &[3]);
+/// ```
 pub fn normal<T: Float>(rng: &mut Rng, shape: Vec<usize>, mean: T, std_dev: T) -> Tensor<T> {
     let numel: usize = shape.iter().product();
     let data: Vec<T> = (0..numel)
@@ -195,6 +251,15 @@ pub fn normal<T: Float>(rng: &mut Rng, shape: Vec<usize>, mean: T, std_dev: T) -
 }
 
 /// Create a tensor of samples from the standard normal distribution N(0, 1).
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::random::{Rng, standard_normal};
+/// let mut rng = Rng::new(7);
+/// let t = standard_normal::<f64>(&mut rng, vec![4]);
+/// assert_eq!(t.shape(), &[4]);
+/// ```
 pub fn standard_normal<T: Float>(rng: &mut Rng, shape: Vec<usize>) -> Tensor<T> {
     normal(rng, shape, T::zero(), T::one())
 }
@@ -202,6 +267,15 @@ pub fn standard_normal<T: Float>(rng: &mut Rng, shape: Vec<usize>) -> Tensor<T> 
 /// Create a tensor of random integers in [`low`, `high`).
 ///
 /// Returns an error if `low >= high`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::random::{Rng, randint};
+/// let mut rng = Rng::new(0);
+/// let t = randint::<i32>(&mut rng, vec![10], 0, 5).unwrap();
+/// assert!(t.iter().all(|&x| (0..5).contains(&x)));
+/// ```
 pub fn randint<T: Integer>(rng: &mut Rng, shape: Vec<usize>, low: T, high: T) -> Result<Tensor<T>> {
     if low >= high {
         return Err(CoreError::InvalidArgument {
@@ -238,6 +312,15 @@ fn int_range_as_usize<T: Integer>(low: T, high: T) -> usize {
 /// Create a tensor of Bernoulli random variables (0 or 1) with probability `p`.
 ///
 /// Returns an error if `p` is not in [0, 1].
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::random::{Rng, bernoulli};
+/// let mut rng = Rng::new(0);
+/// let t = bernoulli::<f64>(&mut rng, vec![10], 0.5).unwrap();
+/// assert!(t.iter().all(|&x| x == 0.0 || x == 1.0));
+/// ```
 pub fn bernoulli<T: Scalar>(rng: &mut Rng, shape: Vec<usize>, p: f64) -> Result<Tensor<T>> {
     if !(0.0..=1.0).contains(&p) {
         return Err(CoreError::InvalidArgument {
@@ -260,6 +343,19 @@ pub fn bernoulli<T: Scalar>(rng: &mut Rng, shape: Vec<usize>, p: f64) -> Result<
 /// Shuffle the elements of a tensor in-place using the Fisher-Yates algorithm.
 ///
 /// Operates on the flat (storage-order) data regardless of shape.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::random::{Rng, shuffle};
+/// use scivex_core::Tensor;
+/// let mut rng = Rng::new(0);
+/// let mut t = Tensor::from_vec(vec![1, 2, 3, 4, 5], vec![5]).unwrap();
+/// shuffle(&mut rng, &mut t);
+/// let mut sorted = t.as_slice().to_vec();
+/// sorted.sort_unstable();
+/// assert_eq!(sorted, vec![1, 2, 3, 4, 5]);
+/// ```
 pub fn shuffle<T: Scalar>(rng: &mut Rng, tensor: &mut Tensor<T>) {
     let n = tensor.numel();
     if n <= 1 {
@@ -282,6 +378,17 @@ pub fn shuffle<T: Scalar>(rng: &mut Rng, tensor: &mut Tensor<T>) {
 ///   `n > tensor.numel()`.
 ///
 /// Returns an error if the tensor is not 1-D.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::random::{Rng, choice};
+/// use scivex_core::Tensor;
+/// let mut rng = Rng::new(0);
+/// let t = Tensor::from_vec(vec![10, 20, 30, 40, 50], vec![5]).unwrap();
+/// let sample = choice(&mut rng, &t, 3, false).unwrap();
+/// assert_eq!(sample.shape(), &[3]);
+/// ```
 pub fn choice<T: Scalar>(
     rng: &mut Rng,
     tensor: &Tensor<T>,

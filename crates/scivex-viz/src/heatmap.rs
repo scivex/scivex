@@ -20,6 +20,16 @@ pub struct HeatmapBuilder {
 
 impl HeatmapBuilder {
     /// Create a heatmap from a 2-D grid of values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::heatmap::HeatmapBuilder;
+    /// let hm = HeatmapBuilder::new(vec![
+    ///     vec![1.0_f64, 2.0_f64],
+    ///     vec![3.0_f64, 4.0_f64],
+    /// ]);
+    /// ```
     #[must_use]
     pub fn new(data: Vec<Vec<f64>>) -> Self {
         Self {
@@ -32,6 +42,14 @@ impl HeatmapBuilder {
     }
 
     /// Set the colormap used to map values to colors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::heatmap::HeatmapBuilder;
+    /// # use scivex_viz::color::ColorMap;
+    /// let hm = HeatmapBuilder::new(vec![vec![1.0_f64]]).colormap(ColorMap::plasma());
+    /// ```
     #[must_use]
     pub fn colormap(mut self, cm: ColorMap) -> Self {
         self.colormap = cm;
@@ -39,6 +57,13 @@ impl HeatmapBuilder {
     }
 
     /// Show numeric values inside each cell.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::heatmap::HeatmapBuilder;
+    /// let hm = HeatmapBuilder::new(vec![vec![1.0_f64]]).show_values(true);
+    /// ```
     #[must_use]
     pub fn show_values(mut self, show: bool) -> Self {
         self.show_values = show;
@@ -46,6 +71,14 @@ impl HeatmapBuilder {
     }
 
     /// Set column labels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::heatmap::HeatmapBuilder;
+    /// let hm = HeatmapBuilder::new(vec![vec![1.0_f64, 2.0_f64]])
+    ///     .x_labels(vec!["A".to_string(), "B".to_string()]);
+    /// ```
     #[must_use]
     pub fn x_labels(mut self, labels: Vec<String>) -> Self {
         self.x_labels = Some(labels);
@@ -53,6 +86,14 @@ impl HeatmapBuilder {
     }
 
     /// Set row labels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::heatmap::HeatmapBuilder;
+    /// let hm = HeatmapBuilder::new(vec![vec![1.0_f64]])
+    ///     .y_labels(vec!["Row1".to_string()]);
+    /// ```
     #[must_use]
     pub fn y_labels(mut self, labels: Vec<String>) -> Self {
         self.y_labels = Some(labels);

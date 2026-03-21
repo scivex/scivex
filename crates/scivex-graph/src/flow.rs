@@ -7,6 +7,15 @@ use crate::digraph::DiGraph;
 use crate::error::{GraphError, Result};
 
 /// Result of a max-flow computation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, flow};
+/// let g = DiGraph::from_edges(&[(0, 1, 10.0_f64), (1, 2, 5.0)]).unwrap();
+/// let result = flow::max_flow(&g, 0, 2).unwrap();
+/// assert!((result.max_flow - 5.0).abs() < 1e-10);
+/// ```
 #[derive(Debug, Clone)]
 pub struct MaxFlowResult<T: Float> {
     /// The maximum flow value from source to sink.
@@ -20,6 +29,15 @@ pub struct MaxFlowResult<T: Float> {
 
 impl<T: Float> MaxFlowResult<T> {
     /// Get the flow on a specific edge.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::{DiGraph, flow};
+    /// let g = DiGraph::from_edges(&[(0, 1, 10.0_f64), (1, 2, 5.0)]).unwrap();
+    /// let result = flow::max_flow(&g, 0, 2).unwrap();
+    /// assert!((result.edge_flow(0, 1) - 5.0).abs() < 1e-10);
+    /// ```
     pub fn edge_flow(&self, from: usize, to: usize) -> T {
         if from < self.n && to < self.n {
             self.flow[from * self.n + to]
@@ -35,6 +53,15 @@ impl<T: Float> MaxFlowResult<T> {
 /// Time complexity: O(V * E^2)
 ///
 /// Edge weights are treated as capacities.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, flow};
+/// let g = DiGraph::from_edges(&[(0, 1, 10.0_f64), (1, 2, 5.0)]).unwrap();
+/// let result = flow::max_flow(&g, 0, 2).unwrap();
+/// assert!((result.max_flow - 5.0).abs() < 1e-10);
+/// ```
 pub fn max_flow<T: Float>(
     graph: &DiGraph<T>,
     source: usize,
@@ -124,6 +151,14 @@ pub fn max_flow<T: Float>(
 /// - `right_nodes`: node IDs of the right partition
 ///
 /// Returns a list of matched pairs `(left, right)` and the matching size.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::flow;
+/// let result = flow::bipartite_matching(2, 2, &[(0, 0), (0, 1), (1, 1)]);
+/// assert_eq!(result.size, 2);
+/// ```
 #[derive(Debug, Clone)]
 pub struct MatchingResult {
     /// Matched pairs `(left, right)`.
@@ -141,6 +176,14 @@ pub struct MatchingResult {
 ///
 /// Alternatively, this function works directly with adjacency lists for
 /// simplicity.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::flow;
+/// let result = flow::bipartite_matching(2, 2, &[(0, 0), (0, 1), (1, 1)]);
+/// assert_eq!(result.size, 2);
+/// ```
 pub fn bipartite_matching(
     left_size: usize,
     right_size: usize,

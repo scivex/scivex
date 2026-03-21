@@ -67,6 +67,20 @@ const DTYPE_CLASS_FLOATING_POINT: u8 = 1; // float
 // ---------------------------------------------------------------------------
 
 /// Trait for types that can be read/written as raw bytes in HDF5 datasets.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::hdf5::Hdf5Scalar;
+///
+/// // f64 is a valid HDF5 scalar: 8 bytes, floating-point class (1)
+/// assert_eq!(f64::hdf5_size(), 8);
+/// assert_eq!(f64::hdf5_class(), 1); // floating-point
+///
+/// // i32 is a valid HDF5 scalar: 4 bytes, fixed-point class (0)
+/// assert_eq!(i32::hdf5_size(), 4);
+/// assert_eq!(i32::hdf5_class(), 0); // fixed-point / integer
+/// ```
 pub trait Hdf5Scalar: Scalar {
     /// HDF5 datatype class (0 = fixed-point/integer, 1 = floating-point).
     fn hdf5_class() -> u8;
@@ -704,6 +718,21 @@ fn resolve_dataset_path<R: Read + Seek>(
 ///
 /// Returns [`IoError::FormatError`] if the file is not valid HDF5, the path
 /// does not exist, or the datatype cannot be decoded to `T`.
+///
+/// # Examples
+///
+/// ```ignore
+/// use std::io::Cursor;
+/// use scivex_io::hdf5::{write_hdf5_dataset, read_hdf5_dataset};
+/// use scivex_core::Tensor;
+///
+/// let tensor = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+/// let mut buf = Cursor::new(Vec::new());
+/// write_hdf5_dataset(&mut buf, "data", &tensor).unwrap();
+/// buf.set_position(0);
+/// let out: Tensor<f64> = read_hdf5_dataset(&mut buf, "data").unwrap();
+/// assert_eq!(out.as_slice(), &[1.0_f64, 2.0, 3.0]);
+/// ```
 pub fn read_hdf5_dataset<T: Hdf5Scalar, R: Read + Seek>(
     reader: &mut R,
     dataset_path: &str,
@@ -767,6 +796,21 @@ fn validate_datatype<T: Hdf5Scalar>(info: &ObjectHeaderInfo) -> Result<()> {
 /// List all dataset paths in an HDF5 file.
 ///
 /// Returns paths relative to the root group, e.g. `["dataset1", "group/ds2"]`.
+///
+/// # Examples
+///
+/// ```ignore
+/// use std::io::Cursor;
+/// use scivex_io::hdf5::{write_hdf5_dataset, list_hdf5_datasets};
+/// use scivex_core::Tensor;
+///
+/// let tensor = Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap();
+/// let mut buf = Cursor::new(Vec::new());
+/// write_hdf5_dataset(&mut buf, "my_data", &tensor).unwrap();
+/// buf.set_position(0);
+/// let names = list_hdf5_datasets(&mut buf).unwrap();
+/// assert!(names.contains(&"my_data".to_string()));
+/// ```
 pub fn list_hdf5_datasets<R: Read + Seek>(reader: &mut R) -> Result<Vec<String>> {
     let sb = read_superblock(reader)?;
     let mut datasets = Vec::new();
@@ -830,6 +874,21 @@ fn collect_datasets<R: Read + Seek>(
 ///
 /// Returns [`IoError::FormatError`] if the dataset path contains `/`
 /// separators (nested groups are not supported for writing).
+///
+/// # Examples
+///
+/// ```ignore
+/// use std::io::Cursor;
+/// use scivex_io::hdf5::{write_hdf5_dataset, read_hdf5_dataset};
+/// use scivex_core::Tensor;
+///
+/// let tensor = Tensor::from_vec(vec![1.5_f64, 2.5], vec![2]).unwrap();
+/// let mut buf = Cursor::new(Vec::new());
+/// write_hdf5_dataset(&mut buf, "values", &tensor).unwrap();
+/// buf.set_position(0);
+/// let result: Tensor<f64> = read_hdf5_dataset(&mut buf, "values").unwrap();
+/// assert_eq!(result.shape(), &[2]);
+/// ```
 pub fn write_hdf5_dataset<T: Hdf5Scalar, W: Write + Seek>(
     writer: &mut W,
     dataset_path: &str,
@@ -841,6 +900,26 @@ pub fn write_hdf5_dataset<T: Hdf5Scalar, W: Write + Seek>(
 }
 
 /// Write multiple tensors of the same type as datasets in a new HDF5 file.
+///
+/// # Examples
+///
+/// ```ignore
+/// use std::io::Cursor;
+/// use std::collections::HashMap;
+/// use scivex_io::hdf5::{write_hdf5_datasets, list_hdf5_datasets};
+/// use scivex_core::Tensor;
+///
+/// let t1 = Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap();
+/// let t2 = Tensor::from_vec(vec![3.0_f64, 4.0], vec![2]).unwrap();
+/// let mut map: HashMap<String, &Tensor<f64>> = HashMap::new();
+/// map.insert("a".to_string(), &t1);
+/// map.insert("b".to_string(), &t2);
+/// let mut buf = Cursor::new(Vec::new());
+/// write_hdf5_datasets(&mut buf, &map).unwrap();
+/// buf.set_position(0);
+/// let names = list_hdf5_datasets(&mut buf).unwrap();
+/// assert_eq!(names.len(), 2);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn write_hdf5_datasets<T: Hdf5Scalar, W: Write + Seek, S: ::std::hash::BuildHasher>(
     writer: &mut W,

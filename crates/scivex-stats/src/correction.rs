@@ -13,6 +13,15 @@ use crate::error::{Result, StatsError};
 /// Controls the family-wise error rate (FWER). Conservative but simple.
 ///
 /// Returns adjusted p-values clamped to `[0, 1]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::correction::bonferroni;
+/// let p = bonferroni(&[0.01_f64, 0.04, 0.03]).unwrap();
+/// assert!((p[0] - 0.03).abs() < 1e-10);
+/// assert!(p.iter().all(|&v| v <= 1.0));
+/// ```
 pub fn bonferroni<T: Float>(p_values: &[T]) -> Result<Vec<T>> {
     if p_values.is_empty() {
         return Err(StatsError::EmptyInput);
@@ -26,6 +35,15 @@ pub fn bonferroni<T: Float>(p_values: &[T]) -> Result<Vec<T>> {
 /// Less conservative than Bonferroni; more powerful when many tests are performed.
 ///
 /// Returns adjusted p-values. The adjusted p-values maintain the original order.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::correction::benjamini_hochberg;
+/// let p = benjamini_hochberg(&[0.01_f64, 0.04, 0.03]).unwrap();
+/// assert!(p.iter().all(|&v| v <= 1.0));
+/// assert!(p[0] <= p[2]); // smallest original p stays smallest
+/// ```
 pub fn benjamini_hochberg<T: Float>(p_values: &[T]) -> Result<Vec<T>> {
     if p_values.is_empty() {
         return Err(StatsError::EmptyInput);

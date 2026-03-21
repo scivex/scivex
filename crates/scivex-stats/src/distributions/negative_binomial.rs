@@ -23,6 +23,14 @@ pub struct NegativeBinomial<T: Float> {
 impl<T: Float> NegativeBinomial<T> {
     /// Create a new negative binomial distribution with `r > 0` successes
     /// and success probability `p` in `(0, 1]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{NegativeBinomial, Distribution};
+    /// let nb = NegativeBinomial::new(5.0_f64, 0.5).unwrap();
+    /// assert!((nb.mean() - 5.0).abs() < 1e-10); // r*(1-p)/p
+    /// ```
     pub fn new(r: T, p: T) -> Result<Self> {
         if r <= T::zero() {
             return Err(StatsError::InvalidParameter {

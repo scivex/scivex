@@ -12,6 +12,18 @@ use scivex_core::Float;
 use crate::error::Result;
 
 /// Result of a least squares curve fit.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::curve_fit::curve_fit;
+/// let result = curve_fit(
+///     |x: f64, p: &[f64]| p[0] * x + p[1],
+///     &[1.0_f64, 2.0, 3.0], &[2.0, 4.0, 6.0], &[1.0, 0.0],
+/// ).unwrap();
+/// assert!(result.converged);
+/// assert!((result.params[0] - 2.0).abs() < 0.1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -34,6 +46,20 @@ pub struct LeastSquaresResult<T: Float> {
 ///
 /// Fits `model(x, params)` to the data `(x_data, y_data)` starting from initial
 /// parameters `p0`. Uses `max_iter=200` and `tol=1e-10`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::curve_fit::curve_fit;
+/// // Fit y = a*x + b to data
+/// let x_data = [1.0_f64, 2.0, 3.0, 4.0];
+/// let y_data = [2.1, 3.9, 6.1, 7.9]; // ~2x
+/// let result = curve_fit(
+///     |x: f64, p: &[f64]| p[0] * x + p[1],
+///     &x_data, &y_data, &[1.0, 0.0],
+/// ).unwrap();
+/// assert!((result.params[0] - 2.0).abs() < 0.2);
+/// ```
 pub fn curve_fit<T, F>(
     model: F,
     x_data: &[T],

@@ -11,6 +11,15 @@ use super::{RootOptions, RootResult};
 /// Requires both the function `f` and its derivative `f_prime`.
 /// Starting from `x0`, iterates `x_{n+1} = x_n - f(x_n) / f'(x_n)`.
 /// Converges quadratically near simple roots.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::roots::{newton, RootOptions};
+/// // Root of x^2 - 2 → √2, derivative = 2x
+/// let result = newton(|x: f64| x * x - 2.0, |x: f64| 2.0 * x, 1.0, &RootOptions::default()).unwrap();
+/// assert!((result.root - std::f64::consts::SQRT_2).abs() < 1e-10);
+/// ```
 pub fn newton<T: Float, F: Fn(T) -> T, G: Fn(T) -> T>(
     f: F,
     f_prime: G,

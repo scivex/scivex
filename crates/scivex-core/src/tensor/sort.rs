@@ -9,6 +9,12 @@ use super::Tensor;
 
 impl<T: Scalar> Tensor<T> {
     /// Sort all elements, returning a 1-D tensor in ascending order.
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![3, 1, 4, 1, 5], vec![5]).unwrap();
+    /// assert_eq!(t.sort().as_slice(), &[1, 1, 3, 4, 5]);
+    /// ```
     pub fn sort(&self) -> Tensor<T> {
         let mut data = self.data.clone();
         data.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
@@ -20,6 +26,12 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Return indices that would sort all elements (flat), as a 1-D `Tensor<usize>`.
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![30, 10, 20], vec![3]).unwrap();
+    /// assert_eq!(t.argsort().as_slice(), &[1, 2, 0]);
+    /// ```
     pub fn argsort(&self) -> Tensor<usize> {
         let mut indices: Vec<usize> = (0..self.numel()).collect();
         indices.sort_unstable_by(|&a, &b| {
@@ -37,6 +49,13 @@ impl<T: Scalar> Tensor<T> {
     /// Sort along a given axis, returning a new tensor with the same shape.
     ///
     /// Each 1-D slice along `axis` is sorted independently in ascending order.
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![3, 1, 4, 2], vec![2, 2]).unwrap();
+    /// let s = t.sort_axis(1).unwrap(); // sort each row
+    /// assert_eq!(s.as_slice(), &[1, 3, 2, 4]);
+    /// ```
     pub fn sort_axis(&self, axis: usize) -> Result<Tensor<T>> {
         if axis >= self.ndim() {
             return Err(CoreError::AxisOutOfBounds {
@@ -78,6 +97,13 @@ impl<T: Scalar> Tensor<T> {
     /// Return indices that would sort each slice along `axis`.
     ///
     /// The result has the same shape as `self` but element type `usize`.
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![3.0, 1.0, 4.0, 2.0], vec![2, 2]).unwrap();
+    /// let idx = t.argsort_axis(1).unwrap();
+    /// assert_eq!(idx.as_slice(), &[1, 0, 1, 0]);
+    /// ```
     pub fn argsort_axis(&self, axis: usize) -> Result<Tensor<usize>> {
         if axis >= self.ndim() {
             return Err(CoreError::AxisOutOfBounds {

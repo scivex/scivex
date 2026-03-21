@@ -11,6 +11,15 @@ use super::Minimize1dResult;
 ///
 /// Linear convergence, reducing the bracket by a factor of the golden
 /// ratio (~0.618) each iteration.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::minimize_1d::golden_section;
+/// // Minimum of (x - 3)^2 on [0, 10]
+/// let result = golden_section(|x: f64| (x - 3.0) * (x - 3.0), 0.0, 10.0, 1e-8, 100).unwrap();
+/// assert!((result.x_min - 3.0).abs() < 1e-6);
+/// ```
 pub fn golden_section<T: Float, F: Fn(T) -> T>(
     f: F,
     a: T,

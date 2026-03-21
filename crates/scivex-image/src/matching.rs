@@ -6,6 +6,14 @@ use std::collections::HashMap;
 use crate::error::{ImageError, Result};
 
 /// A single descriptor match between a query and a training set.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::matching::FeatureMatch;
+/// let m = FeatureMatch { query_idx: 0, train_idx: 2, distance: 15 };
+/// assert_eq!(m.distance, 15);
+/// ```
 #[derive(Debug, Clone)]
 pub struct FeatureMatch {
     /// Index in the query descriptor array.
@@ -17,6 +25,16 @@ pub struct FeatureMatch {
 }
 
 /// Compute Hamming distance between two 256-bit binary descriptors.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::matching::hamming_distance;
+/// let a = [0x00u8; 32];
+/// let b = [0xFFu8; 32];
+/// assert_eq!(hamming_distance(&a, &b), 256);
+/// assert_eq!(hamming_distance(&a, &a), 0);
+/// ```
 pub fn hamming_distance(a: &[u8; 32], b: &[u8; 32]) -> u32 {
     let mut dist = 0u32;
     for i in 0..32 {
@@ -34,12 +52,31 @@ pub struct BruteForceMatcher;
 
 impl BruteForceMatcher {
     /// Create a new brute-force matcher.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::BruteForceMatcher;
+    /// let matcher = BruteForceMatcher::new();
+    /// ```
     pub fn new() -> Self {
         Self
     }
 
     /// Match each query descriptor to the best (lowest Hamming distance) train
     /// descriptor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::BruteForceMatcher;
+    /// let matcher = BruteForceMatcher::new();
+    /// let q = vec![[0u8; 32]];
+    /// let t = vec![[0u8; 32], [255u8; 32]];
+    /// let matches = matcher.match_descriptors(&q, &t);
+    /// assert_eq!(matches.len(), 1);
+    /// assert_eq!(matches[0].distance, 0); // exact match
+    /// ```
     pub fn match_descriptors(&self, query: &[[u8; 32]], train: &[[u8; 32]]) -> Vec<FeatureMatch> {
         let mut matches = Vec::with_capacity(query.len());
         for (qi, qd) in query.iter().enumerate() {
@@ -68,6 +105,18 @@ impl BruteForceMatcher {
     /// For each query descriptor the two nearest train descriptors are found.
     /// A match is kept only when `best_distance / second_best_distance < ratio`.
     /// This filters out ambiguous matches.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::BruteForceMatcher;
+    /// let matcher = BruteForceMatcher::new();
+    /// let mut good = [0u8; 32];
+    /// good[0] = 0x01;
+    /// let train = vec![[0u8; 32], [255u8; 32]];
+    /// let matches = matcher.match_with_ratio_test(&[good], &train, 0.7);
+    /// assert!(matches.len() <= 1);
+    /// ```
     pub fn match_with_ratio_test(
         &self,
         query: &[[u8; 32]],
@@ -111,6 +160,18 @@ impl BruteForceMatcher {
     }
 
     /// Return the `k` nearest matches for each query descriptor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::BruteForceMatcher;
+    /// let matcher = BruteForceMatcher::new();
+    /// let q = vec![[0u8; 32]];
+    /// let t = vec![[0u8; 32], [255u8; 32], [128u8; 32]];
+    /// let knn = matcher.knn_match(&q, &t, 2);
+    /// assert_eq!(knn.len(), 1);
+    /// assert_eq!(knn[0].len(), 2);
+    /// ```
     pub fn knn_match(
         &self,
         query: &[[u8; 32]],
@@ -162,6 +223,17 @@ impl Default for BruteForceMatcher {
 
 /// A simplified FLANN-style matcher using Locality-Sensitive Hashing (LSH)
 /// for fast approximate matching of binary descriptors.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::matching::FlannMatcher;
+/// let mut matcher = FlannMatcher::new();
+/// let train = vec![[0u8; 32], [255u8; 32]];
+/// matcher.build_index(&train);
+/// let matches = matcher.match_descriptors(&[[0u8; 32]]);
+/// assert_eq!(matches.len(), 1);
+/// ```
 pub struct FlannMatcher {
     /// Number of hash tables.
     table_count: usize,
@@ -178,6 +250,13 @@ pub struct FlannMatcher {
 
 impl FlannMatcher {
     /// Create a new FLANN matcher with default parameters (6 tables, 12-bit keys).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::FlannMatcher;
+    /// let matcher = FlannMatcher::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             table_count: 6,
@@ -189,12 +268,26 @@ impl FlannMatcher {
     }
 
     /// Set the number of hash tables.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::FlannMatcher;
+    /// let matcher = FlannMatcher::new().with_table_count(8);
+    /// ```
     pub fn with_table_count(mut self, n: usize) -> Self {
         self.table_count = n;
         self
     }
 
     /// Set the number of bits per hash key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::FlannMatcher;
+    /// let matcher = FlannMatcher::new().with_key_size(16);
+    /// ```
     pub fn with_key_size(mut self, k: usize) -> Self {
         self.key_size = k;
         self
@@ -204,6 +297,15 @@ impl FlannMatcher {
     ///
     /// Bit positions for table `t` are computed deterministically:
     /// `(t * key_size + i) * 37 % 256` for `i` in `0..key_size`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::FlannMatcher;
+    /// let mut matcher = FlannMatcher::new();
+    /// let train = vec![[0u8; 32], [255u8; 32]];
+    /// matcher.build_index(&train);
+    /// ```
     pub fn build_index(&mut self, train: &[[u8; 32]]) {
         self.train = train.to_vec();
 
@@ -233,6 +335,18 @@ impl FlannMatcher {
     /// For each query descriptor, candidate matches are collected from all hash
     /// tables, then exact Hamming distances are computed only for those
     /// candidates. The best candidate is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::matching::FlannMatcher;
+    /// let mut matcher = FlannMatcher::new();
+    /// let train = vec![[0u8; 32], [255u8; 32]];
+    /// matcher.build_index(&train);
+    /// let results = matcher.match_descriptors(&[[0u8; 32]]);
+    /// assert!(!results.is_empty());
+    /// assert_eq!(results[0].distance, 0);
+    /// ```
     pub fn match_descriptors(&self, query: &[[u8; 32]]) -> Vec<FeatureMatch> {
         let mut matches = Vec::with_capacity(query.len());
 

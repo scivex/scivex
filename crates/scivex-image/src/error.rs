@@ -1,6 +1,14 @@
 use core::fmt;
 
 /// All errors returned by `scivex-image`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::error::ImageError;
+/// let e = ImageError::InvalidDimensions { width: 0, height: 10 };
+/// assert!(e.to_string().contains("invalid dimensions"));
+/// ```
 #[derive(Debug)]
 pub enum ImageError {
     /// Image dimensions are invalid (e.g. zero width or height).
@@ -96,4 +104,12 @@ impl Clone for ImageError {
 }
 
 /// Convenience alias used throughout `scivex-image`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::error::{ImageError, Result};
+/// fn always_ok() -> Result<u32> { Ok(42) }
+/// assert_eq!(always_ok().unwrap(), 42);
+/// ```
 pub type Result<T> = std::result::Result<T, ImageError>;

@@ -9,6 +9,18 @@ use crate::graph::Graph;
 /// Breadth-first search on an undirected graph starting from `start`.
 ///
 /// Returns node IDs in the order they are visited.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, traversal};
+/// let mut g = Graph::<f64>::new();
+/// let a = g.add_node();
+/// let b = g.add_node();
+/// g.add_edge(a, b, 1.0).unwrap();
+/// let order = traversal::bfs(&g, a).unwrap();
+/// assert_eq!(order, vec![a, b]);
+/// ```
 pub fn bfs<T: Float>(graph: &Graph<T>, start: usize) -> Result<Vec<usize>> {
     if !graph.is_active(start) {
         return Err(GraphError::NodeNotFound { id: start });
@@ -36,6 +48,16 @@ pub fn bfs<T: Float>(graph: &Graph<T>, start: usize) -> Result<Vec<usize>> {
 }
 
 /// Breadth-first search on a directed graph starting from `start`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, traversal};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (0, 2, 1.0), (1, 3, 1.0)]).unwrap();
+/// let order = traversal::bfs_directed(&g, 0).unwrap();
+/// assert_eq!(order[0], 0);
+/// assert_eq!(order.len(), 4);
+/// ```
 pub fn bfs_directed<T: Float>(graph: &DiGraph<T>, start: usize) -> Result<Vec<usize>> {
     if !graph.is_active(start) {
         return Err(GraphError::NodeNotFound { id: start });
@@ -65,6 +87,16 @@ pub fn bfs_directed<T: Float>(graph: &DiGraph<T>, start: usize) -> Result<Vec<us
 /// Depth-first search on an undirected graph starting from `start`.
 ///
 /// Uses an explicit stack (iterative, not recursive).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, traversal};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+/// let order = traversal::dfs(&g, 0).unwrap();
+/// assert_eq!(order[0], 0);
+/// assert_eq!(order.len(), 3);
+/// ```
 pub fn dfs<T: Float>(graph: &Graph<T>, start: usize) -> Result<Vec<usize>> {
     if !graph.is_active(start) {
         return Err(GraphError::NodeNotFound { id: start });
@@ -95,6 +127,15 @@ pub fn dfs<T: Float>(graph: &Graph<T>, start: usize) -> Result<Vec<usize>> {
 }
 
 /// Depth-first search on a directed graph starting from `start`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, traversal};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+/// let order = traversal::dfs_directed(&g, 0).unwrap();
+/// assert_eq!(order, vec![0, 1, 2]);
+/// ```
 pub fn dfs_directed<T: Float>(graph: &DiGraph<T>, start: usize) -> Result<Vec<usize>> {
     if !graph.is_active(start) {
         return Err(GraphError::NodeNotFound { id: start });
@@ -126,6 +167,15 @@ pub fn dfs_directed<T: Float>(graph: &DiGraph<T>, start: usize) -> Result<Vec<us
 /// Topological sort using Kahn's algorithm.
 ///
 /// Returns `Err(CycleDetected)` if the graph contains a cycle.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, traversal};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+/// let order = traversal::topological_sort(&g).unwrap();
+/// assert_eq!(order, vec![0, 1, 2]);
+/// ```
 pub fn topological_sort<T: Float>(graph: &DiGraph<T>) -> Result<Vec<usize>> {
     if graph.node_count() == 0 {
         return Ok(Vec::new());

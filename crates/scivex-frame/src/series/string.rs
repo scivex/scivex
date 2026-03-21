@@ -21,6 +21,15 @@ pub struct StringSeries {
 
 impl StringSeries {
     /// Create a new string series.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::new("names", vec!["Alice".into(), "Bob".into()]);
+    /// assert_eq!(s.name(), "names");
+    /// assert_eq!(s.len(), 2);
+    /// ```
     pub fn new(name: impl Into<String>, data: Vec<String>) -> Self {
         Self {
             name: name.into(),
@@ -30,11 +39,33 @@ impl StringSeries {
     }
 
     /// Create from string slices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("colors", &["red", "green", "blue"]);
+    /// assert_eq!(s.len(), 3);
+    /// assert_eq!(s.get(0), Some("red"));
+    /// ```
     pub fn from_strs(name: impl Into<String>, data: &[&str]) -> Self {
         Self::new(name, data.iter().map(|s| (*s).to_string()).collect())
     }
 
     /// Create with explicit nulls.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::with_nulls(
+    ///     "x",
+    ///     vec!["hello".into(), String::new()],
+    ///     vec![false, true],
+    /// ).unwrap();
+    /// assert_eq!(s.get(0), Some("hello"));
+    /// assert_eq!(s.get(1), None); // null
+    /// ```
     pub fn with_nulls(
         name: impl Into<String>,
         data: Vec<String>,
@@ -109,6 +140,15 @@ impl StringSeries {
     // -- String-specific operations -----------------------------------------
 
     /// Convert all values to uppercase.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["Hello", "World"]);
+    /// let upper = s.to_uppercase();
+    /// assert_eq!(upper.get(0), Some("HELLO"));
+    /// ```
     pub fn to_uppercase(&self) -> StringSeries {
         StringSeries {
             name: self.name.clone(),
@@ -118,6 +158,15 @@ impl StringSeries {
     }
 
     /// Convert all values to lowercase.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["Hello", "WORLD"]);
+    /// let lower = s.to_lowercase();
+    /// assert_eq!(lower.get(1), Some("world"));
+    /// ```
     pub fn to_lowercase(&self) -> StringSeries {
         StringSeries {
             name: self.name.clone(),
@@ -127,21 +176,55 @@ impl StringSeries {
     }
 
     /// Boolean mask: which values contain the given pattern.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["apple", "banana", "apricot"]);
+    /// assert_eq!(s.contains("ap"), vec![true, false, true]);
+    /// ```
     pub fn contains(&self, pat: &str) -> Vec<bool> {
         self.data.iter().map(|s| s.contains(pat)).collect()
     }
 
     /// Boolean mask: which values start with the given prefix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["apple", "banana", "apricot"]);
+    /// assert_eq!(s.starts_with("ap"), vec![true, false, true]);
+    /// ```
     pub fn starts_with(&self, prefix: &str) -> Vec<bool> {
         self.data.iter().map(|s| s.starts_with(prefix)).collect()
     }
 
     /// Character length of each value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["hi", "hello"]);
+    /// assert_eq!(s.len_chars(), vec![2, 5]);
+    /// ```
     pub fn len_chars(&self) -> Vec<usize> {
         self.data.iter().map(|s| s.chars().count()).collect()
     }
 
     /// Strip leading and trailing whitespace from each value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["  hello  ", " world "]);
+    /// let stripped = s.strip();
+    /// assert_eq!(stripped.get(0), Some("hello"));
+    /// assert_eq!(stripped.get(1), Some("world"));
+    /// ```
     pub fn strip(&self) -> StringSeries {
         StringSeries {
             name: self.name.clone(),
@@ -151,6 +234,15 @@ impl StringSeries {
     }
 
     /// Replace all occurrences of `old` with `new_val` in each value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["hello world"]);
+    /// let r = s.replace_all("o", "0");
+    /// assert_eq!(r.get(0), Some("hell0 w0rld"));
+    /// ```
     pub fn replace_all(&self, old: &str, new_val: &str) -> StringSeries {
         StringSeries {
             name: self.name.clone(),
@@ -160,6 +252,14 @@ impl StringSeries {
     }
 
     /// Boolean mask: which values end with the given suffix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["file.csv", "data.txt", "log.csv"]);
+    /// assert_eq!(s.ends_with(".csv"), vec![true, false, true]);
+    /// ```
     pub fn ends_with(&self, suffix: &str) -> Vec<bool> {
         self.data.iter().map(|s| s.ends_with(suffix)).collect()
     }
@@ -230,6 +330,16 @@ impl StringSeries {
     ///
     /// Each unique string value is stored once in a dictionary and referenced
     /// by an integer code, reducing memory for columns with repeated values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("color", &["red", "blue", "red"]);
+    /// let cat = s.to_categorical();
+    /// assert_eq!(cat.n_categories(), 2);
+    /// assert_eq!(cat.get(0), Some("red"));
+    /// ```
     pub fn to_categorical(&self) -> crate::series::categorical::CategoricalSeries {
         use std::collections::HashMap;
         let mut categories: Vec<String> = Vec::new();
@@ -262,6 +372,14 @@ impl StringSeries {
     }
 
     /// Number of unique non-null values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::from_strs("x", &["a", "b", "a", "c"]);
+    /// assert_eq!(s.n_unique(), 3);
+    /// ```
     pub fn n_unique(&self) -> usize {
         use std::collections::HashSet;
         let set: HashSet<&str> = self

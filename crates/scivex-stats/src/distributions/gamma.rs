@@ -21,6 +21,14 @@ pub struct Gamma<T: Float> {
 
 impl<T: Float> Gamma<T> {
     /// Create a new Gamma distribution with shape `alpha > 0` and rate `beta > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Gamma, Distribution};
+    /// let g = Gamma::new(3.0_f64, 2.0).unwrap();
+    /// assert!((g.mean() - 1.5).abs() < 1e-10); // alpha/beta
+    /// ```
     pub fn new(alpha: T, beta: T) -> Result<Self> {
         let zero = T::from_f64(0.0);
         if alpha <= zero {

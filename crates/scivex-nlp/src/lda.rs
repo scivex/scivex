@@ -53,6 +53,14 @@ impl XorShift {
 // ---------------------------------------------------------------------------
 
 /// Configuration for Latent Dirichlet Allocation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::LdaConfig;
+/// let cfg = LdaConfig::new().with_n_topics(5).with_iterations(50);
+/// assert_eq!(cfg.n_topics, 5);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -85,6 +93,15 @@ impl Default for LdaConfig {
 
 impl LdaConfig {
     /// Create a new configuration with default values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::lda::LdaConfig;
+    /// let config = LdaConfig::new().with_n_topics(5).with_iterations(50);
+    /// assert_eq!(config.n_topics, 5);
+    /// assert_eq!(config.n_iterations, 50);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -131,6 +148,14 @@ impl LdaConfig {
 // ---------------------------------------------------------------------------
 
 /// Latent Dirichlet Allocation model trained via collapsed Gibbs sampling.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::{LdaConfig, LdaModel};
+/// let model = LdaModel::new(LdaConfig::new().with_n_topics(3));
+/// assert_eq!(model.n_topics(), 3);
+/// ```
 pub struct LdaModel {
     /// Model configuration.
     pub config: LdaConfig,
@@ -154,6 +179,14 @@ pub struct LdaModel {
 
 impl LdaModel {
     /// Create a new, unfitted LDA model with the given configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::lda::{LdaConfig, LdaModel};
+    /// let model = LdaModel::new(LdaConfig::new().with_n_topics(3));
+    /// assert_eq!(model.n_topics(), 3);
+    /// ```
     #[must_use]
     pub fn new(config: LdaConfig) -> Self {
         let n_topics = config.n_topics;
@@ -178,6 +211,20 @@ impl LdaModel {
     /// Fit the model on a corpus of tokenised documents.
     ///
     /// Each document is a slice of word tokens (e.g., `&["the", "cat", "sat"]`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::lda::{LdaConfig, LdaModel};
+    /// let config = LdaConfig::new().with_n_topics(2).with_iterations(20);
+    /// let mut model = LdaModel::new(config);
+    /// let docs: Vec<Vec<&str>> = vec![
+    ///     vec!["cat", "dog", "cat"],
+    ///     vec!["fish", "bird", "fish"],
+    /// ];
+    /// let slices: Vec<&[&str]> = docs.iter().map(Vec::as_slice).collect();
+    /// model.fit(&slices).unwrap();
+    /// ```
     pub fn fit(&mut self, documents: &[&[&str]]) -> Result<()> {
         if documents.is_empty() {
             return Err(NlpError::EmptyInput);
@@ -278,6 +325,20 @@ impl LdaModel {
     /// probability.
     ///
     /// Each entry is `(word, probability)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::lda::{LdaConfig, LdaModel};
+    /// let config = LdaConfig::new().with_n_topics(2).with_iterations(10);
+    /// let mut model = LdaModel::new(config);
+    /// let docs: Vec<Vec<&str>> = vec![vec!["cat", "dog"], vec!["fish", "bird"]];
+    /// let slices: Vec<&[&str]> = docs.iter().map(Vec::as_slice).collect();
+    /// model.fit(&slices).unwrap();
+    /// let dist = model.topic_word_distribution(0).unwrap();
+    /// let total: f64 = dist.iter().map(|(_, p)| p).sum();
+    /// assert!((total - 1.0).abs() < 1e-9);
+    /// ```
     pub fn topic_word_distribution(&self, topic: usize) -> Result<Vec<(String, f64)>> {
         if topic >= self.n_topics {
             return Err(NlpError::InvalidParameter {
@@ -311,6 +372,21 @@ impl LdaModel {
     ///
     /// Returns a vector of length `n_topics` where entry `k` is the
     /// probability of topic `k` in the given document.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::lda::{LdaConfig, LdaModel};
+    /// let config = LdaConfig::new().with_n_topics(2).with_iterations(10);
+    /// let mut model = LdaModel::new(config);
+    /// let docs: Vec<Vec<&str>> = vec![vec!["cat", "dog"], vec!["fish", "bird"]];
+    /// let slices: Vec<&[&str]> = docs.iter().map(Vec::as_slice).collect();
+    /// model.fit(&slices).unwrap();
+    /// let dist = model.document_topic_distribution(0).unwrap();
+    /// assert_eq!(dist.len(), 2);
+    /// let total: f64 = dist.iter().sum();
+    /// assert!((total - 1.0).abs() < 1e-9);
+    /// ```
     pub fn document_topic_distribution(&self, doc_idx: usize) -> Result<Vec<f64>> {
         if doc_idx >= self.doc_topic_counts.len() {
             return Err(NlpError::InvalidParameter {
@@ -333,6 +409,19 @@ impl LdaModel {
 
     /// Return the top `n` words for a given topic, sorted by descending
     /// probability.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::lda::{LdaConfig, LdaModel};
+    /// let config = LdaConfig::new().with_n_topics(2).with_iterations(10);
+    /// let mut model = LdaModel::new(config);
+    /// let docs: Vec<Vec<&str>> = vec![vec!["cat", "dog"], vec!["fish", "bird"]];
+    /// let slices: Vec<&[&str]> = docs.iter().map(Vec::as_slice).collect();
+    /// model.fit(&slices).unwrap();
+    /// let top = model.top_words(0, 2).unwrap();
+    /// assert_eq!(top.len(), 2);
+    /// ```
     pub fn top_words(&self, topic: usize, n: usize) -> Result<Vec<(String, f64)>> {
         let mut dist = self.topic_word_distribution(topic)?;
         dist.truncate(n);

@@ -8,6 +8,15 @@ use super::{Tensor, compute_strides};
 /// A range specification for one axis when slicing a tensor.
 ///
 /// Mirrors Python's `start:stop:step` slice notation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::indexing::SliceRange;
+/// let r = SliceRange::new(0, 10, 2); // 0, 2, 4, 6, 8
+/// assert_eq!(r.start, 0);
+/// assert_eq!(r.step, 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -25,6 +34,15 @@ impl SliceRange {
     /// # Panics
     ///
     /// Panics in debug mode if `step == 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::indexing::SliceRange;
+    /// let r = SliceRange::new(1, 5, 2);
+    /// assert_eq!(r.start, 1);
+    /// assert_eq!(r.stop, 5);
+    /// ```
     #[allow(clippy::similar_names)]
     pub fn new(start: usize, stop: usize, step: usize) -> Self {
         debug_assert!(step > 0, "slice step must be > 0");
@@ -32,11 +50,29 @@ impl SliceRange {
     }
 
     /// Shorthand for `start..stop` with step 1.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::indexing::SliceRange;
+    /// let r = SliceRange::range(2, 5);
+    /// assert_eq!(r.step, 1);
+    /// ```
     pub fn range(start: usize, stop: usize) -> Self {
         Self::new(start, stop, 1)
     }
 
     /// Select the full extent of an axis. Requires knowing the axis length.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::indexing::SliceRange;
+    /// let r = SliceRange::full(5);
+    /// assert_eq!(r.start, 0);
+    /// assert_eq!(r.stop, 5);
+    /// assert_eq!(r.step, 1);
+    /// ```
     pub fn full(len: usize) -> Self {
         Self::new(0, len, 1)
     }
@@ -58,6 +94,16 @@ impl<T: Scalar> Tensor<T> {
     /// specifies which indices to take along that axis.
     ///
     /// Returns a new tensor with copied data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::{Tensor, tensor::indexing::SliceRange};
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6, 7, 8, 9], vec![3, 3]).unwrap();
+    /// let s = t.slice(&[SliceRange::range(0, 2), SliceRange::range(1, 3)]).unwrap();
+    /// assert_eq!(s.shape(), &[2, 2]);
+    /// assert_eq!(s.as_slice(), &[2, 3, 5, 6]);
+    /// ```
     pub fn slice(&self, ranges: &[SliceRange]) -> Result<Self> {
         if ranges.len() != self.ndim() {
             return Err(CoreError::InvalidArgument {
@@ -120,6 +166,16 @@ impl<T: Scalar> Tensor<T> {
     /// Select a single index along the given axis, reducing dimensionality by 1.
     ///
     /// For a 2-D tensor, `select(0, i)` returns row `i` as a 1-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// let row = t.select(0, 1).unwrap();
+    /// assert_eq!(row.shape(), &[3]);
+    /// assert_eq!(row.as_slice(), &[4, 5, 6]);
+    /// ```
     pub fn select(&self, axis: usize, index: usize) -> Result<Self> {
         if axis >= self.ndim() {
             return Err(CoreError::AxisOutOfBounds {
@@ -168,6 +224,15 @@ impl<T: Scalar> Tensor<T> {
     /// Like numpy `np.take(arr, indices, axis)`. For a tensor of shape
     /// `[d0, d1, ..., dk, ...]`, selecting along axis `k` with `indices` of
     /// length `m` produces a tensor of shape `[d0, ..., m, ..., dn]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![10, 20, 30, 40, 50], vec![5]).unwrap();
+    /// let s = t.index_select(0, &[4, 0, 2]).unwrap();
+    /// assert_eq!(s.as_slice(), &[50, 10, 30]);
+    /// ```
     pub fn index_select(&self, axis: usize, indices: &[usize]) -> Result<Self> {
         if axis >= self.ndim() {
             return Err(CoreError::AxisOutOfBounds {
@@ -228,6 +293,15 @@ impl<T: Scalar> Tensor<T> {
     ///
     /// Like numpy `arr[mask]`. The mask length must equal the total number of
     /// elements in the tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![10, 20, 30, 40, 50], vec![5]).unwrap();
+    /// let s = t.masked_select(&[true, false, true, false, true]).unwrap();
+    /// assert_eq!(s.as_slice(), &[10, 30, 50]);
+    /// ```
     pub fn masked_select(&self, mask: &[bool]) -> Result<Self> {
         if mask.len() != self.numel() {
             return Err(CoreError::InvalidArgument {
@@ -252,6 +326,16 @@ impl<T: Scalar> Tensor<T> {
     /// `mask.len()` must equal `self.shape()[0]`. The result has the same
     /// number of dimensions, with dimension 0 reduced to the count of `true`
     /// entries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![3, 2]).unwrap();
+    /// let s = t.masked_select_along(&[false, true, true]).unwrap();
+    /// assert_eq!(s.shape(), &[2, 2]);
+    /// assert_eq!(s.as_slice(), &[3, 4, 5, 6]);
+    /// ```
     pub fn masked_select_along(&self, mask: &[bool]) -> Result<Self> {
         if self.ndim() == 0 {
             return Err(CoreError::InvalidArgument {
@@ -287,6 +371,16 @@ impl<T: Scalar> Tensor<T> {
     ///
     /// `values` must have the same shape as the result of
     /// `self.index_select(axis, indices)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let mut t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// let vals = Tensor::from_vec(vec![10, 20, 30], vec![1, 3]).unwrap();
+    /// t.index_put(0, &[0], &vals).unwrap();
+    /// assert_eq!(t.as_slice(), &[10, 20, 30, 4, 5, 6]);
+    /// ```
     pub fn index_put(&mut self, axis: usize, indices: &[usize], values: &Tensor<T>) -> Result<()> {
         if axis >= self.ndim() {
             return Err(CoreError::AxisOutOfBounds {
@@ -351,6 +445,15 @@ impl<T: Scalar> Tensor<T> {
     ///
     /// `mask.len()` must equal `self.numel()`, and `values.len()` must equal
     /// the number of `true` entries in the mask.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let mut t = Tensor::from_vec(vec![1, 2, 3, 4, 5], vec![5]).unwrap();
+    /// t.masked_put(&[false, true, false, true, false], &[99, 88]).unwrap();
+    /// assert_eq!(t.as_slice(), &[1, 99, 3, 88, 5]);
+    /// ```
     pub fn masked_put(&mut self, mask: &[bool], values: &[T]) -> Result<()> {
         if mask.len() != self.numel() {
             return Err(CoreError::InvalidArgument {
@@ -382,6 +485,16 @@ impl<T: Scalar> Tensor<T> {
     /// has the same shape as `indices`.
     ///
     /// This is equivalent to PyTorch's `torch.gather`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![10, 20, 30, 40, 50, 60], vec![2, 3]).unwrap();
+    /// let idx = Tensor::from_vec(vec![2, 0, 1, 0], vec![2, 2]).unwrap();
+    /// let g = t.gather(1, &idx).unwrap();
+    /// assert_eq!(g.as_slice(), &[30, 10, 50, 40]);
+    /// ```
     pub fn gather(&self, axis: usize, indices: &Tensor<usize>) -> Result<Tensor<T>> {
         if axis >= self.ndim() {
             return Err(CoreError::AxisOutOfBounds {

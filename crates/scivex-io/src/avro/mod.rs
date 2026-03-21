@@ -27,6 +27,18 @@ const SYNC_MARKER_LEN: usize = 16;
 // ---------------------------------------------------------------------------
 
 /// Subset of Avro types we support.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::avro::AvroType;
+/// let t = AvroType::Long;
+/// assert_eq!(t, AvroType::Long);
+/// assert_ne!(t, AvroType::Double);
+///
+/// let nullable = AvroType::Union(Box::new(AvroType::String));
+/// assert!(matches!(nullable, AvroType::Union(_)));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AvroType {
     Null,
@@ -42,6 +54,18 @@ pub enum AvroType {
 }
 
 /// A single field in an Avro record schema.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::avro::{AvroField, AvroType};
+/// let field = AvroField {
+///     name: "age".to_string(),
+///     avro_type: AvroType::Long,
+/// };
+/// assert_eq!(field.name, "age");
+/// assert_eq!(field.avro_type, AvroType::Long);
+/// ```
 #[derive(Debug, Clone)]
 pub struct AvroField {
     /// Field name.
@@ -51,6 +75,21 @@ pub struct AvroField {
 }
 
 /// Parsed Avro record schema (top-level schema must be a record).
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::avro::{AvroSchema, AvroField, AvroType};
+/// let schema = AvroSchema {
+///     name: "MyRecord".to_string(),
+///     fields: vec![
+///         AvroField { name: "id".to_string(), avro_type: AvroType::Long },
+///         AvroField { name: "score".to_string(), avro_type: AvroType::Double },
+///     ],
+/// };
+/// assert_eq!(schema.name, "MyRecord");
+/// assert_eq!(schema.fields.len(), 2);
+/// ```
 #[derive(Debug, Clone)]
 pub struct AvroSchema {
     /// Record name.
@@ -64,6 +103,18 @@ pub struct AvroSchema {
 // ---------------------------------------------------------------------------
 
 /// Encode a signed 64-bit integer using zigzag encoding into varint bytes.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::avro::zigzag_encode_i64;
+/// let encoded = zigzag_encode_i64(0_i64);
+/// assert_eq!(encoded, vec![0]);
+/// let encoded = zigzag_encode_i64(1_i64);
+/// assert_eq!(encoded, vec![2]);
+/// let encoded = zigzag_encode_i64(-1_i64);
+/// assert_eq!(encoded, vec![1]);
+/// ```
 pub fn zigzag_encode_i64(n: i64) -> Vec<u8> {
     let mut z = ((n << 1) ^ (n >> 63)) as u64;
     let mut buf = Vec::with_capacity(10);
@@ -79,6 +130,17 @@ pub fn zigzag_encode_i64(n: i64) -> Vec<u8> {
 }
 
 /// Decode a zigzag-encoded varint from a reader, returning the signed i64.
+///
+/// # Examples
+///
+/// ```
+/// use std::io::Cursor;
+/// use scivex_io::avro::{zigzag_encode_i64, zigzag_decode_i64};
+/// let encoded = zigzag_encode_i64(42_i64);
+/// let mut cursor = Cursor::new(encoded);
+/// let decoded = zigzag_decode_i64(&mut cursor).unwrap();
+/// assert_eq!(decoded, 42_i64);
+/// ```
 pub fn zigzag_decode_i64<R: Read>(reader: &mut R) -> Result<i64> {
     let mut result: u64 = 0;
     let mut shift: u32 = 0;
@@ -111,6 +173,16 @@ pub fn zigzag_decode_i64<R: Read>(reader: &mut R) -> Result<i64> {
 ///
 /// We implement a minimal JSON parser sufficient for Avro record schemas with
 /// primitive field types.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::avro::{parse_schema, AvroType};
+/// let json = r#"{"type":"record","name":"User","fields":[{"name":"id","type":"long"}]}"#;
+/// let schema = parse_schema(json).unwrap();
+/// assert_eq!(schema.name, "User");
+/// assert_eq!(schema.fields[0].avro_type, AvroType::Long);
+/// ```
 pub fn parse_schema(json: &str) -> Result<AvroSchema> {
     let json = json.trim();
     let obj = parse_json_object(json)?;
@@ -431,6 +503,27 @@ fn read_f64<R: Read>(reader: &mut R) -> Result<f64> {
 // ---------------------------------------------------------------------------
 
 /// Parsed Avro file header.
+///
+/// Obtain via [`read_avro_header`] after writing an Avro file with
+/// [`write_avro`].
+///
+/// # Examples
+///
+/// ```
+/// use std::io::Cursor;
+/// use scivex_io::avro::{write_avro, read_avro_header};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("x", vec![1_i64, 2]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// let mut buf = Vec::new();
+/// write_avro(&mut buf, &df).unwrap();
+///
+/// let mut cursor = Cursor::new(&buf);
+/// let header = read_avro_header(&mut cursor).unwrap();
+/// assert_eq!(header.codec, "null");
+/// assert_eq!(header.schema.fields[0].name, "x");
+/// ```
 #[derive(Debug, Clone)]
 pub struct AvroHeader {
     /// The record schema.
@@ -442,6 +535,22 @@ pub struct AvroHeader {
 }
 
 /// Read the Avro container file header from a reader.
+///
+/// # Examples
+///
+/// ```
+/// use std::io::Cursor;
+/// use scivex_io::avro::{write_avro, read_avro_header};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("n", vec![10_i64]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// let mut buf = Vec::new();
+/// write_avro(&mut buf, &df).unwrap();
+/// let mut cursor = Cursor::new(&buf);
+/// let header = read_avro_header(&mut cursor).unwrap();
+/// assert_eq!(header.schema.name, "DataFrame");
+/// ```
 pub fn read_avro_header<R: Read>(reader: &mut R) -> Result<AvroHeader> {
     // 1. Magic bytes
     let magic = read_exact(reader, 4)?;
@@ -567,6 +676,24 @@ fn read_avro_value<R: Read>(reader: &mut R, avro_type: &AvroType) -> Result<Avro
 }
 
 /// Read an Avro container file into a [`DataFrame`].
+///
+/// # Examples
+///
+/// ```
+/// use std::io::Cursor;
+/// use scivex_io::avro::{write_avro, read_avro};
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("id", vec![1_i64, 2, 3]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// let mut buf = Vec::new();
+/// write_avro(&mut buf, &df).unwrap();
+///
+/// let mut cursor = Cursor::new(&buf);
+/// let df2 = read_avro(&mut cursor).unwrap();
+/// assert_eq!(df2.nrows(), 3);
+/// assert_eq!(df2.ncols(), 1);
+/// ```
 pub fn read_avro<R: Read>(reader: &mut R) -> Result<DataFrame> {
     let header = read_avro_header(reader)?;
     let schema = &header.schema;
@@ -790,6 +917,20 @@ fn build_dataframe_from_avro_columns(
 // ---------------------------------------------------------------------------
 
 /// Write a [`DataFrame`] to Avro container file format.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::avro::write_avro;
+/// use scivex_frame::{DataFrame, Series, AnySeries};
+///
+/// let col: Box<dyn AnySeries> = Box::new(Series::new("val", vec![10_i64, 20]));
+/// let df = DataFrame::new(vec![col]).unwrap();
+/// let mut buf = Vec::new();
+/// write_avro(&mut buf, &df).unwrap();
+/// // Avro files start with "Obj\x01"
+/// assert_eq!(&buf[..3], b"Obj");
+/// ```
 pub fn write_avro<W: Write>(writer: &mut W, df: &DataFrame) -> Result<()> {
     let schema = dataframe_to_schema(df);
 

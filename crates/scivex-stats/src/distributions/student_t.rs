@@ -18,6 +18,14 @@ pub struct StudentT<T: Float> {
 
 impl<T: Float> StudentT<T> {
     /// Create a new Student-t distribution with `df > 0` degrees of freedom.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{StudentT, Distribution};
+    /// let t = StudentT::new(10.0_f64).unwrap();
+    /// assert!((t.cdf(0.0) - 0.5).abs() < 1e-6);
+    /// ```
     pub fn new(df: T) -> Result<Self> {
         if df <= T::from_f64(0.0) {
             return Err(StatsError::InvalidParameter {

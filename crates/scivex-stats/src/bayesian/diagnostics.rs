@@ -8,6 +8,16 @@ use super::McmcResult;
 ///
 /// `chains` has shape `[n_chains][n_samples][n_params]`.
 /// Returns one R-hat value per parameter.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::rhat;
+/// let chain1 = vec![vec![1.0_f64], vec![1.1], vec![0.9], vec![1.05]];
+/// let chain2 = vec![vec![1.0_f64], vec![0.95], vec![1.1], vec![1.0]];
+/// let r = rhat(&[chain1, chain2]);
+/// assert_eq!(r.len(), 1);
+/// ```
 pub fn rhat<T: Float>(chains: &[Vec<Vec<T>>]) -> Vec<T> {
     if chains.is_empty() || chains[0].is_empty() || chains[0][0].is_empty() {
         return vec![];
@@ -81,6 +91,16 @@ pub fn rhat<T: Float>(chains: &[Vec<Vec<T>>]) -> Vec<T> {
 /// Compute the effective sample size for each parameter across chains.
 ///
 /// Uses a simple autocorrelation-based estimate.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::effective_sample_size;
+/// let chain = vec![vec![1.0_f64], vec![1.1], vec![0.9], vec![1.05], vec![1.0]];
+/// let ess = effective_sample_size(&[chain]);
+/// assert_eq!(ess.len(), 1);
+/// assert!(ess[0] > 0.0);
+/// ```
 pub fn effective_sample_size<T: Float>(chains: &[Vec<Vec<T>>]) -> Vec<T> {
     if chains.is_empty() || chains[0].is_empty() || chains[0][0].is_empty() {
         return vec![];
@@ -130,6 +150,18 @@ pub fn effective_sample_size<T: Float>(chains: &[Vec<Vec<T>>]) -> Vec<T> {
 }
 
 /// Summary statistics for an MCMC trace.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::{MetropolisHastings, McmcConfig, trace_summary};
+/// let mh = MetropolisHastings::new(vec![1.0_f64]);
+/// let log_prob = |x: &[f64]| -> f64 { -0.5 * x[0] * x[0] };
+/// let cfg = McmcConfig::new(200, 100, 42, 1);
+/// let result = mh.sample(log_prob, &[0.0], &cfg).unwrap();
+/// let summary = trace_summary(&result);
+/// assert_eq!(summary.mean.len(), 1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -157,6 +189,18 @@ pub struct TraceSummary<T: Float> {
 }
 
 /// Compute a full trace summary from MCMC results.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::{MetropolisHastings, McmcConfig, trace_summary};
+/// let mh = MetropolisHastings::new(vec![1.0_f64]);
+/// let log_prob = |x: &[f64]| -> f64 { -0.5 * x[0] * x[0] };
+/// let cfg = McmcConfig::new(200, 100, 42, 1);
+/// let result = mh.sample(log_prob, &[0.0], &cfg).unwrap();
+/// let ts = trace_summary(&result);
+/// assert!(ts.q025[0] <= ts.q975[0]);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn trace_summary<T: Float>(result: &McmcResult<T>) -> TraceSummary<T> {
     let chains = &result.samples;

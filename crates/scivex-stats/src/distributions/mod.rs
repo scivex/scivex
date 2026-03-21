@@ -45,6 +45,15 @@ use scivex_core::random::Rng;
 use crate::error::Result;
 
 /// Common interface for probability distributions.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::distributions::{Distribution, Normal};
+/// let n = Normal::new(0.0_f64, 1.0).unwrap();
+/// assert!((n.mean() - 0.0).abs() < 1e-10);
+/// assert!((n.cdf(0.0) - 0.5).abs() < 1e-6);
+/// ```
 pub trait Distribution<T: Float> {
     /// Probability density (or mass) function evaluated at `x`.
     fn pdf(&self, x: T) -> T;

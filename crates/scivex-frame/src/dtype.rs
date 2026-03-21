@@ -1,6 +1,14 @@
 //! Runtime type identification for type-erased columns.
 
 /// Runtime representation of a column's element type.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::prelude::*;
+/// assert_eq!(DType::F64.to_string(), "f64");
+/// assert_eq!(DType::Str.to_string(), "str");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -46,6 +54,15 @@ impl core::fmt::Display for DType {
 }
 
 /// Compile-time mapping from a Rust type to its [`DType`] variant.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::prelude::*;
+/// use scivex_frame::dtype::HasDType;
+/// assert_eq!(f64::dtype(), DType::F64);
+/// assert_eq!(i32::dtype(), DType::I32);
+/// ```
 pub trait HasDType {
     /// The runtime dtype for this type.
     fn dtype() -> DType;

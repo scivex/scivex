@@ -3,6 +3,18 @@ use scivex_core::Float;
 use crate::graph::Graph;
 
 /// Community detection result.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, community};
+/// let g = Graph::from_edges(&[
+///     (0, 1, 1.0_f64), (1, 2, 1.0), (0, 2, 1.0),
+///     (3, 4, 1.0), (4, 5, 1.0), (3, 5, 1.0),
+/// ]).unwrap();
+/// let c = community::label_propagation(&g, 10);
+/// assert_eq!(c.n_communities, 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -20,6 +32,18 @@ pub struct Communities {
 /// Each node adopts the most frequent label among its neighbors, breaking
 /// ties by choosing the smallest label. Iterates until convergence or
 /// `max_iter` is reached.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, community};
+/// let g = Graph::from_edges(&[
+///     (0, 1, 1.0), (1, 2, 1.0), (0, 2, 1.0),
+///     (3, 4, 1.0), (4, 5, 1.0), (3, 5, 1.0),
+/// ]).unwrap();
+/// let c = community::label_propagation(&g, 10);
+/// assert_eq!(c.n_communities, 2);
+/// ```
 pub fn label_propagation<T: Float>(graph: &Graph<T>, max_iter: usize) -> Communities {
     let n = graph.capacity();
     let mut labels = vec![usize::MAX; n];

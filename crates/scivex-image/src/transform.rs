@@ -18,6 +18,17 @@ pub enum ResizeMethod {
 }
 
 /// Resize an image to the given dimensions using nearest-neighbor interpolation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::transform::{resize, ResizeMethod};
+/// let img = Image::from_raw(vec![10u8, 20, 30, 40], 2, 2, PixelFormat::Gray).unwrap();
+/// let resized = resize(&img, 4, 4, ResizeMethod::Nearest).unwrap();
+/// assert_eq!(resized.width(), 4);
+/// assert_eq!(resized.height(), 4);
+/// ```
 pub fn resize<T: Scalar>(
     img: &Image<T>,
     new_width: usize,
@@ -41,6 +52,16 @@ pub fn resize<T: Scalar>(
 }
 
 /// Resize using bilinear interpolation (float images only).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::transform;
+/// let img = Image::from_raw(vec![0.0f32; 12], 2, 2, PixelFormat::Rgb).unwrap();
+/// let big = transform::resize_bilinear(&img, 4, 4).unwrap();
+/// assert_eq!(big.dimensions(), (4, 4));
+/// ```
 pub fn resize_bilinear<T: Float>(
     img: &Image<T>,
     new_width: usize,
@@ -142,6 +163,16 @@ fn resize_nearest<T: Scalar>(
 }
 
 /// Crop a rectangular region from the image.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::transform;
+/// let img = Image::from_raw(vec![1u8, 2, 3, 4], 2, 2, PixelFormat::Gray).unwrap();
+/// let cropped = transform::crop(&img, 0, 0, 1, 2).unwrap();
+/// assert_eq!(cropped.dimensions(), (1, 2));
+/// ```
 pub fn crop<T: Scalar>(
     img: &Image<T>,
     x: usize,
@@ -172,6 +203,16 @@ pub fn crop<T: Scalar>(
 }
 
 /// Flip an image horizontally (mirror left-right).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::transform::flip_horizontal;
+/// let img = Image::from_raw(vec![1u8, 2], 2, 1, PixelFormat::Gray).unwrap();
+/// let flipped = flip_horizontal(&img);
+/// assert_eq!(flipped.as_slice(), &[2, 1]);
+/// ```
 pub fn flip_horizontal<T: Scalar>(img: &Image<T>) -> Image<T> {
     let (w, h) = img.dimensions();
     let c = img.channels();
@@ -190,6 +231,16 @@ pub fn flip_horizontal<T: Scalar>(img: &Image<T>) -> Image<T> {
 }
 
 /// Flip an image vertically (mirror top-bottom).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::transform;
+/// let img = Image::from_raw(vec![1u8, 2], 1, 2, PixelFormat::Gray).unwrap();
+/// let flipped = transform::flip_vertical(&img);
+/// assert_eq!(flipped.as_slice(), &[2, 1]);
+/// ```
 pub fn flip_vertical<T: Scalar>(img: &Image<T>) -> Image<T> {
     let (w, h) = img.dimensions();
     let c = img.channels();
@@ -207,6 +258,17 @@ pub fn flip_vertical<T: Scalar>(img: &Image<T>) -> Image<T> {
 }
 
 /// Rotate 90 degrees clockwise.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::transform::rotate90;
+/// let img = Image::from_raw(vec![1u8, 2, 3, 4], 2, 2, PixelFormat::Gray).unwrap();
+/// let rotated = rotate90(&img);
+/// assert_eq!(rotated.width(), 2);
+/// assert_eq!(rotated.height(), 2);
+/// ```
 pub fn rotate90<T: Scalar>(img: &Image<T>) -> Image<T> {
     let (w, h) = img.dimensions();
     let c = img.channels();
@@ -227,6 +289,16 @@ pub fn rotate90<T: Scalar>(img: &Image<T>) -> Image<T> {
 }
 
 /// Rotate 180 degrees.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::transform;
+/// let img = Image::from_raw(vec![1u8, 2, 3, 4], 2, 2, PixelFormat::Gray).unwrap();
+/// let r = transform::rotate180(&img);
+/// assert_eq!(r.as_slice(), &[4, 3, 2, 1]);
+/// ```
 pub fn rotate180<T: Scalar>(img: &Image<T>) -> Image<T> {
     let (w, h) = img.dimensions();
     let c = img.channels();
@@ -244,6 +316,16 @@ pub fn rotate180<T: Scalar>(img: &Image<T>) -> Image<T> {
 }
 
 /// Rotate 270 degrees clockwise (= 90 degrees counter-clockwise).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::transform;
+/// let img = Image::from_raw(vec![1u8, 2, 3, 4], 2, 2, PixelFormat::Gray).unwrap();
+/// let r = transform::rotate270(&img);
+/// assert_eq!(r.dimensions(), (2, 2));
+/// ```
 pub fn rotate270<T: Scalar>(img: &Image<T>) -> Image<T> {
     let (w, h) = img.dimensions();
     let c = img.channels();
@@ -263,6 +345,17 @@ pub fn rotate270<T: Scalar>(img: &Image<T>) -> Image<T> {
 }
 
 /// Pad an image with a constant value on all sides.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::transform;
+/// let img = Image::from_raw(vec![100u8], 1, 1, PixelFormat::Gray).unwrap();
+/// let padded = transform::pad(&img, 1, 1, 1, 1, 0);
+/// assert_eq!(padded.dimensions(), (3, 3));
+/// assert_eq!(padded.get_pixel(1, 1).unwrap(), vec![100]);
+/// ```
 pub fn pad<T: Scalar>(
     img: &Image<T>,
     top: usize,

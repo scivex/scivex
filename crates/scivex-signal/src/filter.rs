@@ -17,6 +17,19 @@ use crate::window;
 /// `x` — input signal, shape `[L]`.
 ///
 /// Returns the filtered signal of the same length as `x`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::filter::lfilter;
+/// // Simple moving average filter (FIR, 3-tap)
+/// let b = Tensor::from_vec(vec![1.0/3.0, 1.0/3.0, 1.0/3.0], vec![3]).unwrap();
+/// let a = Tensor::from_vec(vec![1.0_f64], vec![1]).unwrap();
+/// let x = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0], vec![5]).unwrap();
+/// let y = lfilter(&b, &a, &x).unwrap();
+/// assert_eq!(y.shape(), &[5]);
+/// ```
 pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<Tensor<T>> {
     if b.ndim() != 1 || a.ndim() != 1 || x.ndim() != 1 {
         return Err(SignalError::InvalidParameter {
@@ -73,6 +86,18 @@ pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<
 ///
 /// Applies `lfilter` forwards, then reverses the result and applies `lfilter`
 /// again, giving zero phase distortion.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::filter::filtfilt;
+/// let b = Tensor::from_vec(vec![1.0_f64], vec![1]).unwrap();
+/// let a = Tensor::from_vec(vec![1.0], vec![1]).unwrap();
+/// let x = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let y = filtfilt(&b, &a, &x).unwrap();
+/// assert_eq!(y.shape(), &[4]);
+/// ```
 pub fn filtfilt<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<Tensor<T>> {
     // Forward pass.
     let y1 = lfilter(b, a, x)?;
@@ -92,6 +117,14 @@ pub fn filtfilt<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result
 }
 
 /// FIR filter design utilities.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::filter::FirFilter;
+/// let h = FirFilter::low_pass::<f64>(0.5, 31).unwrap();
+/// assert_eq!(h.shape(), &[31]);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -105,6 +138,15 @@ impl FirFilter {
     /// `num_taps` — number of filter taps (must be odd for type I FIR).
     ///
     /// Returns the filter coefficients as a 1-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_signal::filter::FirFilter;
+    /// let h = FirFilter::low_pass::<f64>(0.5, 31).unwrap();
+    /// let dc_gain: f64 = h.as_slice().iter().sum();
+    /// assert!((dc_gain - 1.0).abs() < 0.01); // DC gain ≈ 1
+    /// ```
     pub fn low_pass<T: Float>(cutoff: T, num_taps: usize) -> Result<Tensor<T>> {
         if num_taps == 0 {
             return Err(SignalError::InvalidParameter {
@@ -156,6 +198,15 @@ impl FirFilter {
     ///
     /// `cutoff` — normalized cutoff frequency in `(0, 1)`.
     /// `num_taps` — must be odd.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_signal::filter::FirFilter;
+    /// let h = FirFilter::high_pass::<f64>(0.5, 31).unwrap();
+    /// let dc_gain: f64 = h.as_slice().iter().sum();
+    /// assert!(dc_gain.abs() < 0.01); // rejects DC
+    /// ```
     pub fn high_pass<T: Float>(cutoff: T, num_taps: usize) -> Result<Tensor<T>> {
         if num_taps % 2 == 0 {
             return Err(SignalError::InvalidParameter {
@@ -174,6 +225,15 @@ impl FirFilter {
     ///
     /// `low`, `high` — normalized cutoff frequencies in `(0, 1)`, `low < high`.
     /// `num_taps` — must be odd.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_signal::filter::FirFilter;
+    /// let h = FirFilter::band_pass::<f64>(0.2, 0.4, 31).unwrap();
+    /// let dc_gain: f64 = h.as_slice().iter().sum();
+    /// assert!(dc_gain.abs() < 0.1); // band-pass rejects DC
+    /// ```
     pub fn band_pass<T: Float>(low: T, high: T, num_taps: usize) -> Result<Tensor<T>> {
         if low >= high {
             return Err(SignalError::InvalidParameter {

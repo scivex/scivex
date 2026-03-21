@@ -37,6 +37,17 @@ use crate::variable::Variable;
 /// The returned variable is a **detached leaf** — no graph history is
 /// carried over. This is intentional: the compute graph for the half-
 /// precision forward pass is built fresh each iteration.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::training::amp::cast_variable;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_core::Tensor;
+/// let v = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), true);
+/// let casted: Variable<f32> = cast_variable(&v);
+/// assert!((casted.data().as_slice()[0] - 1.0).abs() < 1e-6);
+/// ```
 pub fn cast_variable<S: Float, D: Float>(v: &Variable<S>) -> Variable<D> {
     let data = v.data();
     let casted = data.cast::<D>();
@@ -44,6 +55,20 @@ pub fn cast_variable<S: Float, D: Float>(v: &Variable<S>) -> Variable<D> {
 }
 
 /// Cast a slice of variables from one precision to another.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::training::amp::cast_params;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_core::Tensor;
+/// let params: Vec<Variable<f64>> = vec![
+///     Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), true),
+/// ];
+/// let casted: Vec<Variable<f32>> = cast_params(&params);
+/// assert_eq!(casted.len(), 1);
+/// assert_eq!(casted[0].shape(), vec![2]);
+/// ```
 pub fn cast_params<S: Float, D: Float>(params: &[Variable<S>]) -> Vec<Variable<D>> {
     params.iter().map(cast_variable).collect()
 }
@@ -120,6 +145,20 @@ impl<Master: Float, Compute: Float> Default for AmpConfig<Master, Compute> {
 ///
 /// The layer itself should hold compute-precision weights (use
 /// [`AmpConfig::to_compute`] to prepare them).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::training::amp::amp_forward;
+/// # use scivex_nn::layer::{Linear, Layer};
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_core::{Tensor, random::Rng};
+/// let mut rng = Rng::new(42);
+/// let layer = Linear::<f64>::new(2, 1, false, &mut rng);
+/// let input = Variable::new(Tensor::ones(vec![1, 2]), false);
+/// let output = amp_forward(&layer, &input).unwrap();
+/// assert_eq!(output.shape(), vec![1, 1]);
+/// ```
 pub fn amp_forward<T: Float>(layer: &dyn Layer<T>, input: &Variable<T>) -> Result<Variable<T>> {
     layer.forward(input)
 }

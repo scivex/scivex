@@ -16,6 +16,19 @@ pub use active_set::quadprog;
 use scivex_core::Float;
 
 /// Result of a quadratic programming solve.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::quadprog::quadprog;
+/// // minimize 0.5*(x^2+y^2)  s.t. x+y <= 1
+/// let result = quadprog(
+///     &[vec![1.0_f64, 0.0], vec![0.0, 1.0]],
+///     &[0.0, 0.0],
+///     &[vec![1.0, 1.0]], &[1.0], 100,
+/// ).unwrap();
+/// assert!(result.converged);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

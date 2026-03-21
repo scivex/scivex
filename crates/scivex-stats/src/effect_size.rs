@@ -22,6 +22,14 @@ pub enum EffectSizeInterpretation {
 }
 
 /// Interpret a Cohen's d value using conventional thresholds.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::{interpret_cohens_d, EffectSizeInterpretation};
+/// assert_eq!(interpret_cohens_d(0.1_f64), EffectSizeInterpretation::Negligible);
+/// assert_eq!(interpret_cohens_d(0.6_f64), EffectSizeInterpretation::Medium);
+/// ```
 pub fn interpret_cohens_d<T: Float>(d: T) -> EffectSizeInterpretation {
     let abs_d = d.abs();
     if abs_d < T::from_f64(0.2) {
@@ -43,6 +51,16 @@ pub fn interpret_cohens_d<T: Float>(d: T) -> EffectSizeInterpretation {
 /// where `pooled_std = sqrt(((n1-1)*var1 + (n2-1)*var2) / (n1+n2-2))`.
 ///
 /// Both groups must contain at least 2 elements.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::cohens_d;
+/// let a = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let b = vec![4.0_f64, 5.0, 6.0, 7.0, 8.0];
+/// let d = cohens_d(&a, &b).unwrap();
+/// assert!(d < 0.0); // group1 mean < group2 mean → negative d
+/// ```
 pub fn cohens_d<T: Float>(group1: &[T], group2: &[T]) -> Result<T> {
     let n1 = group1.len();
     let n2 = group2.len();
@@ -79,6 +97,16 @@ pub fn cohens_d<T: Float>(group1: &[T], group2: &[T]) -> Result<T> {
 /// `Δ = (mean_treatment - mean_control) / std_control`
 ///
 /// Both groups must contain at least 2 elements.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::glass_delta;
+/// let treatment = vec![5.0_f64, 6.0, 7.0, 8.0];
+/// let control = vec![1.0_f64, 2.0, 3.0, 4.0];
+/// let delta = glass_delta(&treatment, &control).unwrap();
+/// assert!(delta > 0.0); // treatment mean > control mean
+/// ```
 pub fn glass_delta<T: Float>(treatment: &[T], control: &[T]) -> Result<T> {
     let nt = treatment.len();
     let nc = control.len();
@@ -105,6 +133,16 @@ pub fn glass_delta<T: Float>(treatment: &[T], control: &[T]) -> Result<T> {
 /// `g = d * (1 - 3 / (4*(n1+n2) - 9))`
 ///
 /// Both groups must contain at least 2 elements.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::hedges_g;
+/// let a = vec![1.0_f64, 2.0, 3.0];
+/// let b = vec![4.0_f64, 5.0, 6.0];
+/// let g = hedges_g(&a, &b).unwrap();
+/// assert!(g < 0.0); // group1 mean < group2 mean
+/// ```
 pub fn hedges_g<T: Float>(group1: &[T], group2: &[T]) -> Result<T> {
     let d = cohens_d(group1, group2)?;
     let n = (group1.len() + group2.len()) as f64;
@@ -118,6 +156,16 @@ pub fn hedges_g<T: Float>(group1: &[T], group2: &[T]) -> Result<T> {
 /// `η² = SS_between / SS_total`
 ///
 /// Requires at least 2 groups, each with at least 1 element.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::eta_squared;
+/// let g1: &[f64] = &[1.0, 1.0, 1.0];
+/// let g2: &[f64] = &[3.0, 3.0, 3.0];
+/// let eta2 = eta_squared(&[g1, g2]).unwrap();
+/// assert!((eta2 - 1.0).abs() < 1e-10); // all variance is between groups
+/// ```
 pub fn eta_squared<T: Float>(groups: &[&[T]]) -> Result<T> {
     if groups.len() < 2 {
         return Err(StatsError::InsufficientData {
@@ -166,6 +214,16 @@ pub fn eta_squared<T: Float>(groups: &[&[T]]) -> Result<T> {
 /// `ω² = (SS_between - (k-1)*MS_within) / (SS_total + MS_within)`
 ///
 /// Requires at least 2 groups, each with at least 1 element.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::omega_squared;
+/// let g1: &[f64] = &[1.0, 2.0, 3.0];
+/// let g2: &[f64] = &[7.0, 8.0, 9.0];
+/// let w2 = omega_squared(&[g1, g2]).unwrap();
+/// assert!(w2 > 0.5); // large effect
+/// ```
 pub fn omega_squared<T: Float>(groups: &[&[T]]) -> Result<T> {
     let k = groups.len();
     if k < 2 {
@@ -219,6 +277,16 @@ pub fn omega_squared<T: Float>(groups: &[&[T]]) -> Result<T> {
 ///
 /// `observed` is a flat row-major contingency table with `rows` rows and `cols`
 /// columns. Each inner `Vec` represents one row.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::cramers_v;
+/// // Independent 2x2 table
+/// let table = vec![vec![25.0_f64, 25.0], vec![25.0, 25.0]];
+/// let v = cramers_v(&table, 2, 2).unwrap();
+/// assert!(v.abs() < 1e-10); // no association
+/// ```
 pub fn cramers_v<T: Float>(observed: &[Vec<T>], rows: usize, cols: usize) -> Result<T> {
     if observed.len() != rows {
         return Err(StatsError::LengthMismatch {
@@ -289,6 +357,16 @@ pub fn cramers_v<T: Float>(observed: &[Vec<T>], rows: usize, cols: usize) -> Res
 /// `r_pb = (M1 - M0) / S * sqrt(n0 * n1 / n²)`
 ///
 /// where `S` is the standard deviation of the full continuous sample.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::point_biserial;
+/// let binary = [false, false, false, true, true, true];
+/// let cont = [1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0];
+/// let r = point_biserial(&binary, &cont).unwrap();
+/// assert!(r > 0.0); // positive association
+/// ```
 pub fn point_biserial<T: Float>(binary: &[bool], continuous: &[T]) -> Result<T> {
     let n = binary.len();
     if n != continuous.len() {
@@ -344,6 +422,16 @@ pub fn point_biserial<T: Float>(binary: &[bool], continuous: &[T]) -> Result<T> 
 /// `w = sqrt(Σ (O_i - E_i)² / E_i  /  n)`
 ///
 /// where `n = Σ O_i`.  Equivalently, `w = sqrt(χ² / n)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::effect_size::cohens_w;
+/// let observed = [50.0_f64, 50.0];
+/// let expected = [50.0_f64, 50.0];
+/// let w = cohens_w(&observed, &expected).unwrap();
+/// assert!(w.abs() < 1e-10); // perfect fit
+/// ```
 pub fn cohens_w<T: Float>(observed: &[T], expected: &[T]) -> Result<T> {
     if observed.len() != expected.len() {
         return Err(StatsError::LengthMismatch {

@@ -4,6 +4,14 @@
 ///
 /// Implements the classic 5-step Porter stemmer that reduces words to their
 /// stems by stripping suffixes.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::PorterStemmer;
+/// let stemmer = PorterStemmer;
+/// assert_eq!(stemmer.stem("running"), "run");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -12,6 +20,16 @@ pub struct PorterStemmer;
 
 impl PorterStemmer {
     /// Stem a single word, returning the stemmed form.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::stem::PorterStemmer;
+    /// let stemmer = PorterStemmer;
+    /// assert_eq!(stemmer.stem("running"), "run");
+    /// assert_eq!(stemmer.stem("cats"), "cat");
+    /// assert_eq!(stemmer.stem("caresses"), "caress");
+    /// ```
     #[must_use]
     pub fn stem(&self, word: &str) -> String {
         let w = word.to_lowercase();

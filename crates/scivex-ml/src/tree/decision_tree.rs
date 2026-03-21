@@ -291,6 +291,18 @@ impl<T: Float> Default for DecisionTreeRegressor<T> {
 
 impl<T: Float> DecisionTreeRegressor<T> {
     /// Create a new decision tree regressor with optional depth limit.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::prelude::*;
+    /// # use scivex_core::prelude::*;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3, 1]).unwrap();
+    /// let y = Tensor::from_vec(vec![10.0, 20.0, 30.0], vec![3]).unwrap();
+    /// let mut tree = DecisionTreeRegressor::<f64>::new(None, 1);
+    /// tree.fit(&x, &y).unwrap();
+    /// let preds = tree.predict(&x).unwrap();
+    /// ```
     pub fn new(max_depth: Option<usize>, min_samples_split: usize) -> Self {
         Self {
             max_depth,
@@ -363,6 +375,19 @@ impl<T: Float> DecisionTreeRegressor<T> {
 impl<T: Float> DecisionTreeRegressor<T> {
     /// Compute feature importance based on the number of times each feature is
     /// used as a split. Returns a vec of length `n_features`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::prelude::*;
+    /// # use scivex_core::prelude::*;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 0.0, 2.0, 1.0, 3.0, 0.0], vec![3, 2]).unwrap();
+    /// let y = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+    /// let mut tree = DecisionTreeRegressor::<f64>::new(None, 1);
+    /// tree.fit(&x, &y).unwrap();
+    /// let imp = tree.feature_importances(2);
+    /// assert_eq!(imp.len(), 2);
+    /// ```
     pub fn feature_importances(&self, n_features: usize) -> Vec<T> {
         let mut counts = vec![0usize; n_features];
         if let Some(ref root) = self.root {

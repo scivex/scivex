@@ -10,6 +10,15 @@ use super::QuadResult;
 /// with `n` subintervals.
 ///
 /// Requires `n` to be even. Error is `O(h^4)` where `h = (b - a) / n`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::integrate::simpson;
+/// // ∫₀^π sin(x) dx = 2
+/// let result = simpson(|x: f64| x.sin(), 0.0, std::f64::consts::PI, 100).unwrap();
+/// assert!((result.value - 2.0).abs() < 1e-6);
+/// ```
 pub fn simpson<T: Float, F: Fn(T) -> T>(f: F, a: T, b: T, n: usize) -> Result<QuadResult<T>> {
     #[allow(clippy::manual_is_multiple_of)]
     if n == 0 || n % 2 != 0 {

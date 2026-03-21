@@ -41,6 +41,18 @@ pub struct MaxPool2d {
 
 impl MaxPool2d {
     /// Create a new MaxPool2d with given kernel size. Stride defaults to kernel size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{MaxPool2d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let pool = MaxPool2d::new((2, 2));
+    /// let x = Variable::new(Tensor::<f64>::ones(vec![1, 1, 4, 4]), false);
+    /// let y = pool.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 1, 2, 2]);
+    /// ```
     pub fn new(kernel_size: (usize, usize)) -> Self {
         Self {
             kernel_h: kernel_size.0,
@@ -166,6 +178,21 @@ pub struct AvgPool2d {
 
 impl AvgPool2d {
     /// Create a new AvgPool2d. Stride defaults to kernel size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{AvgPool2d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let pool = AvgPool2d::new((2, 2));
+    /// let x = Variable::new(
+    ///     Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![1, 1, 2, 2]).unwrap(),
+    ///     false,
+    /// );
+    /// let y = pool.forward(&x).unwrap();
+    /// assert!((y.data().as_slice()[0] - 2.5).abs() < 1e-10);
+    /// ```
     pub fn new(kernel_size: (usize, usize)) -> Self {
         Self {
             kernel_h: kernel_size.0,
@@ -311,6 +338,18 @@ pub struct MaxPool1d {
 
 impl MaxPool1d {
     /// Create with given kernel size. Stride defaults to kernel size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{MaxPool1d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let pool = MaxPool1d::new(2);
+    /// let x = Variable::new(Tensor::<f64>::ones(vec![1, 3, 8]), false);
+    /// let y = pool.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 3, 4]);
+    /// ```
     pub fn new(kernel_size: usize) -> Self {
         Self {
             inner: MaxPool2d::new((1, kernel_size)),
@@ -376,6 +415,18 @@ pub struct AvgPool1d {
 
 impl AvgPool1d {
     /// Create with given kernel size. Stride defaults to kernel size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{AvgPool1d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let pool = AvgPool1d::new(2);
+    /// let x = Variable::new(Tensor::<f64>::ones(vec![1, 3, 8]), false);
+    /// let y = pool.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 3, 4]);
+    /// ```
     pub fn new(kernel_size: usize) -> Self {
         Self {
             inner: AvgPool2d::new((1, kernel_size)),

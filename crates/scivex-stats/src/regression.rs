@@ -8,6 +8,18 @@ use crate::distributions::{Distribution, StudentT};
 use crate::error::{Result, StatsError};
 
 /// Results of an OLS regression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_stats::regression::ols;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0], vec![5, 1]).unwrap();
+/// let y = vec![2.0, 4.0, 6.0, 8.0, 10.0];
+/// let res = ols(&x, &y).unwrap();
+/// assert_eq!(res.n_obs, 5);
+/// assert!(res.r_squared > 0.99);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -44,6 +56,17 @@ pub struct OlsResult<T: Float> {
 /// prepended automatically). `y` is a slice of `n_obs` target values.
 ///
 /// Returns the full regression summary.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_stats::regression::ols;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0], vec![5, 1]).unwrap();
+/// let y: Vec<f64> = vec![2.0, 4.0, 6.0, 8.0, 10.0]; // y = 2x
+/// let result = ols(&x, &y).unwrap();
+/// assert!(result.r_squared > 0.99);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn ols<T: Float>(x: &Tensor<T>, y: &[T]) -> Result<OlsResult<T>> {
     if x.ndim() != 2 {

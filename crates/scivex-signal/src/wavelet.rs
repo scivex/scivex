@@ -5,6 +5,14 @@ use scivex_core::{Float, Tensor};
 use crate::error::{Result, SignalError};
 
 /// Supported wavelet families.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::wavelet::Wavelet;
+/// let w = Wavelet::Haar;
+/// assert_eq!(w, Wavelet::Haar);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -42,6 +50,19 @@ impl Wavelet {
 /// Single-level Discrete Wavelet Transform.
 ///
 /// Returns `(approximation, detail)` coefficient tensors, each of length `ceil(n/2)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::wavelet::{dwt, idwt, Wavelet};
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let (approx, detail) = dwt(&x, Wavelet::Haar).unwrap();
+/// let y = idwt(&approx, &detail, Wavelet::Haar).unwrap();
+/// for (a, b) in y.as_slice().iter().zip(x.as_slice()) {
+///     assert!((a - b).abs() < 1e-10);
+/// }
+/// ```
 pub fn dwt<T: Float>(x: &Tensor<T>, wavelet: Wavelet) -> Result<(Tensor<T>, Tensor<T>)> {
     if x.ndim() != 1 {
         return Err(SignalError::InvalidParameter {
@@ -89,6 +110,17 @@ pub fn dwt<T: Float>(x: &Tensor<T>, wavelet: Wavelet) -> Result<(Tensor<T>, Tens
 /// Single-level Inverse Discrete Wavelet Transform.
 ///
 /// Reconstructs the signal from approximation and detail coefficients.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::wavelet::{dwt, idwt, Wavelet};
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let (a, d) = dwt(&x, Wavelet::Haar).unwrap();
+/// let y = idwt(&a, &d, Wavelet::Haar).unwrap();
+/// assert_eq!(y.numel(), 4);
+/// ```
 pub fn idwt<T: Float>(
     approx: &Tensor<T>,
     detail: &Tensor<T>,

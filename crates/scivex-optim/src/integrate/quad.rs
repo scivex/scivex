@@ -52,6 +52,15 @@ const GAUSS_INDICES: [usize; 4] = [0, 2, 4, 6];
 ///
 /// Approximates `∫_a^b f(x) dx` by recursively subdividing intervals
 /// until the error estimate is within the requested tolerances.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::integrate::{quad, QuadOptions};
+/// // ∫₀¹ x² dx = 1/3
+/// let result = quad(|x: f64| x * x, 0.0, 1.0, &QuadOptions::default()).unwrap();
+/// assert!((result.value - 1.0 / 3.0).abs() < 1e-10);
+/// ```
 pub fn quad<T: Float, F: Fn(T) -> T>(
     f: F,
     a: T,

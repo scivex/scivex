@@ -12,6 +12,14 @@ use crate::common::is_null_sentinel;
 use crate::error::{IoError, Result};
 
 /// Orientation of JSON data.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::json::JsonOrientation;
+/// assert_eq!(JsonOrientation::Records, JsonOrientation::Records);
+/// assert_ne!(JsonOrientation::Records, JsonOrientation::Columns);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -26,15 +34,17 @@ pub enum JsonOrientation {
 
 /// Builder for reading JSON data into a [`DataFrame`].
 ///
-/// # Example
+/// # Examples
 ///
-/// ```no_run
-/// use scivex_io::json::JsonReaderBuilder;
+/// ```
+/// use scivex_io::json::{JsonReaderBuilder, JsonOrientation};
 ///
 /// let json = r#"[{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]"#;
 /// let df = JsonReaderBuilder::new()
 ///     .read(json.as_bytes())
 ///     .unwrap();
+/// assert_eq!(df.nrows(), 2);
+/// assert_eq!(df.ncols(), 2);
 /// ```
 #[cfg_attr(
     feature = "serde-support",
@@ -88,11 +98,28 @@ impl JsonReaderBuilder {
 }
 
 /// Read JSON with default settings (records orientation).
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::json::read_json;
+/// let json = r#"[{"x": 1}, {"x": 2}]"#;
+/// let df = read_json(json.as_bytes()).unwrap();
+/// assert_eq!(df.nrows(), 2);
+/// ```
 pub fn read_json<R: Read>(reader: R) -> Result<DataFrame> {
     JsonReaderBuilder::new().read(reader)
 }
 
 /// Read JSON from a file path with default settings.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::json::read_json_path;
+/// let df = read_json_path("records.json").unwrap();
+/// assert!(df.nrows() > 0);
+/// ```
 pub fn read_json_path<P: AsRef<Path>>(path: P) -> Result<DataFrame> {
     JsonReaderBuilder::new().read_path(path)
 }

@@ -23,12 +23,33 @@ struct NpyHeader {
 ///
 /// Supports `<f4`, `<f8`, `<i4`, `<i8`, `>f4`, `>f8`, `>i4`, `>i8` dtypes.
 /// Non-f64 data is converted to f64.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::npy::{read_npy, write_npy};
+/// use scivex_core::Tensor;
+///
+/// let tensor = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+/// let mut buf = Vec::new();
+/// write_npy(&mut buf, &tensor).unwrap();
+/// let result = read_npy(&buf[..]).unwrap();
+/// assert_eq!(result.as_slice(), &[1.0_f64, 2.0, 3.0]);
+/// ```
 pub fn read_npy<R: Read>(mut reader: R) -> Result<Tensor<f64>> {
     let header = read_npy_header(&mut reader)?;
     read_npy_data(&mut reader, &header)
 }
 
 /// Read a `.npy` file from a path into a `Tensor<f64>`.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::npy::read_npy_path;
+/// let tensor = read_npy_path("array.npy").unwrap();
+/// assert_eq!(tensor.shape(), &[3, 4]);
+/// ```
 pub fn read_npy_path<P: AsRef<Path>>(path: P) -> Result<Tensor<f64>> {
     let file = File::open(path)?;
     read_npy(BufReader::new(file))
@@ -37,6 +58,24 @@ pub fn read_npy_path<P: AsRef<Path>>(path: P) -> Result<Tensor<f64>> {
 /// Read a `.npz` file from a reader into a map of named `Tensor<f64>`.
 ///
 /// Each entry in the ZIP archive is expected to be a `.npy` file.
+///
+/// # Examples
+///
+/// ```
+/// use std::io::Cursor;
+/// use std::collections::HashMap;
+/// use scivex_io::npy::{read_npz, write_npz};
+/// use scivex_core::Tensor;
+///
+/// let t = Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap();
+/// let mut map = HashMap::new();
+/// map.insert("arr".to_string(), t);
+/// let mut buf = Cursor::new(Vec::new());
+/// write_npz(&mut buf, &map).unwrap();
+/// buf.set_position(0);
+/// let result = read_npz(buf).unwrap();
+/// assert_eq!(result["arr"].as_slice(), &[1.0_f64, 2.0]);
+/// ```
 pub fn read_npz<R: Read + Seek>(mut reader: R) -> Result<HashMap<String, Tensor<f64>>> {
     let mut result = HashMap::new();
 
@@ -66,6 +105,14 @@ pub fn read_npz<R: Read + Seek>(mut reader: R) -> Result<HashMap<String, Tensor<
 }
 
 /// Read a `.npz` file from a path into a map of named `Tensor<f64>`.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::npy::read_npz_path;
+/// let tensors = read_npz_path("arrays.npz").unwrap();
+/// assert!(!tensors.is_empty());
+/// ```
 pub fn read_npz_path<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Tensor<f64>>> {
     let file = File::open(path)?;
     read_npz(BufReader::new(file))

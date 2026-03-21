@@ -7,6 +7,15 @@ use crate::error::{GraphError, Result};
 use crate::graph::Graph;
 
 /// Result of a single-source shortest path algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, shortest};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 3.0)]).unwrap();
+/// let result = shortest::dijkstra(&g, 0).unwrap();
+/// assert!((result.distances[2] - 4.0).abs() < 1e-10);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -23,6 +32,15 @@ impl<T: Float> ShortestPathResult<T> {
     /// Reconstruct the path from `source` to `target`.
     ///
     /// Returns `None` if `target` is unreachable.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::{Graph, shortest};
+    /// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+    /// let result = shortest::dijkstra(&g, 0).unwrap();
+    /// assert_eq!(result.path_to(0, 2), Some(vec![0, 1, 2]));
+    /// ```
     pub fn path_to(&self, source: usize, target: usize) -> Option<Vec<usize>> {
         if self.distances[target] == T::infinity() {
             return None;
@@ -73,6 +91,20 @@ impl<T: Float> Ord for State<T> {
 /// Dijkstra's algorithm on an undirected graph.
 ///
 /// Returns `Err(NegativeWeight)` if any edge has a negative weight.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, shortest};
+/// let mut g = Graph::<f64>::new();
+/// let a = g.add_node();
+/// let b = g.add_node();
+/// let c = g.add_node();
+/// g.add_edge(a, b, 1.0).unwrap();
+/// g.add_edge(b, c, 2.0).unwrap();
+/// let result = shortest::dijkstra(&g, a).unwrap();
+/// assert!((result.distances[c] - 3.0).abs() < 1e-10);
+/// ```
 pub fn dijkstra<T: Float>(graph: &Graph<T>, source: usize) -> Result<ShortestPathResult<T>> {
     if !graph.is_active(source) {
         return Err(GraphError::NodeNotFound { id: source });
@@ -116,6 +148,15 @@ pub fn dijkstra<T: Float>(graph: &Graph<T>, source: usize) -> Result<ShortestPat
 }
 
 /// Dijkstra's algorithm on a directed graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, shortest};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+/// let result = shortest::dijkstra_directed(&g, 0).unwrap();
+/// assert!((result.distances[2] - 3.0).abs() < 1e-10);
+/// ```
 pub fn dijkstra_directed<T: Float>(
     graph: &DiGraph<T>,
     source: usize,
@@ -164,6 +205,15 @@ pub fn dijkstra_directed<T: Float>(
 /// Bellman-Ford algorithm on an undirected graph. Handles negative weights.
 ///
 /// Returns `Err(NegativeCycle)` if a negative-weight cycle is reachable.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, shortest};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+/// let result = shortest::bellman_ford(&g, 0).unwrap();
+/// assert!((result.distances[2] - 3.0).abs() < 1e-10);
+/// ```
 pub fn bellman_ford<T: Float>(graph: &Graph<T>, source: usize) -> Result<ShortestPathResult<T>> {
     if !graph.is_active(source) {
         return Err(GraphError::NodeNotFound { id: source });
@@ -216,6 +266,15 @@ pub fn bellman_ford<T: Float>(graph: &Graph<T>, source: usize) -> Result<Shortes
 }
 
 /// Bellman-Ford algorithm on a directed graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, shortest};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+/// let result = shortest::bellman_ford_directed(&g, 0).unwrap();
+/// assert!((result.distances[2] - 3.0).abs() < 1e-10);
+/// ```
 pub fn bellman_ford_directed<T: Float>(
     graph: &DiGraph<T>,
     source: usize,
@@ -271,6 +330,15 @@ pub fn bellman_ford_directed<T: Float>(
 /// Floyd-Warshall all-pairs shortest paths on an undirected graph.
 ///
 /// Returns a 2-D distance matrix `dist[u][v]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, shortest};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+/// let dist = shortest::floyd_warshall(&g).unwrap();
+/// assert!((dist[0][2] - 3.0).abs() < 1e-10);
+/// ```
 pub fn floyd_warshall<T: Float>(graph: &Graph<T>) -> Result<Vec<Vec<T>>> {
     let n = graph.capacity();
     let mut dist = vec![vec![T::infinity(); n]; n];
@@ -300,6 +368,15 @@ pub fn floyd_warshall<T: Float>(graph: &Graph<T>) -> Result<Vec<Vec<T>>> {
 }
 
 /// Floyd-Warshall all-pairs shortest paths on a directed graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, shortest};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+/// let dist = shortest::floyd_warshall_directed(&g).unwrap();
+/// assert!((dist[0][2] - 3.0).abs() < 1e-10);
+/// ```
 pub fn floyd_warshall_directed<T: Float>(graph: &DiGraph<T>) -> Result<Vec<Vec<T>>> {
     let n = graph.capacity();
     let mut dist = vec![vec![T::infinity(); n]; n];

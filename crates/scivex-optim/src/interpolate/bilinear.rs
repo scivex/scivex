@@ -29,6 +29,18 @@ impl<T: Float> Bilinear2d<T> {
     /// - `xs` and `ys` must be strictly increasing with length >= 2.
     /// - `zs` must have shape `[xs.len()][ys.len()]`.
     /// - All values must be finite.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Bilinear2d, Extrapolate};
+    /// let xs = vec![0.0_f64, 1.0];
+    /// let ys = vec![0.0, 1.0];
+    /// let zs = vec![vec![0.0, 1.0], vec![1.0, 2.0]];
+    /// let interp = Bilinear2d::new(xs, ys, zs, Extrapolate::Error).unwrap();
+    /// let z = interp.eval(0.5, 0.5).unwrap();
+    /// assert!((z - 1.0).abs() < 1e-10); // average of corners
+    /// ```
     pub fn new(xs: Vec<T>, ys: Vec<T>, zs: Vec<Vec<T>>, extrap: Extrapolate) -> Result<Self> {
         validate_sorted(&xs, 2)?;
         validate_sorted(&ys, 2)?;
@@ -55,6 +67,18 @@ impl<T: Float> Bilinear2d<T> {
     }
 
     /// Evaluate at a single `(x, y)` point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Bilinear2d, Extrapolate};
+    /// let interp = Bilinear2d::new(
+    ///     vec![0.0_f64, 1.0], vec![0.0, 1.0],
+    ///     vec![vec![0.0, 1.0], vec![1.0, 2.0]], Extrapolate::Error,
+    /// ).unwrap();
+    /// let z = interp.eval(0.5, 0.5).unwrap();
+    /// assert!((z - 1.0).abs() < 1e-10);
+    /// ```
     pub fn eval(&self, x: T, y: T) -> Result<T> {
         let (ix, xq) = find_interval(&self.xs, x, self.extrap)?;
         let (iy, yq) = find_interval(&self.ys, y, self.extrap)?;
@@ -82,6 +106,19 @@ impl<T: Float> Bilinear2d<T> {
     }
 
     /// Evaluate at many `(x, y)` points.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Bilinear2d, Extrapolate};
+    /// let interp = Bilinear2d::new(
+    ///     vec![0.0_f64, 1.0], vec![0.0, 1.0],
+    ///     vec![vec![0.0, 1.0], vec![1.0, 2.0]], Extrapolate::Error,
+    /// ).unwrap();
+    /// let zs = interp.eval_many(&[(0.0, 0.0), (1.0, 1.0)]).unwrap();
+    /// assert!((zs[0] - 0.0).abs() < 1e-10);
+    /// assert!((zs[1] - 2.0).abs() < 1e-10);
+    /// ```
     pub fn eval_many(&self, points: &[(T, T)]) -> Result<Vec<T>> {
         points.iter().map(|&(x, y)| self.eval(x, y)).collect()
     }

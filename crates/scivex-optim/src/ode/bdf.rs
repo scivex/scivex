@@ -16,6 +16,20 @@ const FIXED_POINT_TOL: f64 = 1e-10;
 ///
 /// `f(t, y) -> dy/dt` defines the system. `y0` is the initial state vector.
 /// Uses BDF-1 (backward Euler) for the first step, then BDF-2 for subsequent steps.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::ode::{bdf2, OdeOptions};
+/// // dy/dt = -50*y (stiff equation), y(0) = 1
+/// let result = bdf2(
+///     |_t: f64, y: &[f64]| vec![-50.0 * y[0]],
+///     [0.0, 1.0],
+///     &[1.0],
+///     &OdeOptions::default(),
+/// ).unwrap();
+/// assert!(result.success);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn bdf2<T, F>(f: F, t_span: [T; 2], y0: &[T], options: &OdeOptions<T>) -> Result<OdeResult<T>>
 where

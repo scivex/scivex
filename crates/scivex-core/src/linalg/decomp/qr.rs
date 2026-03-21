@@ -13,6 +13,16 @@ use crate::tensor::Tensor;
 /// Stores the factorization `A = QR` in compact form: the Householder
 /// vectors are stored in the lower triangle of the working matrix,
 /// and `R` is stored in the upper triangle.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::linalg::decomp::QrDecomposition;
+/// let a = Tensor::from_vec(vec![1.0_f64, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+/// let qr = QrDecomposition::decompose(&a).unwrap();
+/// assert!(qr.is_full_rank());
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -116,12 +126,33 @@ impl<T: Float> QrDecomposition<T> {
     }
 
     /// Whether the matrix has full column rank.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::QrDecomposition;
+    /// let a = Tensor::from_vec(vec![1.0_f64, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+    /// let qr = QrDecomposition::decompose(&a).unwrap();
+    /// assert!(qr.is_full_rank());
+    /// ```
     pub fn is_full_rank(&self) -> bool {
         let threshold = T::epsilon() * T::from_f64(1e3);
         self.r_diag.iter().all(|d| d.abs() > threshold)
     }
 
     /// Extract the upper triangular matrix `R` (m x n).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::QrDecomposition;
+    /// let a = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+    /// let qr = QrDecomposition::decompose(&a).unwrap();
+    /// let r = qr.r();
+    /// assert_eq!(r.shape(), &[2, 2]);
+    /// ```
     pub fn r(&self) -> Tensor<T> {
         let (m, n) = (self.m, self.n);
         let mut data = vec![T::zero(); m * n];
@@ -136,6 +167,23 @@ impl<T: Float> QrDecomposition<T> {
     }
 
     /// Extract the orthogonal matrix `Q` (m x m).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::QrDecomposition;
+    /// let a = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+    /// let qr = QrDecomposition::decompose(&a).unwrap();
+    /// let q = qr.q();
+    /// assert_eq!(q.shape(), &[2, 2]);
+    /// // Q is orthogonal: Q^T Q ≈ I
+    /// let qtq = q.transpose().unwrap().matmul(&q).unwrap();
+    /// let eye = Tensor::<f64>::eye(2);
+    /// for (a, b) in qtq.as_slice().iter().zip(eye.as_slice()) {
+    ///     assert!((a - b).abs() < 1e-10);
+    /// }
+    /// ```
     pub fn q(&self) -> Tensor<T> {
         let (m, n) = (self.m, self.n);
         // Start with identity
@@ -167,6 +215,20 @@ impl<T: Float> QrDecomposition<T> {
     }
 
     /// Extract the "thin" Q matrix (m x n) — only the first `n` columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::QrDecomposition;
+    /// let a = Tensor::from_vec(
+    ///     vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0],
+    ///     vec![3, 2],
+    /// ).unwrap();
+    /// let qr = QrDecomposition::decompose(&a).unwrap();
+    /// let q_thin = qr.q_thin();
+    /// assert_eq!(q_thin.shape(), &[3, 2]);
+    /// ```
     pub fn q_thin(&self) -> Tensor<T> {
         let (m, n) = (self.m, self.n);
         let mut q_data = vec![T::zero(); m * n];
@@ -202,6 +264,19 @@ impl<T: Float> QrDecomposition<T> {
     /// least-squares solution.
     ///
     /// `b` must be a 1-D tensor of length `m`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::QrDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let b = Tensor::from_vec(vec![5.0_f64, 6.0], vec![2]).unwrap();
+    /// let qr = QrDecomposition::decompose(&a).unwrap();
+    /// let x = qr.solve(&b).unwrap();
+    /// assert!((x.as_slice()[0] - 2.0).abs() < 1e-10);
+    /// assert!((x.as_slice()[1] - 1.0).abs() < 1e-10);
+    /// ```
     pub fn solve(&self, b: &Tensor<T>) -> Result<Tensor<T>> {
         if !self.is_full_rank() {
             return Err(CoreError::InvalidArgument {

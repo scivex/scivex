@@ -11,20 +11,16 @@ use crate::traits::Transformer;
 /// of unique categories per column. During `transform`, each category is
 /// expanded into a binary column.
 ///
-/// # Example
+/// # Examples
 ///
-/// Input (2 features, 3 categories each):
-/// ```text
-/// [[0, 1],
-///  [1, 2],
-///  [2, 0]]
 /// ```
-///
-/// Output (3 + 3 = 6 columns):
-/// ```text
-/// [[1, 0, 0, 0, 1, 0],
-///  [0, 1, 0, 0, 0, 1],
-///  [0, 0, 1, 1, 0, 0]]
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![0.0_f64, 0.0, 1.0, 1.0, 2.0, 0.0], vec![3, 2]).unwrap();
+/// let mut enc = OneHotEncoder::new();
+/// let out = enc.fit_transform(&x).unwrap();
+/// // col0: 3 categories, col1: 2 categories => 5 output columns
+/// assert_eq!(out.shape(), &[3, 5]);
 /// ```
 #[cfg_attr(
     feature = "serde-support",
@@ -38,6 +34,17 @@ pub struct OneHotEncoder<T: Float> {
 
 impl<T: Float> OneHotEncoder<T> {
     /// Create a new unfitted encoder.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::prelude::*;
+    /// # use scivex_core::prelude::*;
+    /// let x = Tensor::from_vec(vec![0.0_f64, 1.0, 2.0], vec![3, 1]).unwrap();
+    /// let mut enc = OneHotEncoder::<f64>::new();
+    /// let out = enc.fit_transform(&x).unwrap();
+    /// assert_eq!(out.shape(), &[3, 3]);
+    /// ```
     pub fn new() -> Self {
         Self { categories: None }
     }

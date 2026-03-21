@@ -27,6 +27,17 @@ impl<T: Float> CubicSpline<T> {
     /// - `xs` and `ys` must have the same length (>= 3).
     /// - `xs` must be strictly increasing.
     /// - All values must be finite.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{CubicSpline, SplineBoundary, Extrapolate};
+    /// let xs = [0.0_f64, 1.0, 2.0, 3.0];
+    /// let ys = [0.0, 1.0, 4.0, 9.0]; // roughly x²
+    /// let spline = CubicSpline::new(&xs, &ys, SplineBoundary::Natural, Extrapolate::Error).unwrap();
+    /// let y = spline.eval(1.5).unwrap();
+    /// assert!((y - 2.25).abs() < 0.5); // close to 1.5²
+    /// ```
     pub fn new(
         xs: &[T],
         ys: &[T],
@@ -156,6 +167,18 @@ impl<T: Float> CubicSpline<T> {
     }
 
     /// Evaluate the spline at a single point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{CubicSpline, SplineBoundary, Extrapolate};
+    /// let spline = CubicSpline::new(
+    ///     &[0.0_f64, 1.0, 2.0, 3.0], &[0.0, 1.0, 4.0, 9.0],
+    ///     SplineBoundary::Natural, Extrapolate::Error,
+    /// ).unwrap();
+    /// let y = spline.eval(1.5).unwrap();
+    /// assert!((y - 2.25).abs() < 0.5);
+    /// ```
     pub fn eval(&self, x: T) -> Result<T> {
         let (i, xq) = find_interval(&self.xs, x, self.extrap)?;
         let dx = xq - self.xs[i];
@@ -164,11 +187,35 @@ impl<T: Float> CubicSpline<T> {
     }
 
     /// Evaluate at many points.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{CubicSpline, SplineBoundary, Extrapolate};
+    /// let spline = CubicSpline::new(
+    ///     &[0.0_f64, 1.0, 2.0, 3.0], &[0.0, 1.0, 4.0, 9.0],
+    ///     SplineBoundary::Natural, Extrapolate::Error,
+    /// ).unwrap();
+    /// let ys = spline.eval_many(&[0.5, 1.5, 2.5]).unwrap();
+    /// assert_eq!(ys.len(), 3);
+    /// ```
     pub fn eval_many(&self, xs: &[T]) -> Result<Vec<T>> {
         xs.iter().map(|&x| self.eval(x)).collect()
     }
 
     /// Evaluate the first derivative at a single point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{CubicSpline, SplineBoundary, Extrapolate};
+    /// let spline = CubicSpline::new(
+    ///     &[0.0_f64, 1.0, 2.0, 3.0], &[0.0, 1.0, 4.0, 9.0],
+    ///     SplineBoundary::Natural, Extrapolate::Error,
+    /// ).unwrap();
+    /// let dy = spline.derivative(1.0).unwrap();
+    /// assert!(dy > 0.0); // increasing function
+    /// ```
     pub fn derivative(&self, x: T) -> Result<T> {
         let (i, xq) = find_interval(&self.xs, x, self.extrap)?;
         let dx = xq - self.xs[i];
@@ -179,6 +226,19 @@ impl<T: Float> CubicSpline<T> {
     }
 
     /// Evaluate the second derivative at a single point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{CubicSpline, SplineBoundary, Extrapolate};
+    /// let spline = CubicSpline::new(
+    ///     &[0.0_f64, 1.0, 2.0, 3.0], &[0.0, 1.0, 4.0, 9.0],
+    ///     SplineBoundary::Natural, Extrapolate::Error,
+    /// ).unwrap();
+    /// let d2y = spline.second_derivative(0.0).unwrap();
+    /// // Natural boundary: second derivative = 0 at endpoints
+    /// assert!(d2y.abs() < 1e-10);
+    /// ```
     pub fn second_derivative(&self, x: T) -> Result<T> {
         let (i, xq) = find_interval(&self.xs, x, self.extrap)?;
         let dx = xq - self.xs[i];

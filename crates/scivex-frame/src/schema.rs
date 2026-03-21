@@ -31,12 +31,36 @@ use crate::dtype::DType;
 use std::fmt;
 
 /// A schema describing the expected structure of a [`DataFrame`].
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::prelude::*;
+/// # use scivex_frame::schema::{Schema, ColumnSchema};
+/// let schema = Schema::new(vec![
+///     ColumnSchema::new("age", DType::I64),
+///     ColumnSchema::new("score", DType::F64),
+/// ]);
+/// assert_eq!(schema.columns().len(), 2);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Schema {
     columns: Vec<ColumnSchema>,
 }
 
 /// Schema definition for a single column.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::prelude::*;
+/// # use scivex_frame::schema::{ColumnSchema, Constraint};
+/// let cs = ColumnSchema::new("age", DType::I64)
+///     .not_null()
+///     .range(0.0, 150.0);
+/// assert!(!cs.nullable);
+/// assert_eq!(cs.constraints.len(), 1);
+/// ```
 #[derive(Debug, Clone)]
 pub struct ColumnSchema {
     /// Column name.
@@ -50,6 +74,13 @@ pub struct ColumnSchema {
 }
 
 /// A value constraint for a column.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::schema::Constraint;
+/// let c = Constraint::Range { min: 0.0, max: 100.0 };
+/// ```
 #[derive(Debug, Clone)]
 pub enum Constraint {
     /// All values must be unique.
@@ -85,6 +116,15 @@ impl fmt::Display for ValidationError {
 
 impl Schema {
     /// Create a schema from column definitions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::schema::{Schema, ColumnSchema};
+    /// # use scivex_frame::dtype::DType;
+    /// let schema = Schema::new(vec![ColumnSchema::new("x", DType::F64)]);
+    /// assert_eq!(schema.columns().len(), 1);
+    /// ```
     pub fn new(columns: Vec<ColumnSchema>) -> Self {
         Self { columns }
     }
@@ -97,6 +137,15 @@ impl Schema {
 
 impl ColumnSchema {
     /// Create a column schema with the given name and type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::schema::ColumnSchema;
+    /// # use scivex_frame::dtype::DType;
+    /// let cs = ColumnSchema::new("age", DType::I32);
+    /// assert!(cs.nullable);
+    /// ```
     pub fn new(name: &str, dtype: DType) -> Self {
         Self {
             name: name.to_string(),
@@ -107,6 +156,15 @@ impl ColumnSchema {
     }
 
     /// Mark this column as non-nullable.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::schema::ColumnSchema;
+    /// # use scivex_frame::dtype::DType;
+    /// let cs = ColumnSchema::new("x", DType::F64).not_null();
+    /// assert!(!cs.nullable);
+    /// ```
     pub fn not_null(mut self) -> Self {
         self.nullable = false;
         self
@@ -145,6 +203,16 @@ impl DataFrame {
     ///
     /// Returns a list of [`ValidationError`]s. An empty list means the
     /// `DataFrame` is valid.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::schema::{Schema, ColumnSchema};
+    /// let schema = Schema::new(vec![ColumnSchema::new("x", DType::I32)]);
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32]).build().unwrap();
+    /// assert!(df.validate(&schema).is_empty());
+    /// ```
     pub fn validate(&self, schema: &Schema) -> Vec<ValidationError> {
         let mut errors = Vec::new();
 

@@ -12,96 +12,236 @@ use crate::tensor::Tensor;
 
 impl<T: Float> Tensor<T> {
     /// Element-wise absolute value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![-3.0_f64, -1.0, 0.0, 2.0], vec![4]).unwrap();
+    /// assert_eq!(t.abs().as_slice(), &[3.0, 1.0, 0.0, 2.0]);
+    /// ```
     #[inline]
     pub fn abs(&self) -> Tensor<T> {
         self.map(Float::abs)
     }
 
     /// Element-wise square root.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![4.0_f64, 9.0, 16.0], vec![3]).unwrap();
+    /// assert_eq!(t.sqrt().as_slice(), &[2.0, 3.0, 4.0]);
+    /// ```
     #[inline]
     pub fn sqrt(&self) -> Tensor<T> {
         self.map(Float::sqrt)
     }
 
     /// Element-wise sine.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![0.0_f64, std::f64::consts::FRAC_PI_2], vec![2]).unwrap();
+    /// let s = t.sin();
+    /// assert!((s.as_slice()[0]).abs() < 1e-15);
+    /// assert!((s.as_slice()[1] - 1.0).abs() < 1e-15);
+    /// ```
     #[inline]
     pub fn sin(&self) -> Tensor<T> {
         self.map(Float::sin)
     }
 
     /// Element-wise cosine.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap();
+    /// assert!((t.cos().as_slice()[0] - 1.0).abs() < 1e-15);
+    /// ```
     #[inline]
     pub fn cos(&self) -> Tensor<T> {
         self.map(Float::cos)
     }
 
     /// Element-wise tangent.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap();
+    /// assert!(t.tan().as_slice()[0].abs() < 1e-15);
+    /// ```
     #[inline]
     pub fn tan(&self) -> Tensor<T> {
         self.map(Float::tan)
     }
 
     /// Element-wise natural exponential.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![0.0_f64, 1.0], vec![2]).unwrap();
+    /// let e = t.exp();
+    /// assert!((e.as_slice()[0] - 1.0).abs() < 1e-15);
+    /// assert!((e.as_slice()[1] - std::f64::consts::E).abs() < 1e-14);
+    /// ```
     #[inline]
     pub fn exp(&self) -> Tensor<T> {
         self.map(Float::exp)
     }
 
     /// Element-wise natural logarithm.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.0_f64, std::f64::consts::E], vec![2]).unwrap();
+    /// let l = t.ln();
+    /// assert!((l.as_slice()[0]).abs() < 1e-15);
+    /// assert!((l.as_slice()[1] - 1.0).abs() < 1e-14);
+    /// ```
     #[inline]
     pub fn ln(&self) -> Tensor<T> {
         self.map(Float::ln)
     }
 
     /// Element-wise base-2 logarithm.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.0_f64, 2.0, 4.0, 8.0], vec![4]).unwrap();
+    /// assert_eq!(t.log2().as_slice(), &[0.0, 1.0, 2.0, 3.0]);
+    /// ```
     #[inline]
     pub fn log2(&self) -> Tensor<T> {
         self.map(Float::log2)
     }
 
     /// Element-wise base-10 logarithm.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.0_f64, 10.0, 100.0], vec![3]).unwrap();
+    /// let l = t.log10();
+    /// assert!((l.as_slice()[1] - 1.0).abs() < 1e-15);
+    /// assert!((l.as_slice()[2] - 2.0).abs() < 1e-14);
+    /// ```
     #[inline]
     pub fn log10(&self) -> Tensor<T> {
         self.map(Float::log10)
     }
 
     /// Element-wise floor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.3_f64, 2.7, -0.5], vec![3]).unwrap();
+    /// assert_eq!(t.floor().as_slice(), &[1.0, 2.0, -1.0]);
+    /// ```
     #[inline]
     pub fn floor(&self) -> Tensor<T> {
         self.map(Float::floor)
     }
 
     /// Element-wise ceiling.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.3_f64, 2.7, -0.5], vec![3]).unwrap();
+    /// assert_eq!(t.ceil().as_slice(), &[2.0, 3.0, 0.0]);
+    /// ```
     #[inline]
     pub fn ceil(&self) -> Tensor<T> {
         self.map(Float::ceil)
     }
 
     /// Element-wise rounding to nearest integer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.3_f64, 2.7], vec![2]).unwrap();
+    /// assert_eq!(t.round().as_slice(), &[1.0, 3.0]);
+    /// ```
     #[inline]
     pub fn round(&self) -> Tensor<T> {
         self.map(Float::round)
     }
 
     /// Element-wise reciprocal (`1/x`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![2.0_f64, 4.0, 5.0], vec![3]).unwrap();
+    /// assert_eq!(t.recip().as_slice(), &[0.5, 0.25, 0.2]);
+    /// ```
     #[inline]
     pub fn recip(&self) -> Tensor<T> {
         self.map(Float::recip)
     }
 
     /// Raise every element to a floating-point power.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![2.0_f64, 3.0], vec![2]).unwrap();
+    /// let p = t.powf(3.0);
+    /// assert!((p.as_slice()[0] - 8.0).abs() < 1e-14);
+    /// assert!((p.as_slice()[1] - 27.0).abs() < 1e-14);
+    /// ```
     #[inline]
     pub fn powf(&self, exponent: T) -> Tensor<T> {
         self.map(|x| x.powf(exponent))
     }
 
     /// Raise every element to an integer power.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![2.0_f64, 3.0], vec![2]).unwrap();
+    /// let p = t.powi(2);
+    /// assert!((p.as_slice()[0] - 4.0).abs() < 1e-14);
+    /// assert!((p.as_slice()[1] - 9.0).abs() < 1e-14);
+    /// ```
     #[inline]
     pub fn powi(&self, n: i32) -> Tensor<T> {
         self.map(|x| x.powi(n))
     }
 
     /// Clamp every element to `[min, max]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![-5.0_f64, 0.5, 3.0, 10.0], vec![4]).unwrap();
+    /// assert_eq!(t.clamp(0.0, 2.0).as_slice(), &[0.0, 0.5, 2.0, 2.0]);
+    /// ```
     #[inline]
     pub fn clamp(&self, min: T, max: T) -> Tensor<T> {
         self.map(|x| x.max(min).min(max))
@@ -113,66 +253,170 @@ impl<T: Float> Tensor<T> {
 // ======================================================================
 
 /// Element-wise absolute value.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![-2.0_f64, 3.0], vec![2]).unwrap();
+/// assert_eq!(math::abs(&t).as_slice(), &[2.0, 3.0]);
+/// ```
 pub fn abs<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.abs()
 }
 
 /// Element-wise square root.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![4.0_f64, 9.0], vec![2]).unwrap();
+/// assert_eq!(math::sqrt(&t).as_slice(), &[2.0, 3.0]);
+/// ```
 pub fn sqrt<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.sqrt()
 }
 
 /// Element-wise sine.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap();
+/// assert!(math::sin(&t).as_slice()[0].abs() < 1e-15);
+/// ```
 pub fn sin<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.sin()
 }
 
 /// Element-wise cosine.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap();
+/// assert!((math::cos(&t).as_slice()[0] - 1.0).abs() < 1e-15);
+/// ```
 pub fn cos<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.cos()
 }
 
 /// Element-wise tangent.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap();
+/// assert!(math::tan(&t).as_slice()[0].abs() < 1e-15);
+/// ```
 pub fn tan<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.tan()
 }
 
 /// Element-wise natural exponential.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![0.0_f64, 1.0], vec![2]).unwrap();
+/// assert!((math::exp(&t).as_slice()[0] - 1.0).abs() < 1e-15);
+/// ```
 pub fn exp<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.exp()
 }
 
 /// Element-wise natural logarithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![1.0_f64, std::f64::consts::E], vec![2]).unwrap();
+/// assert!(math::ln(&t).as_slice()[0].abs() < 1e-15);
+/// ```
 pub fn ln<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.ln()
 }
 
 /// Element-wise base-2 logarithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![1.0_f64, 2.0, 4.0], vec![3]).unwrap();
+/// assert_eq!(math::log2(&t).as_slice(), &[0.0, 1.0, 2.0]);
+/// ```
 pub fn log2<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.log2()
 }
 
 /// Element-wise base-10 logarithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![1.0_f64, 10.0, 100.0], vec![3]).unwrap();
+/// assert!((math::log10(&t).as_slice()[1] - 1.0).abs() < 1e-15);
+/// ```
 pub fn log10<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.log10()
 }
 
 /// Element-wise floor.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![1.7_f64, -0.3], vec![2]).unwrap();
+/// assert_eq!(math::floor(&t).as_slice(), &[1.0, -1.0]);
+/// ```
 pub fn floor<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.floor()
 }
 
 /// Element-wise ceiling.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![1.1_f64, -0.3], vec![2]).unwrap();
+/// assert_eq!(math::ceil(&t).as_slice(), &[2.0, 0.0]);
+/// ```
 pub fn ceil<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.ceil()
 }
 
 /// Element-wise rounding.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![1.3_f64, 2.7], vec![2]).unwrap();
+/// assert_eq!(math::round(&t).as_slice(), &[1.0, 3.0]);
+/// ```
 pub fn round<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.round()
 }
 
 /// Element-wise reciprocal.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, math};
+/// let t = Tensor::from_vec(vec![2.0_f64, 4.0], vec![2]).unwrap();
+/// assert_eq!(math::recip(&t).as_slice(), &[0.5, 0.25]);
+/// ```
 pub fn recip<T: Float>(t: &Tensor<T>) -> Tensor<T> {
     t.recip()
 }

@@ -6,6 +6,16 @@ use crate::error::Result;
 use crate::graph::Graph;
 
 /// Minimum spanning tree result.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, mst};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0), (0, 2, 5.0)]).unwrap();
+/// let tree = mst::kruskal(&g).unwrap();
+/// assert_eq!(tree.edges.len(), 2);
+/// assert!((tree.total_weight - 3.0).abs() < 1e-10);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -61,6 +71,16 @@ impl UnionFind {
 /// Kruskal's MST algorithm. Sorts edges by weight and uses Union-Find.
 ///
 /// For disconnected graphs, returns a minimum spanning forest.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, mst};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0), (0, 2, 3.0)]).unwrap();
+/// let tree = mst::kruskal(&g).unwrap();
+/// assert_eq!(tree.edges.len(), 2);
+/// assert!((tree.total_weight - 3.0).abs() < 1e-10);
+/// ```
 pub fn kruskal<T: Float>(graph: &Graph<T>) -> Result<Mst<T>> {
     let mut edges: Vec<(usize, usize, T)> = graph.edges().collect();
     edges.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
@@ -118,6 +138,16 @@ impl<T: Float> Ord for PrimState<T> {
 ///
 /// For disconnected graphs, returns a minimum spanning forest by restarting
 /// from unvisited nodes.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, mst};
+/// let g = Graph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0), (0, 2, 3.0)]).unwrap();
+/// let tree = mst::prim(&g).unwrap();
+/// assert!((tree.total_weight - 3.0).abs() < 1e-10);
+/// assert_eq!(tree.edges.len(), 2);
+/// ```
 pub fn prim<T: Float>(graph: &Graph<T>) -> Result<Mst<T>> {
     let n = graph.capacity();
     let mut in_mst = vec![false; n];

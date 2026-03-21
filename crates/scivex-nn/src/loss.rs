@@ -8,6 +8,18 @@ use crate::variable::Variable;
 /// Mean squared error: `mean((pred - target)^2)`.
 ///
 /// Both `pred` and `target` should have the same shape.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::mse_loss;
+/// let pred = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap(), false);
+/// let target = Variable::new(Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap(), false);
+/// let loss = mse_loss(&pred, &target).unwrap();
+/// assert!(loss.data().as_slice()[0].abs() < 1e-12); // perfect match → 0 loss
+/// ```
 pub fn mse_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Variable<T>> {
     let p = pred.data();
     let t = target.data();
@@ -52,6 +64,20 @@ pub fn mse_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
 /// class indices as integer-valued floats (e.g., 0.0, 1.0, 2.0).
 ///
 /// Computes: `mean(-log_softmax(logits)[i, target_i])`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::cross_entropy_loss;
+/// let logits = Variable::new(
+///     Tensor::from_vec(vec![100.0_f64, -100.0, -100.0], vec![1, 3]).unwrap(), false,
+/// );
+/// let targets = Variable::new(Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap(), false);
+/// let loss = cross_entropy_loss(&logits, &targets).unwrap();
+/// assert!(loss.data().as_slice()[0] < 1e-5); // confident correct prediction
+/// ```
 pub fn cross_entropy_loss<T: Float>(
     logits: &Variable<T>,
     targets: &Variable<T>,
@@ -133,6 +159,18 @@ pub fn cross_entropy_loss<T: Float>(
 ///
 /// `pred` and `target` have the same shape; values in [0, 1].
 /// Computes: `mean(-(target * ln(pred) + (1-target) * ln(1-pred)))`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::bce_loss;
+/// let pred = Variable::new(Tensor::from_vec(vec![0.9_f64, 0.1], vec![2]).unwrap(), false);
+/// let target = Variable::new(Tensor::from_vec(vec![1.0_f64, 0.0], vec![2]).unwrap(), false);
+/// let loss = bce_loss(&pred, &target).unwrap();
+/// assert!(loss.data().as_slice()[0] < 0.2); // good predictions → low loss
+/// ```
 pub fn bce_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Variable<T>> {
     let p = pred.data();
     let t = target.data();
@@ -189,6 +227,18 @@ pub fn bce_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
 /// - `delta * (|d| - 0.5 * delta)` otherwise
 ///
 /// where `d = pred - target`. Returns the mean over all elements.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::huber_loss;
+/// let pred = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), false);
+/// let target = Variable::new(Tensor::from_vec(vec![1.1_f64, 2.1], vec![2]).unwrap(), false);
+/// let loss = huber_loss(&pred, &target, 1.0).unwrap();
+/// assert!(loss.data().as_slice()[0] < 0.01); // small error → small loss
+/// ```
 pub fn huber_loss<T: Float>(
     pred: &Variable<T>,
     target: &Variable<T>,
@@ -258,6 +308,18 @@ pub fn huber_loss<T: Float>(
 /// Computes: `-mean(alpha_t * (1 - p_t)^gamma * ln(p_t + eps))`
 /// where `p = sigmoid(logits)`, `p_t = p * t + (1 - p) * (1 - t)`,
 /// and `alpha_t = alpha * t + (1 - alpha) * (1 - t)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::focal_loss;
+/// let logits = Variable::new(Tensor::from_vec(vec![10.0_f64], vec![1]).unwrap(), false);
+/// let targets = Variable::new(Tensor::from_vec(vec![1.0_f64], vec![1]).unwrap(), false);
+/// let loss = focal_loss(&logits, &targets, 2.0, 0.25).unwrap();
+/// assert!(loss.data().as_slice()[0] < 1e-5); // confident correct → near zero
+/// ```
 pub fn focal_loss<T: Float>(
     logits: &Variable<T>,
     targets: &Variable<T>,
@@ -345,6 +407,18 @@ pub fn focal_loss<T: Float>(
 /// KL divergence: `KL(P || Q) = mean(exp(log_p) * (log_p - log_q))`.
 ///
 /// Both inputs are log-probabilities with the same shape.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::kl_divergence;
+/// let log_p = Variable::new(Tensor::from_vec(vec![-1.0_f64, -2.0], vec![2]).unwrap(), false);
+/// let log_q = Variable::new(Tensor::from_vec(vec![-1.0_f64, -2.0], vec![2]).unwrap(), false);
+/// let loss = kl_divergence(&log_p, &log_q).unwrap();
+/// assert!(loss.data().as_slice()[0].abs() < 1e-10); // KL(P || P) = 0
+/// ```
 pub fn kl_divergence<T: Float>(log_p: &Variable<T>, log_q: &Variable<T>) -> Result<Variable<T>> {
     let lp = log_p.data();
     let lq = log_q.data();
@@ -396,6 +470,18 @@ pub fn kl_divergence<T: Float>(log_p: &Variable<T>, log_q: &Variable<T>) -> Resu
 ///
 /// `target` values should be -1 or +1.
 /// Computes: `mean(max(0, 1 - target * pred))`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::hinge_loss;
+/// let pred = Variable::new(Tensor::from_vec(vec![2.0_f64, -2.0], vec![2]).unwrap(), false);
+/// let target = Variable::new(Tensor::from_vec(vec![1.0_f64, -1.0], vec![2]).unwrap(), false);
+/// let loss = hinge_loss(&pred, &target).unwrap();
+/// assert!(loss.data().as_slice()[0].abs() < 1e-10); // correct margin → 0 loss
+/// ```
 pub fn hinge_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Variable<T>> {
     let p = pred.data();
     let t = target.data();
@@ -453,6 +539,18 @@ pub fn hinge_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<
 /// - `|d| - 0.5 * beta` otherwise
 ///
 /// Returns the mean over all elements.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::loss::smooth_l1_loss;
+/// let pred = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), false);
+/// let target = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), false);
+/// let loss = smooth_l1_loss(&pred, &target, 1.0).unwrap();
+/// assert!(loss.data().as_slice()[0].abs() < 1e-12); // identical → 0
+/// ```
 pub fn smooth_l1_loss<T: Float>(
     pred: &Variable<T>,
     target: &Variable<T>,

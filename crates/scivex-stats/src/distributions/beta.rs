@@ -19,6 +19,14 @@ pub struct Beta<T: Float> {
 
 impl<T: Float> Beta<T> {
     /// Create a new Beta distribution with `alpha > 0` and `beta > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Beta, Distribution};
+    /// let b = Beta::new(2.0_f64, 5.0).unwrap();
+    /// assert!((b.mean() - 2.0/7.0).abs() < 1e-10);
+    /// ```
     pub fn new(alpha: T, beta: T) -> Result<Self> {
         let zero = T::from_f64(0.0);
         if alpha <= zero {

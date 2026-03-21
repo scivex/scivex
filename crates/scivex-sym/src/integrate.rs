@@ -23,6 +23,20 @@ use crate::simplify::simplify;
 ///
 /// Returns `Err(SymError::UnsupportedOperation)` if the integral cannot be
 /// computed symbolically.
+///
+/// # Examples
+///
+/// ```
+/// # use std::collections::HashMap;
+/// # use scivex_sym::expr::{var, constant};
+/// # use scivex_sym::integrate::integrate;
+/// // ∫ 2x dx = x^2
+/// let expr = constant(2.0) * var("x");
+/// let result = integrate(&expr, "x").unwrap();
+/// let vars = HashMap::from([("x".to_string(), 3.0)]);
+/// let val = result.eval(&vars).unwrap();
+/// assert!((val - 9.0).abs() < 1e-10);
+/// ```
 pub fn integrate(expr: &Expr, var_name: &str) -> Result<Expr> {
     let expr = simplify(expr);
     let result = integrate_inner(&expr, var_name)?;
@@ -32,6 +46,17 @@ pub fn integrate(expr: &Expr, var_name: &str) -> Result<Expr> {
 /// Compute the definite integral of `expr` from `a` to `b`.
 ///
 /// Uses the fundamental theorem: `F(b) - F(a)` where `F` is the antiderivative.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::expr::var;
+/// # use scivex_sym::integrate::definite_integral;
+/// // ∫₀¹ x dx = 0.5
+/// let x = var("x");
+/// let val = definite_integral(&x, "x", 0.0, 1.0).unwrap();
+/// assert!((val - 0.5).abs() < 1e-10);
+/// ```
 pub fn definite_integral(expr: &Expr, var_name: &str, a: f64, b: f64) -> Result<f64> {
     let antideriv = integrate(expr, var_name)?;
     let fa = antideriv.substitute(var_name, &constant(a));

@@ -15,6 +15,17 @@ pub struct StreamingMean<T: Float> {
 
 impl<T: Float> StreamingMean<T> {
     /// Create a new `StreamingMean` accumulator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::online::StreamingMean;
+    /// let mut sm = StreamingMean::<f64>::new();
+    /// sm.update(10.0);
+    /// sm.update(20.0);
+    /// assert!((sm.mean() - 15.0).abs() < 1e-10);
+    /// assert_eq!(sm.count(), 2);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -76,6 +87,16 @@ pub struct StreamingVariance<T: Float> {
 
 impl<T: Float> StreamingVariance<T> {
     /// Create a new `StreamingVariance` accumulator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::online::StreamingVariance;
+    /// let mut sv = StreamingVariance::<f64>::new();
+    /// sv.update_batch(&[2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
+    /// assert!((sv.mean() - 5.0).abs() < 1e-10);
+    /// assert!((sv.variance() - 4.0).abs() < 1e-10);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {

@@ -14,6 +14,21 @@ use super::{MinimizeOptions, MinimizeResult};
 /// Takes the objective function `f`, its gradient `grad`, an initial
 /// point `x0`, and options. Returns a [`MinimizeResult`] with the
 /// optimal point and convergence information.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_optim::minimize::{bfgs, MinimizeOptions};
+/// // Minimize f(x) = (x-3)^2
+/// let result = bfgs(
+///     |x: &Tensor<f64>| { let v = x.as_slice()[0] - 3.0; v * v },
+///     |x: &Tensor<f64>| { Tensor::from_vec(vec![2.0 * (x.as_slice()[0] - 3.0)], vec![1]).unwrap() },
+///     &Tensor::from_vec(vec![0.0], vec![1]).unwrap(),
+///     &MinimizeOptions::default(),
+/// ).unwrap();
+/// assert!((result.x.as_slice()[0] - 3.0).abs() < 1e-6);
+/// ```
 pub fn bfgs<T, F, G>(
     f: F,
     grad: G,

@@ -4,6 +4,18 @@ use crate::error::{ImageError, Result};
 use crate::image::{Image, PixelFormat};
 
 /// Read a 24-bit uncompressed BMP image.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::io::bmp::{write_bmp, read_bmp};
+/// let img = Image::from_raw(vec![255u8, 0, 0, 0, 255, 0], 2, 1, PixelFormat::Rgb).unwrap();
+/// let mut buf = Vec::new();
+/// write_bmp(&img, &mut buf).unwrap();
+/// let loaded = read_bmp(buf.as_slice()).unwrap();
+/// assert_eq!(loaded.get_pixel(0, 0).unwrap(), vec![255, 0, 0]);
+/// ```
 pub fn read_bmp<R: Read>(mut reader: R) -> Result<Image<u8>> {
     // BMP file header (14 bytes)
     let mut header = [0u8; 14];
@@ -89,6 +101,17 @@ pub fn read_bmp<R: Read>(mut reader: R) -> Result<Image<u8>> {
 }
 
 /// Write a 24-bit uncompressed BMP image (bottom-up).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::io::bmp::{write_bmp, read_bmp};
+/// let img = Image::from_raw(vec![0u8, 128, 255], 1, 1, PixelFormat::Rgb).unwrap();
+/// let mut buf = Vec::new();
+/// write_bmp(&img, &mut buf).unwrap();
+/// assert!(!buf.is_empty());
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn write_bmp<W: Write>(img: &Image<u8>, writer: &mut W) -> Result<()> {
     if img.format() != PixelFormat::Rgb {

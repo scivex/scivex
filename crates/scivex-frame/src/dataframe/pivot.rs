@@ -13,6 +13,21 @@ impl DataFrame {
     ///
     /// Groups rows by `index` columns, creates one output column per unique
     /// value in `columns`, and fills cells with the aggregated `values` column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::groupby::AggFunc;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("region", &["East", "West", "East"])))
+    ///     .add_boxed(Box::new(StringSeries::from_strs("product", &["A", "A", "B"])))
+    ///     .add_column("sales", vec![100.0_f64, 200.0, 150.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let wide = df.pivot(&["region"], "product", "sales", AggFunc::Sum).unwrap();
+    /// assert_eq!(wide.nrows(), 2);
+    /// ```
     pub fn pivot(
         &self,
         index: &[&str],
@@ -110,6 +125,20 @@ impl DataFrame {
     /// Reshape from wide to long format.
     ///
     /// `id_vars` are columns to keep as-is, `value_vars` are columns to unpivot.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("id", &["a", "b"])))
+    ///     .add_column("x", vec![1.0_f64, 2.0])
+    ///     .add_column("y", vec![3.0_f64, 4.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let long = df.melt(&["id"], &["x", "y"], None, None).unwrap();
+    /// assert_eq!(long.nrows(), 4); // 2 rows * 2 value_vars
+    /// ```
     pub fn melt(
         &self,
         id_vars: &[&str],
@@ -195,6 +224,19 @@ impl DataFrame {
     }
 
     /// Cross-tabulation: count occurrences of each combination of two columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("animal", &["cat", "cat", "dog"])))
+    ///     .add_boxed(Box::new(StringSeries::from_strs("color", &["black", "white", "black"])))
+    ///     .build()
+    ///     .unwrap();
+    /// let ct = df.crosstab("animal", "color").unwrap();
+    /// assert_eq!(ct.nrows(), 2);
+    /// ```
     pub fn crosstab(&self, index: &str, columns: &str) -> Result<DataFrame> {
         self.pivot(&[index], columns, index, AggFunc::Count)
     }

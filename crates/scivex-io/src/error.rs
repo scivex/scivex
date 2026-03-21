@@ -1,6 +1,18 @@
 use core::fmt;
 
 /// All errors returned by `scivex-io`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::error::IoError;
+///
+/// let err = IoError::EmptyInput;
+/// assert!(err.to_string().contains("empty"));
+///
+/// let err2 = IoError::JsonError("bad json".to_string());
+/// assert!(err2.to_string().contains("JSON"));
+/// ```
 #[derive(Debug)]
 pub enum IoError {
     /// Wraps a [`std::io::Error`].
@@ -105,4 +117,15 @@ impl From<scivex_core::CoreError> for IoError {
 }
 
 /// Convenience alias used throughout `scivex-io`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::error::{IoError, Result};
+///
+/// fn always_ok() -> Result<i32> {
+///     Ok(42)
+/// }
+/// assert_eq!(always_ok().unwrap(), 42);
+/// ```
 pub type Result<T> = std::result::Result<T, IoError>;

@@ -11,6 +11,15 @@ use crate::error::Result;
 use super::{MinimizeOptions, MinimizeResult};
 
 /// Per-variable box constraint.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::minimize::Bounds;
+/// let b = Bounds::both(0.0_f64, 1.0);
+/// assert_eq!(b.lower, Some(0.0));
+/// assert_eq!(b.upper, Some(1.0));
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -25,6 +34,15 @@ pub struct Bounds<T> {
 
 impl<T> Bounds<T> {
     /// No bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::minimize::Bounds;
+    /// let b = Bounds::<f64>::none();
+    /// assert!(b.lower.is_none());
+    /// assert!(b.upper.is_none());
+    /// ```
     pub fn none() -> Self {
         Self {
             lower: None,
@@ -33,6 +51,14 @@ impl<T> Bounds<T> {
     }
 
     /// Lower bound only.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::minimize::Bounds;
+    /// let b = Bounds::lower(0.0_f64);
+    /// assert_eq!(b.lower, Some(0.0));
+    /// ```
     pub fn lower(lb: T) -> Self {
         Self {
             lower: Some(lb),
@@ -41,6 +67,14 @@ impl<T> Bounds<T> {
     }
 
     /// Upper bound only.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::minimize::Bounds;
+    /// let b = Bounds::upper(10.0_f64);
+    /// assert_eq!(b.upper, Some(10.0));
+    /// ```
     pub fn upper(ub: T) -> Self {
         Self {
             lower: None,
@@ -49,6 +83,15 @@ impl<T> Bounds<T> {
     }
 
     /// Both lower and upper bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::minimize::Bounds;
+    /// let b = Bounds::both(-1.0_f64, 1.0);
+    /// assert_eq!(b.lower, Some(-1.0));
+    /// assert_eq!(b.upper, Some(1.0));
+    /// ```
     pub fn both(lb: T, ub: T) -> Self {
         Self {
             lower: Some(lb),
@@ -79,6 +122,22 @@ fn project<T: Float>(x: &mut [T], bounds: &[Bounds<T>]) {
 ///
 /// Uses a two-loop recursion with `m=10` stored correction pairs, combined
 /// with projected gradient steps for per-variable box constraints.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_optim::minimize::{lbfgsb, Bounds, MinimizeOptions};
+/// // Minimize f(x) = (x-5)^2 with x in [0, 3]
+/// let result = lbfgsb(
+///     |x: &Tensor<f64>| { let v = x.as_slice()[0] - 5.0; v * v },
+///     |x: &Tensor<f64>| { Tensor::from_vec(vec![2.0 * (x.as_slice()[0] - 5.0)], vec![1]).unwrap() },
+///     &Tensor::from_vec(vec![1.0], vec![1]).unwrap(),
+///     &[Bounds::both(0.0, 3.0)],
+///     &MinimizeOptions::default(),
+/// ).unwrap();
+/// assert!((result.x.as_slice()[0] - 3.0).abs() < 1e-6); // clipped to bound
+/// ```
 pub fn lbfgsb<T, F, G>(
     f: F,
     grad: G,

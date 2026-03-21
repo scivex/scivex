@@ -5,6 +5,16 @@ use crate::error::Result;
 
 impl DataFrame {
     /// Drop rows where any column has a null value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::{DataFrame, Series};
+    /// let s = Series::with_nulls("a", vec![1_i32, 0, 3], vec![false, true, false]).unwrap();
+    /// let df = DataFrame::new(vec![Box::new(s)]).unwrap();
+    /// let clean = df.drop_nulls().unwrap();
+    /// assert_eq!(clean.nrows(), 2);
+    /// ```
     pub fn drop_nulls(&self) -> Result<DataFrame> {
         let nrows = self.nrows();
         if nrows == 0 {
@@ -19,6 +29,16 @@ impl DataFrame {
     }
 
     /// Drop rows where any of the specified columns has a null value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::{DataFrame, Series};
+    /// let s = Series::with_nulls("a", vec![1_i32, 0, 3], vec![false, true, false]).unwrap();
+    /// let df = DataFrame::new(vec![Box::new(s)]).unwrap();
+    /// let clean = df.drop_nulls_subset(&["a"]).unwrap();
+    /// assert_eq!(clean.nrows(), 2);
+    /// ```
     pub fn drop_nulls_subset(&self, cols: &[&str]) -> Result<DataFrame> {
         // Validate columns exist.
         let col_refs: Vec<&dyn crate::series::AnySeries> = cols
@@ -39,6 +59,15 @@ impl DataFrame {
     }
 
     /// Count of null values per column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::{DataFrame, Series};
+    /// let s = Series::with_nulls("a", vec![1_i32, 0], vec![false, true]).unwrap();
+    /// let df = DataFrame::new(vec![Box::new(s)]).unwrap();
+    /// assert_eq!(df.null_count_per_column(), vec![("a", 1)]);
+    /// ```
     pub fn null_count_per_column(&self) -> Vec<(&str, usize)> {
         self.columns
             .iter()

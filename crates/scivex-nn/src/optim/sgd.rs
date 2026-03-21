@@ -20,6 +20,16 @@ impl<T: Float> SGD<T> {
     ///
     /// - `params`: parameters to optimize
     /// - `lr`: learning rate
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_nn::optim::{SGD, Optimizer};
+    /// let w = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), true);
+    /// let mut sgd = SGD::new(vec![w.clone()], 0.01);
+    /// ```
     pub fn new(params: Vec<Variable<T>>, lr: T) -> Self {
         let n = params.len();
         Self {

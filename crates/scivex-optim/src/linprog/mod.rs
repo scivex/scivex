@@ -15,6 +15,15 @@ pub use simplex::linprog;
 use scivex_core::Float;
 
 /// Result of a linear programming solve.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::linprog::linprog;
+/// // minimize -x - 2y  s.t.  x + y <= 4, x >= 0, y >= 0
+/// let result = linprog(&[-1.0_f64, -2.0], &[vec![1.0, 1.0]], &[4.0]).unwrap();
+/// assert!(result.converged);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

@@ -8,6 +8,18 @@ use crate::error::{Result, StatsError};
 use super::{McmcConfig, McmcResult};
 
 /// Hamiltonian Monte Carlo (HMC) sampler.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::{HamiltonianMC, McmcConfig};
+/// let hmc = HamiltonianMC::new(0.1_f64, 10);
+/// let log_prob = |x: &[f64]| -> f64 { -0.5 * x[0] * x[0] };
+/// let grad = |x: &[f64]| -> Vec<f64> { vec![-x[0]] };
+/// let cfg = McmcConfig::new(100, 50, 42, 1);
+/// let result = hmc.sample(log_prob, grad, &[0.0], &cfg).unwrap();
+/// assert_eq!(result.samples[0].len(), 100);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -22,6 +34,13 @@ pub struct HamiltonianMC<T: Float> {
 
 impl<T: Float> HamiltonianMC<T> {
     /// Create a new HMC sampler.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::HamiltonianMC;
+    /// let hmc = HamiltonianMC::new(0.05_f64, 20);
+    /// ```
     pub fn new(step_size: T, n_leapfrog: usize) -> Self {
         Self {
             step_size,
@@ -35,6 +54,18 @@ impl<T: Float> HamiltonianMC<T> {
     /// - `grad`: function returning the gradient of `log_prob` at a point.
     /// - `initial`: starting parameter values.
     /// - `config`: MCMC configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::{HamiltonianMC, McmcConfig};
+    /// let hmc = HamiltonianMC::new(0.1_f64, 10);
+    /// let log_prob = |x: &[f64]| -> f64 { -0.5 * x[0] * x[0] };
+    /// let grad = |x: &[f64]| -> Vec<f64> { vec![-x[0]] };
+    /// let cfg = McmcConfig::new(100, 50, 42, 1);
+    /// let result = hmc.sample(log_prob, grad, &[0.0], &cfg).unwrap();
+    /// assert!(result.acceptance_rate[0] > 0.0);
+    /// ```
     #[allow(clippy::too_many_lines)]
     pub fn sample<F, G>(
         &self,

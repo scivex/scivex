@@ -8,6 +8,15 @@ use crate::style::{Fill, Marker, MarkerShape, Stroke};
 pub type AxisRange = Option<(f64, f64)>;
 
 /// Trait for plot builders that can produce drawing elements.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::plot::{LinePlot, PlotBuilder};
+/// let p = LinePlot::new(vec![0.0_f64, 1.0_f64], vec![0.0_f64, 1.0_f64]);
+/// let (xr, yr) = p.data_range();
+/// assert!(xr.is_some());
+/// ```
 pub trait PlotBuilder {
     /// Return the data range `(x_range, y_range)`, or `None` per axis if unknown.
     fn data_range(&self) -> (AxisRange, AxisRange);
@@ -37,6 +46,17 @@ pub struct LinePlot {
 
 impl LinePlot {
     /// Create a line plot from x and y data vectors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::LinePlot;
+    /// # use scivex_viz::color::Color;
+    /// let line = LinePlot::new(vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 0.5])
+    ///     .color(Color::RED)
+    ///     .width(2.0)
+    ///     .label("my line");
+    /// ```
     #[must_use]
     pub fn new(x: Vec<f64>, y: Vec<f64>) -> Self {
         Self {
@@ -123,6 +143,17 @@ pub struct ScatterPlot {
 
 impl ScatterPlot {
     /// Create a scatter plot from x and y data vectors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::ScatterPlot;
+    /// # use scivex_viz::color::Color;
+    /// let scatter = ScatterPlot::new(vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0])
+    ///     .color(Color::BLUE)
+    ///     .size(5.0)
+    ///     .label("data");
+    /// ```
     #[must_use]
     pub fn new(x: Vec<f64>, y: Vec<f64>) -> Self {
         Self {
@@ -210,6 +241,16 @@ pub struct BarPlot {
 
 impl BarPlot {
     /// Create a bar plot from category names and corresponding values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::BarPlot;
+    /// let bar = BarPlot::new(
+    ///     vec!["A".to_string(), "B".to_string()],
+    ///     vec![10.0_f64, 20.0_f64],
+    /// );
+    /// ```
     #[must_use]
     pub fn new(categories: Vec<String>, values: Vec<f64>) -> Self {
         Self {
@@ -223,6 +264,14 @@ impl BarPlot {
     }
 
     /// Set the bar fill color.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::BarPlot;
+    /// # use scivex_viz::color::Color;
+    /// let bar = BarPlot::new(vec!["A".into()], vec![1.0_f64]).color(Color::RED);
+    /// ```
     #[must_use]
     pub fn color(mut self, c: Color) -> Self {
         self.fill = Fill::new(c);
@@ -230,6 +279,13 @@ impl BarPlot {
     }
 
     /// Set the bar width as a fraction of the category spacing (0.0--1.0).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::BarPlot;
+    /// let bar = BarPlot::new(vec!["A".into()], vec![1.0_f64]).bar_width(0.6_f64);
+    /// ```
     #[must_use]
     pub fn bar_width(mut self, w: f64) -> Self {
         self.bar_width = w;
@@ -237,6 +293,14 @@ impl BarPlot {
     }
 
     /// Set the legend label for this bar plot.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::{BarPlot, PlotBuilder};
+    /// let bar = BarPlot::new(vec!["A".into()], vec![1.0_f64]).label("sales");
+    /// assert!(PlotBuilder::label(&bar) == Some("sales"));
+    /// ```
     #[must_use]
     pub fn label(mut self, l: &str) -> Self {
         self.plot_label = Some(l.to_string());
@@ -317,6 +381,13 @@ pub struct Histogram {
 
 impl Histogram {
     /// Create a histogram from raw data with the given number of bins.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::Histogram;
+    /// let h = Histogram::new(vec![1.0_f64, 2.0_f64, 3.0_f64, 4.0_f64, 5.0_f64], 5);
+    /// ```
     #[must_use]
     pub fn new(data: Vec<f64>, n_bins: usize) -> Self {
         Self {
@@ -329,6 +400,14 @@ impl Histogram {
     }
 
     /// Set the bar fill color.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::Histogram;
+    /// # use scivex_viz::color::Color;
+    /// let h = Histogram::new(vec![1.0_f64, 2.0_f64], 2).color(Color::ORANGE);
+    /// ```
     #[must_use]
     pub fn color(mut self, c: Color) -> Self {
         self.fill = Fill::new(c);
@@ -336,6 +415,14 @@ impl Histogram {
     }
 
     /// Set the legend label for this histogram.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::plot::{Histogram, PlotBuilder};
+    /// let h = Histogram::new(vec![1.0_f64], 1).label("dist");
+    /// assert!(PlotBuilder::label(&h) == Some("dist"));
+    /// ```
     #[must_use]
     pub fn label(mut self, l: &str) -> Self {
         self.plot_label = Some(l.to_string());

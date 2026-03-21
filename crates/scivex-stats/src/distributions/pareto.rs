@@ -20,6 +20,15 @@ pub struct Pareto<T: Float> {
 
 impl<T: Float> Pareto<T> {
     /// Create a new Pareto distribution with shape `alpha > 0` and scale `x_m > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Pareto, Distribution};
+    /// let p = Pareto::new(3.0_f64, 1.0).unwrap();
+    /// assert!((p.cdf(1.0) - 0.0).abs() < 1e-10);
+    /// assert!((p.cdf(2.0) - 0.875).abs() < 1e-10);
+    /// ```
     pub fn new(alpha: T, x_m: T) -> Result<Self> {
         if alpha <= T::zero() {
             return Err(StatsError::InvalidParameter {

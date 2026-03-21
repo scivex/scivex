@@ -3,6 +3,16 @@ use scivex_core::Float;
 use crate::error::{MlError, Result};
 
 /// Fraction of correct predictions.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::accuracy;
+/// let y_true = [1.0_f64, 0.0, 1.0, 1.0];
+/// let y_pred = [1.0_f64, 0.0, 0.0, 1.0];
+/// let acc = accuracy(&y_true, &y_pred).unwrap();
+/// assert!((acc - 0.75).abs() < 1e-12);
+/// ```
 pub fn accuracy<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     if y_true.is_empty() {
         return Err(MlError::EmptyInput);
@@ -23,6 +33,17 @@ pub fn accuracy<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
 }
 
 /// Binary precision (positive class is the maximum value in `y_true`).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::precision;
+/// let y_true = [1.0_f64, 0.0, 1.0, 1.0];
+/// let y_pred = [1.0_f64, 1.0, 0.0, 1.0];
+/// let p = precision(&y_true, &y_pred).unwrap();
+/// // TP=2, FP=1 → precision = 2/3
+/// assert!((p - 2.0 / 3.0).abs() < 1e-12);
+/// ```
 pub fn precision<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     if y_true.is_empty() {
         return Err(MlError::EmptyInput);
@@ -53,6 +74,17 @@ pub fn precision<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
 }
 
 /// Binary recall.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::recall;
+/// let y_true = [1.0_f64, 0.0, 1.0, 1.0];
+/// let y_pred = [1.0_f64, 0.0, 0.0, 1.0];
+/// let r = recall(&y_true, &y_pred).unwrap();
+/// // TP=2, FN=1 → recall = 2/3
+/// assert!((r - 2.0 / 3.0).abs() < 1e-12);
+/// ```
 pub fn recall<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     if y_true.is_empty() {
         return Err(MlError::EmptyInput);
@@ -83,6 +115,17 @@ pub fn recall<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
 }
 
 /// F1 score: harmonic mean of precision and recall.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::f1_score;
+/// let y_true = [1.0_f64, 0.0, 1.0, 1.0];
+/// let y_pred = [1.0_f64, 0.0, 0.0, 1.0];
+/// let f1 = f1_score(&y_true, &y_pred).unwrap();
+/// // precision = 1.0, recall = 2/3, F1 = 2*(1*2/3)/(1+2/3) = 4/5
+/// assert!(f1 > 0.0 && f1 <= 1.0);
+/// ```
 pub fn f1_score<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     let p = precision(y_true, y_pred)?;
     let r = recall(y_true, y_pred)?;
@@ -97,6 +140,17 @@ pub fn f1_score<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
 /// Compute an n×n confusion matrix.
 ///
 /// `n_classes` is the number of distinct classes (labels assumed to be 0..n_classes-1).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::confusion_matrix;
+/// let y_true = [0.0_f64, 0.0, 1.0, 1.0];
+/// let y_pred = [0.0_f64, 1.0, 0.0, 1.0];
+/// let cm = confusion_matrix(&y_true, &y_pred, 2).unwrap();
+/// assert_eq!(cm[0][0], 1); // true negatives
+/// assert_eq!(cm[1][1], 1); // true positives
+/// ```
 pub fn confusion_matrix<T: Float>(
     y_true: &[T],
     y_pred: &[T],

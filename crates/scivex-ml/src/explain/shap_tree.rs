@@ -13,6 +13,19 @@ use crate::tree::decision_tree::{DecisionTreeRegressor, Node};
 /// Returns a tensor of shape `[n_samples, n_features]` where each value
 /// represents the contribution of that feature to the prediction (relative
 /// to the expected value over the training data).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_ml::{tree::DecisionTreeRegressor, traits::Predictor, explain::tree_shap};
+/// let x = Tensor::from_vec(vec![1.0_f64,10.0, 2.0,20.0, 3.0,30.0], vec![3, 2]).unwrap();
+/// let y = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+/// let mut tree = DecisionTreeRegressor::new(Some(3), 1);
+/// tree.fit(&x, &y).unwrap();
+/// let shap = tree_shap(&tree, &x).unwrap();
+/// assert_eq!(shap.shape(), &[3, 2]);
+/// ```
 pub fn tree_shap<T: Float>(tree: &DecisionTreeRegressor<T>, x: &Tensor<T>) -> Result<Tensor<T>> {
     let root = tree.root.as_ref().ok_or(MlError::NotFitted)?;
     let shape = x.shape();

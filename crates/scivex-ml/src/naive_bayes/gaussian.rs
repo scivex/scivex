@@ -31,6 +31,20 @@ impl<T: Float> Default for GaussianNB<T> {
 
 impl<T: Float> GaussianNB<T> {
     /// Create a new, unfitted Gaussian Naive Bayes classifier.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::naive_bayes::GaussianNB;
+    /// # use scivex_ml::traits::Predictor;
+    /// # use scivex_core::Tensor;
+    /// let mut nb = GaussianNB::<f64>::new();
+    /// let x = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4, 1]).unwrap();
+    /// let y = Tensor::from_vec(vec![0.0, 0.0, 1.0, 1.0], vec![4]).unwrap();
+    /// nb.fit(&x, &y).unwrap();
+    /// let preds = nb.predict(&x).unwrap();
+    /// assert_eq!(preds.shape(), &[4]);
+    /// ```
     pub fn new() -> Self {
         Self {
             class_priors: None,

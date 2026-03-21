@@ -31,6 +31,14 @@ pub struct Cauchy<T: Float> {
 
 impl<T: Float> Cauchy<T> {
     /// Create a new Cauchy distribution with location `x0` and scale `gamma > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Cauchy, Distribution};
+    /// let c = Cauchy::new(0.0_f64, 1.0).unwrap();
+    /// assert!((c.cdf(0.0) - 0.5).abs() < 1e-10);
+    /// ```
     pub fn new(x0: T, gamma: T) -> Result<Self> {
         if gamma <= T::zero() {
             return Err(StatsError::InvalidParameter {

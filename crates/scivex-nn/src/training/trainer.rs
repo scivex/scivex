@@ -6,6 +6,16 @@ use crate::error::Result;
 use crate::training::callbacks::{Callback, CallbackAction};
 
 /// Record of a completed training run.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::training::Trainer;
+/// let mut trainer = Trainer::<f64>::new(3);
+/// let history = trainer.fit(|epoch| Ok(1.0_f64 / (epoch + 1) as f64)).unwrap();
+/// assert_eq!(history.losses.len(), 3);
+/// assert!(!history.stopped_early);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -28,6 +38,13 @@ pub struct Trainer<T: Float> {
 
 impl<T: Float> Trainer<T> {
     /// Create a new `Trainer` that will run for `epochs` epochs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::training::Trainer;
+    /// let trainer = Trainer::<f64>::new(10);
+    /// ```
     pub fn new(epochs: usize) -> Self {
         Self {
             epochs,
@@ -36,6 +53,14 @@ impl<T: Float> Trainer<T> {
     }
 
     /// Register a callback to be invoked during training.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::training::{Trainer, LossLogger};
+    /// let mut trainer = Trainer::<f64>::new(5);
+    /// trainer.add_callback(Box::new(LossLogger::new()));
+    /// ```
     pub fn add_callback(&mut self, cb: Box<dyn Callback<T>>) -> &mut Self {
         self.callbacks.push(cb);
         self
@@ -45,6 +70,16 @@ impl<T: Float> Trainer<T> {
     ///
     /// `train_fn` is called once per epoch with the epoch index (0-based) and
     /// must return the training loss for that epoch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::training::Trainer;
+    /// let mut trainer = Trainer::<f64>::new(5);
+    /// let history = trainer.fit(|epoch| Ok(1.0_f64 - 0.1 * epoch as f64)).unwrap();
+    /// assert_eq!(history.losses.len(), 5);
+    /// assert_eq!(history.best_epoch, 4);
+    /// ```
     pub fn fit<F>(&mut self, mut train_fn: F) -> Result<TrainingHistory<T>>
     where
         F: FnMut(usize) -> Result<T>,

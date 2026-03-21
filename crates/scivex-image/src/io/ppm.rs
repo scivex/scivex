@@ -4,6 +4,15 @@ use crate::error::{ImageError, Result};
 use crate::image::{Image, PixelFormat};
 
 /// Read a PPM (P6 binary) or PPM (P3 ASCII) image, or PGM (P5/P2).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::io::ppm::read_ppm;
+/// let data = b"P3\n1 1\n255\n100 150 200\n";
+/// let img = read_ppm(data.as_slice()).unwrap();
+/// assert_eq!(img.get_pixel(0, 0).unwrap(), vec![100, 150, 200]);
+/// ```
 pub fn read_ppm<R: Read>(reader: R) -> Result<Image<u8>> {
     let mut br = BufReader::new(reader);
 
@@ -122,6 +131,18 @@ fn read_pgm_ascii<R: BufRead>(reader: &mut R) -> Result<Image<u8>> {
 }
 
 /// Write a PPM P6 (binary) image.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::io::ppm::{write_ppm, read_ppm};
+/// let img = Image::from_raw(vec![255u8, 0, 0], 1, 1, PixelFormat::Rgb).unwrap();
+/// let mut buf = Vec::new();
+/// write_ppm(&img, &mut buf).unwrap();
+/// let loaded = read_ppm(buf.as_slice()).unwrap();
+/// assert_eq!(loaded.get_pixel(0, 0).unwrap(), vec![255, 0, 0]);
+/// ```
 pub fn write_ppm<W: Write>(img: &Image<u8>, writer: &mut W) -> Result<()> {
     if img.format() != PixelFormat::Rgb {
         return Err(ImageError::UnsupportedChannels {
@@ -135,6 +156,18 @@ pub fn write_ppm<W: Write>(img: &Image<u8>, writer: &mut W) -> Result<()> {
 }
 
 /// Write a PGM P5 (binary) image.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::io::ppm::{write_pgm, read_ppm};
+/// let img = Image::from_raw(vec![128u8], 1, 1, PixelFormat::Gray).unwrap();
+/// let mut buf = Vec::new();
+/// write_pgm(&img, &mut buf).unwrap();
+/// let loaded = read_ppm(buf.as_slice()).unwrap();
+/// assert_eq!(loaded.get_pixel(0, 0).unwrap(), vec![128]);
+/// ```
 pub fn write_pgm<W: Write>(img: &Image<u8>, writer: &mut W) -> Result<()> {
     if img.format() != PixelFormat::Gray {
         return Err(ImageError::UnsupportedChannels {

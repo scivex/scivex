@@ -464,6 +464,15 @@ fn write_tensor_bytes<T: Float>(w: &mut impl Write, tensor: &Tensor<T>) -> Resul
 // ---------------------------------------------------------------------------
 
 /// Save tensors to a file in SafeTensors format.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::serialize::safetensors::save_safetensors;
+/// # use scivex_core::Tensor;
+/// let t = Tensor::<f64>::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+/// save_safetensors("/tmp/model.safetensors", &[("weight", &t)]).unwrap();
+/// ```
 pub fn save_safetensors<T: Float>(path: &str, tensors: &[(&str, &Tensor<T>)]) -> Result<()> {
     let f = File::create(path).map_err(|_| ser_err("cannot create file"))?;
     let mut w = BufWriter::new(f);
@@ -471,6 +480,14 @@ pub fn save_safetensors<T: Float>(path: &str, tensors: &[(&str, &Tensor<T>)]) ->
 }
 
 /// Load tensors from a SafeTensors file.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::serialize::safetensors::load_safetensors;
+/// let tensors = load_safetensors::<f64>("/tmp/model.safetensors").unwrap();
+/// println!("loaded {} tensors", tensors.len());
+/// ```
 pub fn load_safetensors<T: Float>(path: &str) -> Result<Vec<(String, Tensor<T>)>> {
     let f = File::open(path).map_err(|_| ser_err("cannot open file"))?;
     let mut r = BufReader::new(f);
@@ -478,6 +495,19 @@ pub fn load_safetensors<T: Float>(path: &str) -> Result<Vec<(String, Tensor<T>)>
 }
 
 /// Save tensors to a writer in SafeTensors format.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::serialize::safetensors::{save_safetensors_to_writer, load_safetensors_from_reader};
+/// # use scivex_core::Tensor;
+/// let t = Tensor::<f64>::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap();
+/// let mut buf = Vec::new();
+/// save_safetensors_to_writer(&mut buf, &[("w", &t)]).unwrap();
+/// let loaded = load_safetensors_from_reader::<f64>(&mut buf.as_slice()).unwrap();
+/// assert_eq!(loaded.len(), 1);
+/// assert_eq!(loaded[0].0, "w");
+/// ```
 pub fn save_safetensors_to_writer<T: Float>(
     writer: &mut impl Write,
     tensors: &[(&str, &Tensor<T>)],
@@ -502,6 +532,18 @@ pub fn save_safetensors_to_writer<T: Float>(
 }
 
 /// Load tensors from a reader in SafeTensors format.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_nn::serialize::safetensors::{save_safetensors_to_writer, load_safetensors_from_reader};
+/// # use scivex_core::Tensor;
+/// let t = Tensor::<f64>::from_vec(vec![3.0_f64, 4.0], vec![2]).unwrap();
+/// let mut buf = Vec::new();
+/// save_safetensors_to_writer(&mut buf, &[("bias", &t)]).unwrap();
+/// let loaded = load_safetensors_from_reader::<f64>(&mut buf.as_slice()).unwrap();
+/// assert_eq!(loaded[0].1.as_slice(), &[3.0, 4.0]);
+/// ```
 pub fn load_safetensors_from_reader<T: Float>(
     reader: &mut impl Read,
 ) -> Result<Vec<(String, Tensor<T>)>> {

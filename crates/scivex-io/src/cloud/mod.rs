@@ -43,6 +43,19 @@ use crate::error::{IoError, Result};
 // ───────────────────────────── Public types ─────────────────────────────
 
 /// A parsed cloud storage path.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::cloud::CloudPath;
+/// use std::path::PathBuf;
+///
+/// let path = CloudPath::parse("s3://my-bucket/data/file.csv").unwrap();
+/// assert!(matches!(path, CloudPath::S3 { .. }));
+///
+/// let local = CloudPath::parse("/tmp/file.csv").unwrap();
+/// assert_eq!(local, CloudPath::Local(PathBuf::from("/tmp/file.csv")));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CloudPath {
     /// Amazon S3 object.
@@ -79,6 +92,14 @@ impl CloudPath {
     /// Parse a URL string into a [`CloudPath`].
     ///
     /// See [module-level docs](self) for supported schemes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_io::cloud::CloudPath;
+    /// let path = CloudPath::parse("gs://my-bucket/key.parquet").unwrap();
+    /// assert!(matches!(path, CloudPath::Gcs { .. }));
+    /// ```
     pub fn parse(url: &str) -> Result<Self> {
         parse::parse_cloud_url(url)
     }
@@ -88,6 +109,25 @@ impl CloudPath {
 ///
 /// Fields are resolved in order: explicit values first, then environment
 /// variables. See [`auth`] for resolution details.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::cloud::CloudConfig;
+///
+/// // Build a config manually
+/// let config = CloudConfig {
+///     aws_access_key_id: Some("AKIAIOSFODNN7EXAMPLE".to_string()),
+///     aws_secret_access_key: Some("secret".to_string()),
+///     aws_region: Some("us-east-1".to_string()),
+///     ..CloudConfig::default()
+/// };
+/// assert_eq!(config.aws_region.as_deref(), Some("us-east-1"));
+///
+/// // Or build from environment variables
+/// let env_config = CloudConfig::from_env();
+/// let _ = env_config; // values depend on the environment
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct CloudConfig {
     // AWS
@@ -140,6 +180,16 @@ impl CloudConfig {
 /// Implementations perform a blocking HTTP GET and return the response body.
 /// This trait allows swapping in different HTTP backends (plain TCP for
 /// testing, TLS-capable client for production, etc.).
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::cloud::{HttpClient, StdHttpClient};
+///
+/// // StdHttpClient implements HttpClient using plain TCP (HTTP only)
+/// let client = StdHttpClient;
+/// // Calling client.get(...) against an actual server would return bytes
+/// ```
 pub trait HttpClient {
     /// Perform an HTTP GET request.
     ///
@@ -155,6 +205,15 @@ pub trait HttpClient {
 ///
 /// For production use with HTTPS endpoints, provide a TLS-capable
 /// [`HttpClient`] implementation instead.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::cloud::{StdHttpClient, HttpClient};
+///
+/// // Construct the client — it holds no state
+/// let _client = StdHttpClient;
+/// ```
 pub struct StdHttpClient;
 
 impl HttpClient for StdHttpClient {
@@ -287,6 +346,18 @@ fn parse_status_code(status_line: &str) -> Result<u16> {
 ///
 /// Returns an error if the URL cannot be parsed, credentials are missing,
 /// the HTTP request fails, or the file cannot be read.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::cloud::{cloud_read_bytes, CloudConfig, StdHttpClient};
+///
+/// let config = CloudConfig::from_env();
+/// let http = StdHttpClient;
+/// // Local file path (no network required)
+/// let data = cloud_read_bytes("/tmp/my_data.csv", &config, &http).unwrap();
+/// assert!(!data.is_empty());
+/// ```
 pub fn cloud_read_bytes(url: &str, config: &CloudConfig, http: &dyn HttpClient) -> Result<Vec<u8>> {
     let path = CloudPath::parse(url)?;
     match path {

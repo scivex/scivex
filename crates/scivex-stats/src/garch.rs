@@ -10,6 +10,15 @@ use crate::error::{Result, StatsError};
 /// ```text
 /// h_t = omega + sum_{i=1}^{q} alpha_i * r_{t-i}^2 + sum_{j=1}^{p} beta_j * h_{t-j}
 /// ```
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::garch::Garch;
+/// let model = Garch::<f64>::new(1, 1).unwrap();
+/// assert_eq!(model.p, 1);
+/// assert_eq!(model.q, 1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -32,6 +41,15 @@ pub struct Garch<T: Float> {
 
 impl<T: Float> Garch<T> {
     /// Create a new GARCH(p,q) model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::garch::Garch;
+    /// let model = Garch::<f64>::new(1, 1).unwrap();
+    /// assert_eq!(model.alpha.len(), 1);
+    /// assert_eq!(model.beta.len(), 1);
+    /// ```
     pub fn new(p: usize, q: usize) -> Result<Self> {
         if p == 0 && q == 0 {
             return Err(StatsError::InvalidParameter {
@@ -50,6 +68,16 @@ impl<T: Float> Garch<T> {
     }
 
     /// Fit the model to a series of returns using quasi-maximum likelihood.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::garch::Garch;
+    /// let returns: Vec<f64> = (0..100).map(|i| (i as f64 * 0.1).sin() * 0.02).collect();
+    /// let mut model = Garch::<f64>::new(1, 1).unwrap();
+    /// model.fit(&returns).unwrap();
+    /// assert!(model.omega > 0.0);
+    /// ```
     #[allow(clippy::too_many_lines)]
     pub fn fit(&mut self, returns: &[T]) -> Result<()> {
         let min_obs = self.p.max(self.q) + 10;
@@ -190,6 +218,17 @@ impl<T: Float> Garch<T> {
     }
 
     /// Compute the conditional volatility (standard deviation) series.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::garch::Garch;
+    /// let returns: Vec<f64> = (0..100).map(|i| (i as f64 * 0.1).sin() * 0.02).collect();
+    /// let mut model = Garch::<f64>::new(1, 1).unwrap();
+    /// model.fit(&returns).unwrap();
+    /// let vol = model.conditional_volatility(&returns).unwrap();
+    /// assert_eq!(vol.len(), 100);
+    /// ```
     pub fn conditional_volatility(&self, returns: &[T]) -> Result<Vec<T>> {
         if !self.fitted {
             return Err(StatsError::InvalidParameter {
@@ -230,6 +269,17 @@ impl<T: Float> Garch<T> {
     }
 
     /// Forecast the conditional variance for `steps` periods ahead.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::garch::Garch;
+    /// let returns: Vec<f64> = (0..100).map(|i| (i as f64 * 0.1).sin() * 0.02).collect();
+    /// let mut model = Garch::<f64>::new(1, 1).unwrap();
+    /// model.fit(&returns).unwrap();
+    /// let forecast = model.forecast_variance(5).unwrap();
+    /// assert_eq!(forecast.len(), 5);
+    /// ```
     pub fn forecast_variance(&self, steps: usize) -> Result<Vec<T>> {
         if !self.fitted {
             return Err(StatsError::InvalidParameter {

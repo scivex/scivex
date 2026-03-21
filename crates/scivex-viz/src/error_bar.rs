@@ -39,6 +39,15 @@ impl ErrorBarPlot {
     }
 
     /// Set the stroke color.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::error_bar::ErrorBarPlot;
+    /// # use scivex_viz::color::Color;
+    /// let e = ErrorBarPlot::new(vec![1.0_f64], vec![2.0_f64], vec![0.5_f64], vec![0.5_f64])
+    ///     .color(Color::RED);
+    /// ```
     #[must_use]
     pub fn color(mut self, c: Color) -> Self {
         self.stroke = Stroke::new(c, self.stroke.width);
@@ -46,6 +55,14 @@ impl ErrorBarPlot {
     }
 
     /// Set the width of the error bar caps in pixels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::error_bar::ErrorBarPlot;
+    /// let e = ErrorBarPlot::new(vec![1.0_f64], vec![2.0_f64], vec![0.5_f64], vec![0.5_f64])
+    ///     .cap_width(8.0_f64);
+    /// ```
     #[must_use]
     pub fn cap_width(mut self, w: f64) -> Self {
         self.cap_width = w;
@@ -53,6 +70,16 @@ impl ErrorBarPlot {
     }
 
     /// Set the legend label.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::error_bar::ErrorBarPlot;
+    /// # use scivex_viz::plot::PlotBuilder;
+    /// let e = ErrorBarPlot::new(vec![1.0_f64], vec![2.0_f64], vec![0.5_f64], vec![0.5_f64])
+    ///     .label("measurements");
+    /// assert!(PlotBuilder::label(&e) == Some("measurements"));
+    /// ```
     #[must_use]
     pub fn label(mut self, l: &str) -> Self {
         self.plot_label = Some(l.to_string());
@@ -191,6 +218,17 @@ pub struct ConfidenceBand {
 
 impl ConfidenceBand {
     /// Create a confidence band from x values and lower/upper y boundaries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::error_bar::ConfidenceBand;
+    /// let cb = ConfidenceBand::new(
+    ///     vec![0.0_f64, 1.0_f64],
+    ///     vec![1.0_f64, 2.0_f64],
+    ///     vec![3.0_f64, 4.0_f64],
+    /// );
+    /// ```
     #[must_use]
     pub fn new(x: Vec<f64>, y_lower: Vec<f64>, y_upper: Vec<f64>) -> Self {
         Self {

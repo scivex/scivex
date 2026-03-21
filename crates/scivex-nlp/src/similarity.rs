@@ -11,6 +11,17 @@ use crate::text::levenshtein;
 ///
 /// Returns `1.0` for identical directions, `0.0` for orthogonal, `-1.0` for
 /// opposite directions.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nlp::similarity::cosine_similarity;
+/// let a = Tensor::from_vec(vec![1.0_f64, 0.0], vec![2]).unwrap();
+/// let b = Tensor::from_vec(vec![0.0_f64, 1.0], vec![2]).unwrap();
+/// let sim = cosine_similarity(&a, &b).unwrap();
+/// assert!(sim.abs() < 1e-10); // orthogonal vectors
+/// ```
 pub fn cosine_similarity<T: Float>(a: &Tensor<T>, b: &Tensor<T>) -> Result<T> {
     if a.ndim() != 1 || b.ndim() != 1 {
         return Err(NlpError::InvalidParameter {
@@ -40,6 +51,14 @@ pub fn cosine_similarity<T: Float>(a: &Tensor<T>, b: &Tensor<T>) -> Result<T> {
 /// Jaccard similarity: `|A ∩ B| / |A ∪ B|`.
 ///
 /// Treats each slice as a set of tokens.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::similarity::jaccard_similarity;
+/// let sim = jaccard_similarity(&["a", "b", "c"], &["b", "c", "d"]);
+/// assert!((sim - 0.5).abs() < 1e-10); // intersection=2, union=4
+/// ```
 #[must_use]
 pub fn jaccard_similarity(a: &[&str], b: &[&str]) -> f64 {
     if a.is_empty() && b.is_empty() {
@@ -58,6 +77,15 @@ pub fn jaccard_similarity(a: &[&str], b: &[&str]) -> f64 {
 /// Normalized edit distance: `1.0 - levenshtein(a, b) / max(len(a), len(b))`.
 ///
 /// Returns `1.0` for identical strings, `0.0` for completely different strings.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::similarity::edit_distance_normalized;
+/// let sim = edit_distance_normalized("kitten", "sitting");
+/// assert!(sim > 0.0 && sim < 1.0);
+/// assert!((edit_distance_normalized("hello", "hello") - 1.0).abs() < 1e-10);
+/// ```
 #[must_use]
 pub fn edit_distance_normalized(a: &str, b: &str) -> f64 {
     let max_len = a.chars().count().max(b.chars().count());

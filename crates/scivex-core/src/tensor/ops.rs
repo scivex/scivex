@@ -72,6 +72,16 @@ impl_tensor_binop!(Div, div, /);
 #[cfg(feature = "simd")]
 impl Tensor<f64> {
     /// SIMD-accelerated element-wise addition.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap();
+    /// let b = Tensor::from_vec(vec![3.0, 4.0], vec![2]).unwrap();
+    /// let c = a.add_simd(&b);
+    /// assert_eq!(c.as_slice(), &[4.0, 6.0]);
+    /// ```
     pub fn add_simd(&self, other: &Tensor<f64>) -> Tensor<f64> {
         assert_eq!(self.shape, other.shape, "shape mismatch in simd add");
         let mut out = vec![0.0_f64; self.data.len()];
@@ -84,6 +94,16 @@ impl Tensor<f64> {
     }
 
     /// SIMD-accelerated element-wise multiplication.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 3.0], vec![2]).unwrap();
+    /// let b = Tensor::from_vec(vec![4.0, 5.0], vec![2]).unwrap();
+    /// let c = a.mul_simd(&b);
+    /// assert_eq!(c.as_slice(), &[8.0, 15.0]);
+    /// ```
     pub fn mul_simd(&self, other: &Tensor<f64>) -> Tensor<f64> {
         assert_eq!(self.shape, other.shape, "shape mismatch in simd mul");
         let mut out = vec![0.0_f64; self.data.len()];
@@ -99,6 +119,16 @@ impl Tensor<f64> {
 #[cfg(feature = "simd")]
 impl Tensor<f32> {
     /// SIMD-accelerated element-wise addition.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![1.0_f32, 2.0], vec![2]).unwrap();
+    /// let b = Tensor::from_vec(vec![3.0, 4.0], vec![2]).unwrap();
+    /// let c = a.add_simd(&b);
+    /// assert_eq!(c.as_slice(), &[4.0, 6.0]);
+    /// ```
     pub fn add_simd(&self, other: &Tensor<f32>) -> Tensor<f32> {
         assert_eq!(self.shape, other.shape, "shape mismatch in simd add");
         let mut out = vec![0.0_f32; self.data.len()];
@@ -111,6 +141,16 @@ impl Tensor<f32> {
     }
 
     /// SIMD-accelerated element-wise multiplication.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![2.0_f32, 3.0], vec![2]).unwrap();
+    /// let b = Tensor::from_vec(vec![4.0, 5.0], vec![2]).unwrap();
+    /// let c = a.mul_simd(&b);
+    /// assert_eq!(c.as_slice(), &[8.0, 15.0]);
+    /// ```
     pub fn mul_simd(&self, other: &Tensor<f32>) -> Tensor<f32> {
         assert_eq!(self.shape, other.shape, "shape mismatch in simd mul");
         let mut out = vec![0.0_f32; self.data.len()];
@@ -198,21 +238,61 @@ impl<T: Float> Neg for &Tensor<T> {
 
 impl<T: Scalar> Tensor<T> {
     /// Element-wise addition, returning `Err` on shape mismatch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// let b = Tensor::from_vec(vec![4, 5, 6], vec![3]).unwrap();
+    /// let c = a.add_checked(&b).unwrap();
+    /// assert_eq!(c.as_slice(), &[5, 7, 9]);
+    /// ```
     pub fn add_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
         self.zip_map(other, |a, b| a + b)
     }
 
     /// Element-wise subtraction, returning `Err` on shape mismatch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![10, 20, 30], vec![3]).unwrap();
+    /// let b = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// let c = a.sub_checked(&b).unwrap();
+    /// assert_eq!(c.as_slice(), &[9, 18, 27]);
+    /// ```
     pub fn sub_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
         self.zip_map(other, |a, b| a - b)
     }
 
     /// Element-wise multiplication, returning `Err` on shape mismatch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![2, 3, 4], vec![3]).unwrap();
+    /// let b = Tensor::from_vec(vec![5, 6, 7], vec![3]).unwrap();
+    /// let c = a.mul_checked(&b).unwrap();
+    /// assert_eq!(c.as_slice(), &[10, 18, 28]);
+    /// ```
     pub fn mul_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
         self.zip_map(other, |a, b| a * b)
     }
 
     /// Element-wise division, returning `Err` on shape mismatch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![10, 20, 30], vec![3]).unwrap();
+    /// let b = Tensor::from_vec(vec![2, 5, 6], vec![3]).unwrap();
+    /// let c = a.div_checked(&b).unwrap();
+    /// assert_eq!(c.as_slice(), &[5, 4, 5]);
+    /// ```
     pub fn div_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
         self.zip_map(other, |a, b| a / b)
     }
@@ -224,6 +304,14 @@ impl<T: Scalar> Tensor<T> {
 
 impl<T: Scalar> Tensor<T> {
     /// Sum of all elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4], vec![4]).unwrap();
+    /// assert_eq!(t.sum(), 10);
+    /// ```
     pub fn sum(&self) -> T {
         #[cfg(feature = "simd")]
         {
@@ -246,11 +334,29 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Product of all elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4], vec![4]).unwrap();
+    /// assert_eq!(t.product(), 24);
+    /// ```
     pub fn product(&self) -> T {
         self.data.iter().copied().fold(T::one(), |acc, x| acc * x)
     }
 
     /// Minimum element. Returns `None` for empty tensors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![3, 1, 4, 1, 5], vec![5]).unwrap();
+    /// assert_eq!(t.min_element(), Some(1));
+    /// let empty = Tensor::<i32>::zeros(vec![0]);
+    /// assert_eq!(empty.min_element(), None);
+    /// ```
     pub fn min_element(&self) -> Option<T> {
         if self.data.is_empty() {
             return None;
@@ -279,6 +385,14 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Maximum element. Returns `None` for empty tensors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![3, 1, 4, 1, 5], vec![5]).unwrap();
+    /// assert_eq!(t.max_element(), Some(5));
+    /// ```
     pub fn max_element(&self) -> Option<T> {
         if self.data.is_empty() {
             return None;
@@ -307,6 +421,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Sum along a given axis, producing a tensor with that axis removed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// let s = t.sum_axis(0).unwrap();
+    /// assert_eq!(s.as_slice(), &[5, 7, 9]);
+    /// ```
     pub fn sum_axis(&self, axis: usize) -> crate::Result<Tensor<T>> {
         if axis >= self.ndim() {
             return Err(CoreError::AxisOutOfBounds {
@@ -345,6 +468,14 @@ impl<T: Scalar> Tensor<T> {
 
 impl<T: Float> Tensor<T> {
     /// Mean of all elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4]).unwrap();
+    /// assert_eq!(t.mean(), 2.5_f64);
+    /// ```
     pub fn mean(&self) -> T {
         self.sum() / T::from_usize(self.numel())
     }

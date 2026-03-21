@@ -21,6 +21,13 @@ pub struct AreaPlot {
 
 impl AreaPlot {
     /// Create an area plot from x and y data vectors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::area::AreaPlot;
+    /// let area = AreaPlot::new(vec![0.0_f64, 1.0_f64, 2.0_f64], vec![0.0_f64, 1.0_f64, 0.5_f64]);
+    /// ```
     #[must_use]
     pub fn new(x: Vec<f64>, y: Vec<f64>) -> Self {
         Self {
@@ -34,6 +41,14 @@ impl AreaPlot {
     }
 
     /// Set the fill and stroke color.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::area::AreaPlot;
+    /// # use scivex_viz::color::Color;
+    /// let area = AreaPlot::new(vec![0.0_f64], vec![1.0_f64]).color(Color::BLUE);
+    /// ```
     #[must_use]
     pub fn color(mut self, c: Color) -> Self {
         self.fill = Fill::new(Color::rgba(c.r, c.g, c.b, 128));
@@ -42,6 +57,14 @@ impl AreaPlot {
     }
 
     /// Set the stroke color (the line along the top of the area).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::area::AreaPlot;
+    /// # use scivex_viz::color::Color;
+    /// let area = AreaPlot::new(vec![0.0_f64], vec![1.0_f64]).stroke_color(Color::RED);
+    /// ```
     #[must_use]
     pub fn stroke_color(mut self, c: Color) -> Self {
         self.stroke = Some(Stroke::new(c, 1.5));
@@ -49,6 +72,13 @@ impl AreaPlot {
     }
 
     /// Set the baseline y-value (default is 0.0).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::area::AreaPlot;
+    /// let area = AreaPlot::new(vec![0.0_f64], vec![2.0_f64]).baseline(1.0_f64);
+    /// ```
     #[must_use]
     pub fn baseline(mut self, b: f64) -> Self {
         self.baseline = b;
@@ -56,6 +86,15 @@ impl AreaPlot {
     }
 
     /// Set the legend label for this area plot.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::area::AreaPlot;
+    /// # use scivex_viz::plot::PlotBuilder;
+    /// let area = AreaPlot::new(vec![0.0_f64], vec![1.0_f64]).label("series");
+    /// assert!(PlotBuilder::label(&area) == Some("series"));
+    /// ```
     #[must_use]
     pub fn label(mut self, l: &str) -> Self {
         self.plot_label = Some(l.to_string());

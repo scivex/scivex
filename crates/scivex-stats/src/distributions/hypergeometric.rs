@@ -26,6 +26,14 @@ impl<T: Float> Hypergeometric<T> {
     /// - `big_n` — population size
     /// - `big_k` — number of success states in population
     /// - `n` — number of draws
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Hypergeometric, Distribution};
+    /// let h = Hypergeometric::<f64>::new(20, 7, 5).unwrap();
+    /// assert!((h.mean() - 1.75).abs() < 1e-10); // n*K/N
+    /// ```
     pub fn new(big_n: usize, big_k: usize, n: usize) -> Result<Self> {
         if big_k > big_n {
             return Err(StatsError::InvalidParameter {

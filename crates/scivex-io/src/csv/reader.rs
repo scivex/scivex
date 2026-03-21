@@ -11,16 +11,17 @@ use crate::error::{IoError, Result};
 
 /// Builder for reading CSV data into a [`DataFrame`].
 ///
-/// # Example
+/// # Examples
 ///
-/// ```no_run
-/// use scivex_io::csv::CsvReaderBuilder;
-///
+/// ```
+/// # use scivex_io::csv::CsvReaderBuilder;
 /// let csv = "name,age\nAlice,30\nBob,25\n";
 /// let df = CsvReaderBuilder::new()
 ///     .has_header(true)
 ///     .read(csv.as_bytes())
 ///     .unwrap();
+/// assert_eq!(df.nrows(), 2);
+/// assert_eq!(df.ncols(), 2);
 /// ```
 #[cfg_attr(
     feature = "serde-support",
@@ -284,11 +285,29 @@ impl CsvReaderBuilder {
 }
 
 /// Read CSV from a reader with default settings.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_io::csv::read_csv;
+/// let csv = "x,y\n1,2\n3,4\n";
+/// let df = read_csv(csv.as_bytes()).unwrap();
+/// assert_eq!(df.nrows(), 2);
+/// assert_eq!(df.column_names(), vec!["x", "y"]);
+/// ```
 pub fn read_csv<R: Read>(reader: R) -> Result<DataFrame> {
     CsvReaderBuilder::new().read(reader)
 }
 
 /// Read CSV from a file path with default settings.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::csv::read_csv_path;
+/// let df = read_csv_path("data.csv").unwrap();
+/// assert!(df.nrows() > 0);
+/// ```
 pub fn read_csv_path<P: AsRef<Path>>(path: P) -> Result<DataFrame> {
     CsvReaderBuilder::new().read_path(path)
 }

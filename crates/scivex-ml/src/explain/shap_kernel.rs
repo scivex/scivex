@@ -18,6 +18,20 @@ use crate::traits::Predictor;
 /// - `seed`: RNG seed
 ///
 /// Returns SHAP values `[n_explain, n_features]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_ml::{tree::DecisionTreeRegressor, traits::Predictor, explain::kernel_shap};
+/// let x = Tensor::from_vec(vec![1.0_f64,2.0, 3.0,4.0, 5.0,6.0, 7.0,8.0], vec![4, 2]).unwrap();
+/// let y = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let mut model = DecisionTreeRegressor::new(Some(3), 1);
+/// model.fit(&x, &y).unwrap();
+/// let x_explain = Tensor::from_vec(vec![2.0, 3.0], vec![1, 2]).unwrap();
+/// let shap = kernel_shap(&model, &x, &x_explain, 100, 42).unwrap();
+/// assert_eq!(shap.shape(), &[1, 2]);
+/// ```
 pub fn kernel_shap<T, P>(
     model: &P,
     x_background: &Tensor<T>,

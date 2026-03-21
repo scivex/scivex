@@ -10,6 +10,14 @@ use crate::error::{OptimError, Result};
 // ---------------------------------------------------------------------------
 
 /// Boundary condition specification.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::pde::BoundaryCondition;
+/// let bc = BoundaryCondition::Dirichlet(0.0_f64);
+/// assert_eq!(bc, BoundaryCondition::Dirichlet(0.0));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BoundaryCondition<T: Float> {
     /// Fixed value at boundary (Dirichlet).
@@ -19,6 +27,19 @@ pub enum BoundaryCondition<T: Float> {
 }
 
 /// Result of a PDE solve.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::pde::{heat_equation_1d, BoundaryCondition};
+/// let result = heat_equation_1d(
+///     (0.0_f64, 1.0), 50, 0.1, 100, 0.01,
+///     &|x| (std::f64::consts::PI * x).sin(),
+///     BoundaryCondition::Dirichlet(0.0),
+///     BoundaryCondition::Dirichlet(0.0),
+/// ).unwrap();
+/// assert!(!result.u.is_empty());
+/// ```
 #[derive(Debug, Clone)]
 pub struct PdeResult<T: Float> {
     /// Solution values: for 1-D time-dependent problems the shape is
@@ -107,6 +128,19 @@ fn apply_bc_1d<T: Float>(bc: &BoundaryCondition<T>, is_left: bool, row: &mut [T]
 /// Returns [`OptimError::InvalidParameter`] when the grid is too small,
 /// parameters are non-positive, or the CFL stability condition
 /// `r = α dt / dx² <= 0.5` is violated.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::pde::{heat_equation_1d, BoundaryCondition};
+/// let result = heat_equation_1d(
+///     (0.0_f64, 1.0), 50, 0.01, 500, 1.0,
+///     &|x| (std::f64::consts::PI * x).sin(),
+///     BoundaryCondition::Dirichlet(0.0),
+///     BoundaryCondition::Dirichlet(0.0),
+/// ).unwrap();
+/// assert!(result.converged);
+/// ```
 #[allow(clippy::too_many_arguments)]
 pub fn heat_equation_1d<T: Float>(
     x_range: (T, T),

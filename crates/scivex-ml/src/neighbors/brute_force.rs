@@ -7,6 +7,17 @@ use crate::error::{MlError, Result};
 use super::distance::{DistanceMetric, compute_distance};
 
 /// Result of a nearest-neighbour search.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::neighbors::NearestNeighborResult;
+/// let result = NearestNeighborResult::<f64> {
+///     indices: vec![2, 0],
+///     distances: vec![0.1_f64, 0.5],
+/// };
+/// assert_eq!(result.indices[0], 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -34,6 +45,17 @@ pub struct BruteForceIndex<T: Float> {
 
 impl<T: Float> BruteForceIndex<T> {
     /// Create a new empty brute-force index with the given distance metric.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::{BruteForceIndex, DistanceMetric};
+    /// # use scivex_core::Tensor;
+    /// let mut index = BruteForceIndex::<f64>::new(DistanceMetric::L2);
+    /// let vecs = Tensor::from_vec(vec![1.0, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+    /// index.add(&vecs).unwrap();
+    /// assert_eq!(index.len(), 2);
+    /// ```
     #[must_use]
     pub fn new(metric: DistanceMetric) -> Self {
         Self {

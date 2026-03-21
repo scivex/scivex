@@ -8,6 +8,15 @@ use super::QuadResult;
 /// `n` subintervals.
 ///
 /// Error is `O(h^2)` where `h = (b - a) / n`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::integrate::trapezoid;
+/// // ∫₀¹ x² dx = 1/3
+/// let result = trapezoid(|x: f64| x * x, 0.0, 1.0, 1000);
+/// assert!((result.value - 1.0 / 3.0).abs() < 1e-5);
+/// ```
 pub fn trapezoid<T: Float, F: Fn(T) -> T>(f: F, a: T, b: T, n: usize) -> QuadResult<T> {
     assert!(n > 0, "trapezoid: n must be positive");
 

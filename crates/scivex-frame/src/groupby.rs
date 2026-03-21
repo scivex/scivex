@@ -12,6 +12,20 @@ use crate::series::string::StringSeries;
 use crate::series::{AnySeries, Series};
 
 /// Aggregation function selector.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::prelude::*;
+/// # use scivex_frame::groupby::AggFunc;
+/// let df = DataFrame::builder()
+///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+///     .add_column("v", vec![10.0_f64, 20.0, 30.0])
+///     .build()
+///     .unwrap();
+/// let result = df.groupby(&["g"]).unwrap().agg("v", AggFunc::Sum).unwrap();
+/// assert_eq!(result.nrows(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -28,6 +42,21 @@ pub enum AggFunc {
 }
 
 /// A grouped `DataFrame` ready for aggregation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::prelude::*;
+/// let df = DataFrame::builder()
+///     .add_boxed(Box::new(StringSeries::from_strs("city", &["NYC", "LA", "NYC"])))
+///     .add_column("sales", vec![100.0_f64, 200.0, 150.0])
+///     .build()
+///     .unwrap();
+/// let gb = df.groupby(&["city"]).unwrap();
+/// assert_eq!(gb.n_groups(), 2);
+/// let totals = gb.sum().unwrap();
+/// assert_eq!(totals.nrows(), 2);
+/// ```
 pub struct GroupBy<'a> {
     df: &'a DataFrame,
     group_columns: Vec<String>,
@@ -140,6 +169,18 @@ impl<'a> GroupBy<'a> {
     }
 
     /// Number of groups.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "B", "A"])))
+    ///     .add_column("v", vec![1_i32, 2, 3])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.groupby(&["g"]).unwrap().n_groups(), 2);
+    /// ```
     pub fn n_groups(&self) -> usize {
         self.groups.len()
     }
@@ -147,41 +188,146 @@ impl<'a> GroupBy<'a> {
     // -- Convenience aggregation methods ------------------------------------
 
     /// Sum of all numeric columns per group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![10.0_f64, 20.0, 30.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().sum().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn sum(&self) -> Result<DataFrame> {
         self.agg_all(AggFunc::Sum)
     }
 
     /// Mean of all float columns per group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![10.0_f64, 20.0, 30.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().mean().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn mean(&self) -> Result<DataFrame> {
         self.agg_all(AggFunc::Mean)
     }
 
     /// Min of all numeric columns per group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![10.0_f64, 20.0, 30.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().min().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn min(&self) -> Result<DataFrame> {
         self.agg_all(AggFunc::Min)
     }
 
     /// Max of all numeric columns per group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![10.0_f64, 20.0, 30.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().max().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn max(&self) -> Result<DataFrame> {
         self.agg_all(AggFunc::Max)
     }
 
     /// Count of rows per group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![1_i32, 2, 3])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().count().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn count(&self) -> Result<DataFrame> {
         self.agg_all(AggFunc::Count)
     }
 
     /// First row per group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![10_i32, 20, 30])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().first().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn first(&self) -> Result<DataFrame> {
         self.agg_all(AggFunc::First)
     }
 
     /// Last row per group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![10_i32, 20, 30])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().last().unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn last(&self) -> Result<DataFrame> {
         self.agg_all(AggFunc::Last)
     }
 
     /// Apply an aggregation function to a specific column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::groupby::AggFunc;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("g", &["A", "A", "B"])))
+    ///     .add_column("v", vec![10.0_f64, 20.0, 30.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let result = df.groupby(&["g"]).unwrap().agg("v", AggFunc::Sum).unwrap();
+    /// assert_eq!(result.ncols(), 2); // g + v
+    /// ```
     pub fn agg(&self, col: &str, func: AggFunc) -> Result<DataFrame> {
         self.df.column(col)?; // validate column exists
 
@@ -368,6 +514,19 @@ impl<'a> GroupBy<'a> {
 
 impl DataFrame {
     /// Group by one or more columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_boxed(Box::new(StringSeries::from_strs("city", &["NYC", "LA", "NYC"])))
+    ///     .add_column("sales", vec![100.0_f64, 200.0, 150.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let gb = df.groupby(&["city"]).unwrap();
+    /// assert_eq!(gb.n_groups(), 2);
+    /// ```
     pub fn groupby(&self, cols: &[&str]) -> Result<GroupBy<'_>> {
         GroupBy::new(self, cols)
     }
