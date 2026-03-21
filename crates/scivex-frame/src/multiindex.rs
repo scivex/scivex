@@ -274,12 +274,34 @@ impl MultiIndex {
     // -- Accessors -----------------------------------------------------------
 
     /// Number of index levels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["a", "b"],
+    ///     &[vec!["x", "1"], vec!["y", "2"]],
+    /// ).unwrap();
+    /// assert_eq!(mi.nlevels(), 2);
+    /// ```
     #[inline]
     pub fn nlevels(&self) -> usize {
         self.names.len()
     }
 
     /// Number of rows in the index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["a"],
+    ///     &[vec!["x"], vec!["y"]],
+    /// ).unwrap();
+    /// assert_eq!(mi.len(), 2);
+    /// ```
     #[inline]
     pub fn len(&self) -> usize {
         self.len
@@ -298,6 +320,18 @@ impl MultiIndex {
     }
 
     /// Return the distinct labels at the given `level`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["city", "year"],
+    ///     &[vec!["NYC", "2024"], vec!["LA", "2024"]],
+    /// ).unwrap();
+    /// let cities = mi.get_level(0).unwrap();
+    /// assert!(cities.contains(&"NYC"));
+    /// ```
     pub fn get_level(&self, level: usize) -> Result<Vec<&str>> {
         if level >= self.nlevels() {
             return Err(FrameError::IndexOutOfBounds {
@@ -309,6 +343,17 @@ impl MultiIndex {
     }
 
     /// Return the label tuple for a given row.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["city", "year"],
+    ///     &[vec!["NYC", "2024"], vec!["LA", "2025"]],
+    /// ).unwrap();
+    /// assert_eq!(mi.get_label(0).unwrap(), vec!["NYC", "2024"]);
+    /// ```
     pub fn get_label(&self, row: usize) -> Result<Vec<&str>> {
         if row >= self.len {
             return Err(FrameError::IndexOutOfBounds {
@@ -327,6 +372,17 @@ impl MultiIndex {
     // -- Selection -----------------------------------------------------------
 
     /// Return the row indices where `level` has the given `label`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["region", "year"],
+    ///     &[vec!["East", "2023"], vec!["West", "2023"], vec!["East", "2024"]],
+    /// ).unwrap();
+    /// assert_eq!(mi.select(0, "East"), vec![0, 2]);
+    /// ```
     pub fn select(&self, level: usize, label: &str) -> Vec<usize> {
         if level >= self.nlevels() {
             return Vec::new();
@@ -344,6 +400,17 @@ impl MultiIndex {
     }
 
     /// Return the row indices where all levels match the given `labels` tuple.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["region", "year"],
+    ///     &[vec!["East", "2023"], vec!["West", "2024"]],
+    /// ).unwrap();
+    /// assert_eq!(mi.select_tuple(&["East", "2023"]), vec![0]);
+    /// ```
     pub fn select_tuple(&self, labels: &[&str]) -> Vec<usize> {
         if labels.len() != self.nlevels() {
             return Vec::new();
@@ -369,6 +436,18 @@ impl MultiIndex {
     // -- Transformations -----------------------------------------------------
 
     /// Swap two levels, returning a new `MultiIndex`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["A", "B"],
+    ///     &[vec!["a1", "b1"]],
+    /// ).unwrap();
+    /// let swapped = mi.swap_levels(0, 1).unwrap();
+    /// assert_eq!(swapped.names(), &["B", "A"]);
+    /// ```
     pub fn swap_levels(&self, i: usize, j: usize) -> Result<MultiIndex> {
         if i >= self.nlevels() {
             return Err(FrameError::IndexOutOfBounds {
@@ -395,6 +474,19 @@ impl MultiIndex {
     ///
     /// Returns an error if there is only one level (cannot drop the last one)
     /// or if the index is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["A", "B", "C"],
+    ///     &[vec!["a1", "b1", "c1"]],
+    /// ).unwrap();
+    /// let dropped = mi.droplevel(1).unwrap();
+    /// assert_eq!(dropped.nlevels(), 2);
+    /// assert_eq!(dropped.names(), &["A", "C"]);
+    /// ```
     pub fn droplevel(&self, level: usize) -> Result<MultiIndex> {
         if level >= self.nlevels() {
             return Err(FrameError::IndexOutOfBounds {
@@ -417,6 +509,17 @@ impl MultiIndex {
     }
 
     /// Flatten the multi-level labels into single strings joined by `_`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["color", "size"],
+    ///     &[vec!["red", "S"], vec!["blue", "M"]],
+    /// ).unwrap();
+    /// assert_eq!(mi.to_flat_index(), vec!["red_S", "blue_M"]);
+    /// ```
     pub fn to_flat_index(&self) -> Vec<String> {
         (0..self.len)
             .map(|row| {
@@ -435,6 +538,19 @@ impl MultiIndex {
     ///
     /// Returns the sorted `MultiIndex` and the permutation vector mapping new
     /// positions to old row indices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::MultiIndex;
+    /// let mi = MultiIndex::from_tuples(
+    ///     &["letter"],
+    ///     &[vec!["C"], vec!["A"], vec!["B"]],
+    /// ).unwrap();
+    /// let (sorted, perm) = mi.sort();
+    /// assert_eq!(sorted.get_label(0).unwrap(), vec!["A"]);
+    /// assert_eq!(perm, vec![1, 2, 0]);
+    /// ```
     pub fn sort(&self) -> (MultiIndex, Vec<usize>) {
         let mut perm: Vec<usize> = (0..self.len).collect();
         perm.sort_by(|&a, &b| {

@@ -7,6 +7,18 @@ use crate::image::Image;
 ///
 /// The kernel must be a 2D tensor with odd dimensions.
 /// The output has the same size as the input (zero-padded borders).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// # use scivex_core::Tensor;
+/// let img = Image::from_raw(vec![1.0f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+/// let kernel = Tensor::from_vec(vec![0.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,0.0], vec![3,3]).unwrap();
+/// let out = filter::convolve2d(&img, &kernel).unwrap();
+/// assert!((out.get_pixel(1, 1).unwrap()[0] - 1.0).abs() < 1e-5);
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> {
     let kshape = kernel.shape();
@@ -58,6 +70,16 @@ pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> 
 }
 
 /// Apply Gaussian blur with the given sigma.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// let img = Image::from_raw(vec![0.5f32; 25], 5, 5, PixelFormat::Gray).unwrap();
+/// let blurred = filter::gaussian_blur(&img, 1.0).unwrap();
+/// assert_eq!(blurred.dimensions(), (5, 5));
+/// ```
 pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
     if sigma <= 0.0 {
         return Err(ImageError::InvalidParameter {
@@ -91,6 +113,16 @@ pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
 }
 
 /// Apply a box (uniform) blur with the given radius.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// let img = Image::from_raw(vec![1.0f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+/// let blurred = filter::box_blur(&img, 1).unwrap();
+/// assert!((blurred.get_pixel(1, 1).unwrap()[0] - 1.0).abs() < 1e-5);
+/// ```
 pub fn box_blur(img: &Image<f32>, radius: usize) -> Result<Image<f32>> {
     if radius == 0 {
         return Err(ImageError::InvalidParameter {
@@ -107,6 +139,16 @@ pub fn box_blur(img: &Image<f32>, radius: usize) -> Result<Image<f32>> {
 }
 
 /// Apply a sharpening filter (Laplacian-based).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// let img = Image::from_raw(vec![0.5f32; 25], 5, 5, PixelFormat::Gray).unwrap();
+/// let sharp = filter::sharpen(&img).unwrap();
+/// assert_eq!(sharp.dimensions(), (5, 5));
+/// ```
 pub fn sharpen(img: &Image<f32>) -> Result<Image<f32>> {
     #[rustfmt::skip]
     let kernel_data = vec![
@@ -119,6 +161,16 @@ pub fn sharpen(img: &Image<f32>) -> Result<Image<f32>> {
 }
 
 /// Sobel edge detection in the X direction.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// let img = Image::from_raw(vec![0.5f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+/// let gx = filter::sobel_x(&img).unwrap();
+/// assert_eq!(gx.dimensions(), (3, 3));
+/// ```
 pub fn sobel_x(img: &Image<f32>) -> Result<Image<f32>> {
     #[rustfmt::skip]
     let kernel_data = vec![
@@ -131,6 +183,16 @@ pub fn sobel_x(img: &Image<f32>) -> Result<Image<f32>> {
 }
 
 /// Sobel edge detection in the Y direction.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// let img = Image::from_raw(vec![0.5f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+/// let gy = filter::sobel_y(&img).unwrap();
+/// assert_eq!(gy.dimensions(), (3, 3));
+/// ```
 pub fn sobel_y(img: &Image<f32>) -> Result<Image<f32>> {
     #[rustfmt::skip]
     let kernel_data = vec![
@@ -143,6 +205,17 @@ pub fn sobel_y(img: &Image<f32>) -> Result<Image<f32>> {
 }
 
 /// Sobel edge detection: magnitude of X and Y gradients.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// let img = Image::from_raw(vec![0.5f32; 9], 3, 3, PixelFormat::Gray).unwrap();
+/// let edges = filter::sobel(&img).unwrap();
+/// // Uniform image has zero gradients at the center
+/// assert!(edges.get_pixel(1, 1).unwrap()[0].abs() < 1e-5);
+/// ```
 pub fn sobel(img: &Image<f32>) -> Result<Image<f32>> {
     let gx = sobel_x(img)?;
     let gy = sobel_y(img)?;
@@ -157,6 +230,16 @@ pub fn sobel(img: &Image<f32>) -> Result<Image<f32>> {
 }
 
 /// Apply a median filter with the given radius.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::filter;
+/// let img = Image::from_raw(vec![1u8, 5, 2, 3, 100, 4, 6, 7, 8], 3, 3, PixelFormat::Gray).unwrap();
+/// let filtered = filter::median_filter(&img, 1).unwrap();
+/// assert_eq!(filtered.get_pixel(1, 1).unwrap(), vec![5]); // median of 3x3 window
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn median_filter<T: Scalar + Ord>(img: &Image<T>, radius: usize) -> Result<Image<T>> {
     if radius == 0 {

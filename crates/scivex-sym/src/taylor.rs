@@ -18,6 +18,20 @@ use crate::simplify::simplify;
 /// ```
 ///
 /// The result is a simplified symbolic expression.
+///
+/// # Examples
+///
+/// ```
+/// # use std::collections::HashMap;
+/// # use scivex_sym::expr::{var, exp};
+/// # use scivex_sym::taylor::taylor;
+/// // Taylor of e^x around 0 to order 3: 1 + x + x²/2 + x³/6
+/// let ex = exp(var("x"));
+/// let approx = taylor(&ex, "x", 0.0, 3).unwrap();
+/// let vars = HashMap::from([("x".to_string(), 0.5)]);
+/// let val = approx.eval(&vars).unwrap();
+/// assert!((val - 0.5_f64.exp()).abs() < 0.01);
+/// ```
 pub fn taylor(expr: &Expr, var_name: &str, center: f64, n: usize) -> Result<Expr> {
     if n > 20 {
         return Err(SymError::InvalidExpr {
@@ -91,6 +105,18 @@ pub fn taylor(expr: &Expr, var_name: &str, center: f64, n: usize) -> Result<Expr
 
 /// Compute the Maclaurin series (Taylor series around 0) of `expr` up to
 /// order `n`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::expr::{var, exp};
+/// # use scivex_sym::taylor::maclaurin;
+/// # use std::collections::HashMap;
+/// let approx = maclaurin(&exp(var("x")), "x", 4).unwrap();
+/// let vars = HashMap::from([("x".to_string(), 0.5)]);
+/// let val = approx.eval(&vars).unwrap();
+/// assert!((val - 0.5_f64.exp()).abs() < 0.001);
+/// ```
 pub fn maclaurin(expr: &Expr, var_name: &str, n: usize) -> Result<Expr> {
     taylor(expr, var_name, 0.0, n)
 }

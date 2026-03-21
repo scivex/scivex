@@ -47,6 +47,16 @@ fn float_to_usize<T: Float>(v: T) -> usize {
 ///
 /// Uses a separable 2-pass approach (horizontal then vertical) for
 /// O(n * 2a) per pixel instead of O(n * (2a)^2).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::lanczos;
+/// let img = Image::from_raw(vec![0.5f64; 4], 2, 2, PixelFormat::Gray).unwrap();
+/// let big = lanczos::resize_lanczos(&img, 4, 4, 3).unwrap();
+/// assert_eq!(big.dimensions(), (4, 4));
+/// ```
 pub fn resize_lanczos<T: Float>(
     img: &Image<T>,
     new_width: usize,
@@ -158,6 +168,16 @@ pub fn resize_lanczos<T: Float>(
 }
 
 /// Lanczos-2 resize (good quality, faster).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::lanczos;
+/// let img = Image::from_raw(vec![0.5f64; 4], 2, 2, PixelFormat::Gray).unwrap();
+/// let resized = lanczos::resize_lanczos2(&img, 3, 3).unwrap();
+/// assert_eq!(resized.dimensions(), (3, 3));
+/// ```
 pub fn resize_lanczos2<T: Float>(
     img: &Image<T>,
     new_width: usize,
@@ -167,6 +187,16 @@ pub fn resize_lanczos2<T: Float>(
 }
 
 /// Lanczos-3 resize (best quality, slower).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::lanczos;
+/// let img = Image::from_raw(vec![0.5f64; 4], 2, 2, PixelFormat::Gray).unwrap();
+/// let resized = lanczos::resize_lanczos3(&img, 4, 4).unwrap();
+/// assert_eq!(resized.dimensions(), (4, 4));
+/// ```
 pub fn resize_lanczos3<T: Float>(
     img: &Image<T>,
     new_width: usize,

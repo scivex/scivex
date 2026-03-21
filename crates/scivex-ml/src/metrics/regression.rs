@@ -3,6 +3,15 @@ use scivex_core::Float;
 use crate::error::{MlError, Result};
 
 /// Mean squared error.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::mse;
+/// let y_true = [1.0_f64, 2.0, 3.0];
+/// let y_pred = [1.5, 2.5, 3.5];
+/// assert!((mse(&y_true, &y_pred).unwrap() - 0.25).abs() < 1e-12);
+/// ```
 pub fn mse<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     check_inputs(y_true, y_pred)?;
     let n = T::from_usize(y_true.len());
@@ -18,11 +27,29 @@ pub fn mse<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
 }
 
 /// Root mean squared error.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::rmse;
+/// let y_true = [1.0_f64, 2.0, 3.0];
+/// let y_pred = [1.5, 2.5, 3.5];
+/// assert!((rmse(&y_true, &y_pred).unwrap() - 0.5).abs() < 1e-12);
+/// ```
 pub fn rmse<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     Ok(mse(y_true, y_pred)?.sqrt())
 }
 
 /// Mean absolute error.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::mae;
+/// let y_true = [1.0_f64, 2.0, 3.0];
+/// let y_pred = [1.5, 2.5, 3.5];
+/// assert!((mae(&y_true, &y_pred).unwrap() - 0.5).abs() < 1e-12);
+/// ```
 pub fn mae<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     check_inputs(y_true, y_pred)?;
     let n = T::from_usize(y_true.len());
@@ -35,6 +62,14 @@ pub fn mae<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
 }
 
 /// R-squared (coefficient of determination).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::metrics::r2_score;
+/// let y = [1.0_f64, 2.0, 3.0];
+/// assert!((r2_score(&y, &y).unwrap() - 1.0).abs() < 1e-12);
+/// ```
 pub fn r2_score<T: Float>(y_true: &[T], y_pred: &[T]) -> Result<T> {
     check_inputs(y_true, y_pred)?;
     let n = T::from_usize(y_true.len());

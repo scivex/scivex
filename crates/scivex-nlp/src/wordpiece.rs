@@ -31,6 +31,15 @@ pub const UNK: &str = "[UNK]";
 /// Splits text into subword tokens using a greedy longest-match-first
 /// algorithm. Words that exceed `max_word_len` characters or cannot be
 /// decomposed into known vocabulary pieces are emitted as `[UNK]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::WordPieceTokenizer;
+/// let tok = WordPieceTokenizer::from_vocab_list(&["[UNK]", "hello", "world"]).unwrap();
+/// let pieces = tok.tokenize_to_pieces("hello world");
+/// assert_eq!(pieces, vec!["hello", "world"]);
+/// ```
 pub struct WordPieceTokenizer {
     /// Maps subword tokens to their integer IDs.
     pub vocab: HashMap<String, usize>,
@@ -53,6 +62,19 @@ impl WordPieceTokenizer {
     /// # Errors
     ///
     /// Returns [`NlpError::EmptyVocabulary`] if `vocab` is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::wordpiece::WordPieceTokenizer;
+    /// # use std::collections::HashMap;
+    /// let mut vocab = HashMap::new();
+    /// vocab.insert("[UNK]".to_string(), 0);
+    /// vocab.insert("hello".to_string(), 1);
+    /// let tok = WordPieceTokenizer::from_vocab(vocab).unwrap();
+    /// let pieces = tok.tokenize_to_pieces("hello");
+    /// assert_eq!(pieces, vec!["hello"]);
+    /// ```
     pub fn from_vocab(vocab: HashMap<String, usize>) -> Result<Self> {
         if vocab.is_empty() {
             return Err(NlpError::EmptyVocabulary);
@@ -75,6 +97,15 @@ impl WordPieceTokenizer {
     /// # Errors
     ///
     /// Returns [`NlpError::EmptyVocabulary`] if `words` is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::wordpiece::WordPieceTokenizer;
+    /// let tok = WordPieceTokenizer::from_vocab_list(&["[UNK]", "play", "##ing"]).unwrap();
+    /// let pieces = tok.tokenize_to_pieces("playing");
+    /// assert_eq!(pieces, vec!["play", "##ing"]);
+    /// ```
     pub fn from_vocab_list(words: &[&str]) -> Result<Self> {
         if words.is_empty() {
             return Err(NlpError::EmptyVocabulary);
@@ -96,6 +127,17 @@ impl WordPieceTokenizer {
     ///    - Try the longest prefix present in the vocabulary.
     ///    - If found, consume it and continue with `"##" + remainder`.
     ///    - If no prefix matches at any point, emit `[UNK]` for the whole word.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::wordpiece::WordPieceTokenizer;
+    /// let tok = WordPieceTokenizer::from_vocab_list(
+    ///     &["[UNK]", "un", "##known", "hello"]
+    /// ).unwrap();
+    /// let pieces = tok.tokenize_to_pieces("unknown hello");
+    /// assert_eq!(pieces, vec!["un", "##known", "hello"]);
+    /// ```
     #[must_use]
     pub fn tokenize_to_pieces(&self, text: &str) -> Vec<String> {
         let lowered = text.to_lowercase();
@@ -123,6 +165,15 @@ impl WordPieceTokenizer {
     ///
     /// Returns [`NlpError::UnknownToken`] if the unknown token itself is not
     /// present in the vocabulary (so we cannot represent unknown words).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::wordpiece::WordPieceTokenizer;
+    /// let tok = WordPieceTokenizer::from_vocab_list(&["[UNK]", "hello"]).unwrap();
+    /// let ids = tok.encode("hello").unwrap();
+    /// assert_eq!(ids, vec![1]);
+    /// ```
     pub fn encode(&self, text: &str) -> Result<Vec<usize>> {
         let pieces = self.tokenize_to_pieces(text);
         let mut ids = Vec::with_capacity(pieces.len());
@@ -148,6 +199,17 @@ impl WordPieceTokenizer {
     ///
     /// Continuing subword pieces (those starting with `##`) are concatenated
     /// directly to the previous token. Unknown IDs are rendered as `[UNK]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::wordpiece::WordPieceTokenizer;
+    /// let tok = WordPieceTokenizer::from_vocab_list(
+    ///     &["[UNK]", "play", "##ing"]
+    /// ).unwrap();
+    /// let decoded = tok.decode(&[1, 2]);
+    /// assert_eq!(decoded, "playing");
+    /// ```
     #[must_use]
     pub fn decode(&self, ids: &[usize]) -> String {
         let mut parts: Vec<String> = Vec::with_capacity(ids.len());

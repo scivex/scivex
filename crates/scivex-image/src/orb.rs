@@ -30,6 +30,14 @@ const CIRCLE: [(isize, isize); 16] = [
 ];
 
 /// A keypoint with orientation and scale information.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::orb::Keypoint;
+/// let kp = Keypoint { row: 10, col: 20, response: 0.8_f64, angle: 0.0_f64, octave: 0 };
+/// assert_eq!(kp.row, 10);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Keypoint {
     /// Row (y) coordinate.
@@ -45,6 +53,15 @@ pub struct Keypoint {
 }
 
 /// An ORB descriptor: a keypoint paired with a 256-bit binary descriptor.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::orb::{Keypoint, OrbDescriptor};
+/// let kp = Keypoint { row: 5, col: 5, response: 1.0_f64, angle: 0.0_f64, octave: 0 };
+/// let desc = OrbDescriptor { keypoint: kp, descriptor: [0u8; 32] };
+/// assert_eq!(desc.descriptor.len(), 32);
+/// ```
 #[derive(Debug, Clone)]
 pub struct OrbDescriptor {
     /// The oriented keypoint.
@@ -57,6 +74,15 @@ pub struct OrbDescriptor {
 ///
 /// Detects FAST keypoints, computes orientation via intensity centroid,
 /// and builds rotation-aware BRIEF descriptors.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::orb::OrbDetector;
+/// let det = OrbDetector::new().with_n_features(200).with_fast_threshold(25);
+/// assert_eq!(det.n_features, 200);
+/// assert_eq!(det.fast_threshold, 25);
+/// ```
 #[derive(Debug, Clone)]
 pub struct OrbDetector {
     /// Maximum number of keypoints to retain (sorted by response).
@@ -77,6 +103,14 @@ impl OrbDetector {
     /// Create a new `OrbDetector` with default parameters.
     ///
     /// Defaults: 500 features, FAST threshold 20, 1 pyramid level.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::orb::OrbDetector;
+    /// let det = OrbDetector::new();
+    /// assert_eq!(det.n_features, 500);
+    /// ```
     pub fn new() -> Self {
         Self {
             n_features: 500,
@@ -86,12 +120,28 @@ impl OrbDetector {
     }
 
     /// Set the maximum number of keypoints to retain.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::orb::OrbDetector;
+    /// let det = OrbDetector::new().with_n_features(100);
+    /// assert_eq!(det.n_features, 100);
+    /// ```
     pub fn with_n_features(mut self, n: usize) -> Self {
         self.n_features = n;
         self
     }
 
     /// Set the FAST detector threshold.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::orb::OrbDetector;
+    /// let det = OrbDetector::new().with_fast_threshold(30);
+    /// assert_eq!(det.fast_threshold, 30);
+    /// ```
     pub fn with_fast_threshold(mut self, t: u8) -> Self {
         self.fast_threshold = t;
         self
@@ -107,6 +157,18 @@ impl OrbDetector {
     /// 2. Sort by response and keep the top `n_features`.
     /// 3. Compute orientation for each keypoint via intensity centroid.
     /// 4. Compute a rotation-aware 256-bit BRIEF descriptor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_image::{Image, PixelFormat};
+    /// # use scivex_image::orb::OrbDetector;
+    /// let img = Image::from_raw(vec![128u8; 32 * 32], 32, 32, PixelFormat::Gray).unwrap();
+    /// let det = OrbDetector::new();
+    /// let descs = det.detect_and_compute(&img).unwrap();
+    /// // Uniform image has no corners
+    /// assert!(descs.is_empty());
+    /// ```
     #[allow(clippy::too_many_lines)]
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_sign_loss)]

@@ -11,6 +11,16 @@ use crate::expr::Expr;
 /// - `x ^ 1 → x`
 /// - `Neg(Neg(x)) → x`
 /// - `Neg(Const(v)) → Const(-v)`
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::{var, constant, simplify};
+/// let x = var("x");
+/// let expr = x.clone() + constant(0.0); // x + 0
+/// let simplified = simplify(&expr);
+/// assert_eq!(format!("{}", simplified), "x");
+/// ```
 #[must_use]
 pub fn simplify(expr: &Expr) -> Expr {
     // First, recursively simplify children.

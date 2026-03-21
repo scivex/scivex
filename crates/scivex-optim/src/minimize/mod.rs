@@ -13,6 +13,21 @@ pub use nelder_mead::nelder_mead;
 use scivex_core::{Float, Tensor};
 
 /// Result of a multi-dimensional minimization algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_optim::minimize::{bfgs, MinimizeOptions};
+/// let f = |x: &Tensor<f64>| { let s = x.as_slice(); s[0] * s[0] + s[1] * s[1] };
+/// let g = |x: &Tensor<f64>| {
+///     let s = x.as_slice();
+///     Tensor::from_vec(vec![2.0 * s[0], 2.0 * s[1]], vec![2]).unwrap()
+/// };
+/// let x0 = Tensor::from_vec(vec![3.0_f64, 4.0], vec![2]).unwrap();
+/// let result = bfgs(f, g, &x0, &MinimizeOptions::default()).unwrap();
+/// assert!(result.converged);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -36,6 +51,14 @@ pub struct MinimizeResult<T: Float> {
 }
 
 /// Options controlling multi-dimensional minimization.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::minimize::MinimizeOptions;
+/// let opts = MinimizeOptions::<f64>::default();
+/// assert_eq!(opts.max_iter, 1000);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -70,6 +93,17 @@ impl<T: Float> Default for MinimizeOptions<T> {
 ///
 /// `grad_i = (f(x + h*e_i) - f(x - h*e_i)) / (2*h)` where `h` is a
 /// small perturbation and `e_i` is the i-th unit vector.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_optim::minimize::numerical_gradient;
+/// let f = |x: &Tensor<f64>| x.as_slice()[0].powi(2); // f(x) = x²
+/// let x = Tensor::from_vec(vec![3.0_f64], vec![1]).unwrap();
+/// let g = numerical_gradient(&f, &x);
+/// assert!((g.as_slice()[0] - 6.0).abs() < 1e-4); // f'(3) = 6
+/// ```
 pub fn numerical_gradient<T: Float, F: Fn(&Tensor<T>) -> T>(f: &F, x: &Tensor<T>) -> Tensor<T> {
     let n = x.numel();
     let h = T::from_f64(1e-8);

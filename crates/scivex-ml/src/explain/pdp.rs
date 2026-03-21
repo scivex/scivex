@@ -22,6 +22,20 @@ pub struct PartialDependence<T: Float> {
 ///
 /// For each grid point value, the feature column is replaced for all samples,
 /// the model predicts, and the average prediction is returned.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_ml::{tree::DecisionTreeRegressor, traits::Predictor, explain::partial_dependence};
+/// let x = Tensor::from_vec(vec![1.0_f64,10.0, 2.0,20.0, 3.0,15.0, 4.0,40.0], vec![4, 2]).unwrap();
+/// let y = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let mut model = DecisionTreeRegressor::new(Some(3), 1);
+/// model.fit(&x, &y).unwrap();
+/// let pdp = partial_dependence(&model, &x, 0, 5).unwrap();
+/// assert_eq!(pdp.feature_values.shape(), &[5]);
+/// assert_eq!(pdp.average_predictions.shape(), &[5]);
+/// ```
 pub fn partial_dependence<T, P>(
     model: &P,
     x: &Tensor<T>,

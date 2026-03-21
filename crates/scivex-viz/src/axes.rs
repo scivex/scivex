@@ -6,6 +6,15 @@ use crate::scale::{LinearScale, Scale};
 use crate::style::{Font, Stroke, Theme};
 
 /// Overrides applied by the figure when sharing axes across subplots.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::axes::AxesOverrides;
+/// let ov = AxesOverrides::default();
+/// assert!(ov.x_range.is_none());
+/// assert!(!ov.hide_x_ticks);
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct AxesOverrides {
     /// Override x-axis range.
@@ -19,6 +28,13 @@ pub struct AxesOverrides {
 }
 
 /// A single set of axes containing plots, labels, and annotations.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::axes::Axes;
+/// let ax = Axes::new().title("My Plot").x_label("x").y_label("y");
+/// ```
 pub struct Axes {
     title: Option<String>,
     x_label: Option<String>,
@@ -35,6 +51,13 @@ pub struct Axes {
 
 impl Axes {
     /// Create a new axes with default settings.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().title("My Plot").x_label("X").y_label("Y");
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -53,6 +76,13 @@ impl Axes {
     }
 
     /// Set the axes title.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().title("Temperature");
+    /// ```
     #[must_use]
     pub fn title(mut self, t: &str) -> Self {
         self.title = Some(t.to_string());
@@ -60,6 +90,13 @@ impl Axes {
     }
 
     /// Set the x-axis label.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().x_label("Time (s)");
+    /// ```
     #[must_use]
     pub fn x_label(mut self, l: &str) -> Self {
         self.x_label = Some(l.to_string());
@@ -67,6 +104,13 @@ impl Axes {
     }
 
     /// Set the y-axis label.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().y_label("Amplitude");
+    /// ```
     #[must_use]
     pub fn y_label(mut self, l: &str) -> Self {
         self.y_label = Some(l.to_string());
@@ -74,6 +118,13 @@ impl Axes {
     }
 
     /// Set the x-axis data range manually.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().x_range(0.0_f64, 10.0_f64);
+    /// ```
     #[must_use]
     pub fn x_range(mut self, min: f64, max: f64) -> Self {
         self.x_range = Some((min, max));
@@ -81,6 +132,13 @@ impl Axes {
     }
 
     /// Set the y-axis data range manually.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().y_range(-1.0_f64, 1.0_f64);
+    /// ```
     #[must_use]
     pub fn y_range(mut self, min: f64, max: f64) -> Self {
         self.y_range = Some((min, max));
@@ -88,6 +146,13 @@ impl Axes {
     }
 
     /// Show or hide x-axis tick marks and labels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().hide_x_ticks(true);
+    /// ```
     #[must_use]
     pub fn hide_x_ticks(mut self, hide: bool) -> Self {
         self.show_x_ticks = !hide;
@@ -95,6 +160,13 @@ impl Axes {
     }
 
     /// Show or hide y-axis tick marks and labels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().hide_y_ticks(true);
+    /// ```
     #[must_use]
     pub fn hide_y_ticks(mut self, hide: bool) -> Self {
         self.show_y_ticks = !hide;
@@ -102,22 +174,54 @@ impl Axes {
     }
 
     /// Override the x-axis range programmatically (used by shared axis logic).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let mut ax = Axes::new();
+    /// ax.set_x_range(0.0_f64, 5.0_f64);
+    /// ```
     pub fn set_x_range(&mut self, min: f64, max: f64) {
         self.x_range = Some((min, max));
     }
 
     /// Override the y-axis range programmatically (used by shared axis logic).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let mut ax = Axes::new();
+    /// ax.set_y_range(-5.0_f64, 5.0_f64);
+    /// ```
     pub fn set_y_range(&mut self, min: f64, max: f64) {
         self.y_range = Some((min, max));
     }
 
     /// Get the auto-computed data ranges for this axes (public for shared axes).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new();
+    /// let ((x_lo, x_hi), (y_lo, y_hi)) = ax.data_ranges();
+    /// assert!(x_hi > x_lo);
+    /// ```
     #[must_use]
     pub fn data_ranges(&self) -> ((f64, f64), (f64, f64)) {
         self.auto_ranges()
     }
 
     /// Enable or disable grid lines.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// let ax = Axes::new().grid(false);
+    /// ```
     #[must_use]
     pub fn grid(mut self, show: bool) -> Self {
         self.show_grid = show;
@@ -125,6 +229,14 @@ impl Axes {
     }
 
     /// Set the visual theme.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// # use scivex_viz::style::Theme;
+    /// let ax = Axes::new().theme(Theme::default_dark());
+    /// ```
     #[must_use]
     pub fn theme(mut self, t: Theme) -> Self {
         self.theme = t;
@@ -132,6 +244,14 @@ impl Axes {
     }
 
     /// Add a plot to this axes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// # use scivex_viz::plot::LinePlot;
+    /// let ax = Axes::new().add_plot(LinePlot::new(vec![0.0_f64, 1.0_f64], vec![0.0_f64, 1.0_f64]));
+    /// ```
     #[must_use]
     pub fn add_plot<P: PlotBuilder + 'static>(mut self, plot: P) -> Self {
         self.plots.push(Box::new(plot));
@@ -139,6 +259,14 @@ impl Axes {
     }
 
     /// Add an annotation (reference line, text, or legend).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// # use scivex_viz::annotation::Annotation;
+    /// let ax = Axes::new().annotate(Annotation::hline(0.0_f64));
+    /// ```
     #[must_use]
     pub fn annotate(mut self, ann: Annotation) -> Self {
         self.annotations.push(ann);
@@ -147,12 +275,34 @@ impl Axes {
 
     /// Render all axes elements (frame, ticks, grid, plots, labels) into the
     /// given pixel `bounds`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::Axes;
+    /// # use scivex_viz::layout::Rect;
+    /// let ax = Axes::new().x_range(0.0_f64, 1.0_f64).y_range(0.0_f64, 1.0_f64);
+    /// let bounds = Rect { x: 70.0_f64, y: 50.0_f64, w: 660.0_f64, h: 490.0_f64 };
+    /// let elems = ax.render_elements(bounds);
+    /// assert!(!elems.is_empty());
+    /// ```
     #[allow(clippy::too_many_lines)]
     pub fn render_elements(&self, bounds: Rect) -> Vec<Element> {
         self.render_elements_with_overrides(bounds, &AxesOverrides::default())
     }
 
     /// Render with optional overrides from shared-axis logic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::axes::{Axes, AxesOverrides};
+    /// # use scivex_viz::layout::Rect;
+    /// let ax = Axes::new();
+    /// let bounds = Rect { x: 70.0_f64, y: 50.0_f64, w: 660.0_f64, h: 490.0_f64 };
+    /// let elems = ax.render_elements_with_overrides(bounds, &AxesOverrides::default());
+    /// assert!(!elems.is_empty());
+    /// ```
     #[allow(clippy::too_many_lines)]
     pub fn render_elements_with_overrides(
         &self,

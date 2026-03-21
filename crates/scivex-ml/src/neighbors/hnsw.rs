@@ -33,6 +33,15 @@ struct HnswNode<T: Float> {
 
 impl<T: Float> HnswIndex<T> {
     /// Create a new HNSW index for vectors of the given dimensionality.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let index = HnswIndex::<f64>::new(3, DistanceMetric::L2).unwrap();
+    /// assert!(index.is_empty());
+    /// ```
     pub fn new(dim: usize, metric: DistanceMetric) -> Result<Self> {
         if dim == 0 {
             return Err(MlError::InvalidParameter {
@@ -59,6 +68,15 @@ impl<T: Float> HnswIndex<T> {
     }
 
     /// Set the maximum number of connections per layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut index = HnswIndex::<f64>::new(3, DistanceMetric::L2).unwrap();
+    /// index.set_m(32);
+    /// ```
     pub fn set_m(&mut self, m: usize) -> &mut Self {
         self.m = m;
         self.m_max0 = 2 * m;
@@ -67,18 +85,45 @@ impl<T: Float> HnswIndex<T> {
     }
 
     /// Set the search width used during index construction.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut index = HnswIndex::<f64>::new(3, DistanceMetric::L2).unwrap();
+    /// index.set_ef_construction(100);
+    /// ```
     pub fn set_ef_construction(&mut self, ef: usize) -> &mut Self {
         self.ef_construction = ef;
         self
     }
 
     /// Set the search width used during queries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut index = HnswIndex::<f64>::new(3, DistanceMetric::L2).unwrap();
+    /// index.set_ef_search(100);
+    /// ```
     pub fn set_ef_search(&mut self, ef: usize) -> &mut Self {
         self.ef_search = ef;
         self
     }
 
     /// Set the random seed (resets the internal RNG).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut index = HnswIndex::<f64>::new(3, DistanceMetric::L2).unwrap();
+    /// index.set_seed(123);
+    /// ```
     pub fn set_seed(&mut self, seed: u64) -> &mut Self {
         self.seed = seed;
         self.rng_counter = 0;
@@ -88,6 +133,18 @@ impl<T: Float> HnswIndex<T> {
     /// Add a batch of vectors to the index.
     ///
     /// `vectors` must be a 2-D tensor of shape `[n, dim]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// # use scivex_core::Tensor;
+    /// let mut index = HnswIndex::<f64>::new(2, DistanceMetric::L2).unwrap();
+    /// let data = Tensor::from_vec(vec![1.0_f64, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+    /// index.add(&data).unwrap();
+    /// assert_eq!(index.len(), 2);
+    /// ```
     pub fn add(&mut self, vectors: &Tensor<T>) -> Result<()> {
         let s = vectors.shape();
         if s.len() != 2 {
@@ -116,6 +173,17 @@ impl<T: Float> HnswIndex<T> {
     }
 
     /// Add a single vector and return its node id.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut index = HnswIndex::<f64>::new(2, DistanceMetric::L2).unwrap();
+    /// let id = index.add_single(&[1.0_f64, 0.0]).unwrap();
+    /// assert_eq!(id, 0);
+    /// assert_eq!(index.len(), 1);
+    /// ```
     pub fn add_single(&mut self, vector: &[T]) -> Result<usize> {
         if vector.len() != self.dim {
             return Err(MlError::DimensionMismatch {
@@ -190,6 +258,18 @@ impl<T: Float> HnswIndex<T> {
     }
 
     /// Search for the `k` nearest neighbours of `query`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut index = HnswIndex::<f64>::new(2, DistanceMetric::L2).unwrap();
+    /// index.add_single(&[1.0_f64, 0.0]).unwrap();
+    /// index.add_single(&[0.0, 1.0]).unwrap();
+    /// let result = index.search(&[0.9, 0.1], 1).unwrap();
+    /// assert_eq!(result.indices[0], 0);
+    /// ```
     pub fn search(&self, query: &[T], k: usize) -> Result<NearestNeighborResult<T>> {
         if self.nodes.is_empty() {
             return Err(MlError::EmptyInput);
@@ -228,6 +308,20 @@ impl<T: Float> HnswIndex<T> {
     }
 
     /// Batch search: search for each row in `queries`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// # use scivex_core::Tensor;
+    /// let mut index = HnswIndex::<f64>::new(2, DistanceMetric::L2).unwrap();
+    /// index.add_single(&[1.0_f64, 0.0]).unwrap();
+    /// index.add_single(&[0.0, 1.0]).unwrap();
+    /// let queries = Tensor::from_vec(vec![0.9_f64, 0.1, 0.1, 0.9], vec![2, 2]).unwrap();
+    /// let results = index.batch_search(&queries, 1).unwrap();
+    /// assert_eq!(results.len(), 2);
+    /// ```
     pub fn batch_search(
         &self,
         queries: &Tensor<T>,
@@ -258,12 +352,32 @@ impl<T: Float> HnswIndex<T> {
     }
 
     /// Number of nodes in the index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut index = HnswIndex::<f64>::new(2, DistanceMetric::L2).unwrap();
+    /// assert_eq!(index.len(), 0);
+    /// index.add_single(&[1.0_f64, 0.0]).unwrap();
+    /// assert_eq!(index.len(), 1);
+    /// ```
     #[must_use]
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
     /// Whether the index is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::hnsw::HnswIndex;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let index = HnswIndex::<f64>::new(2, DistanceMetric::L2).unwrap();
+    /// assert!(index.is_empty());
+    /// ```
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.nodes.is_empty()

@@ -17,6 +17,14 @@ use crate::error::{NlpError, Result};
 // ---------------------------------------------------------------------------
 
 /// The Word2Vec training architecture.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::Word2VecModel;
+/// let model = Word2VecModel::SkipGram;
+/// assert_eq!(model, Word2VecModel::default());
+/// ```
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Word2VecModel {
     /// Predict context words from the center word.
@@ -31,6 +39,14 @@ pub enum Word2VecModel {
 // ---------------------------------------------------------------------------
 
 /// Configuration for Word2Vec training (builder pattern).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::Word2VecConfig;
+/// let cfg = Word2VecConfig::new().with_dim(50).with_epochs(5);
+/// assert_eq!(cfg.embedding_dim, 50);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Word2VecConfig {
     /// Training architecture (Skip-gram or CBOW).
@@ -68,6 +84,17 @@ impl Default for Word2VecConfig {
 
 impl Word2VecConfig {
     /// Create a new configuration with default values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::word2vec::{Word2VecConfig, Word2VecModel};
+    /// let config = Word2VecConfig::new()
+    ///     .with_model(Word2VecModel::SkipGram)
+    ///     .with_dim(32)
+    ///     .with_epochs(5);
+    /// assert_eq!(config.embedding_dim, 32);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -150,6 +177,13 @@ fn sigmoid(x: f64) -> f64 {
 }
 
 /// Word2Vec trainer holding configuration, vocabulary, and weight matrices.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::{Word2VecConfig, Word2VecTrainer};
+/// let trainer = Word2VecTrainer::new(Word2VecConfig::new().with_dim(10).with_epochs(1));
+/// ```
 pub struct Word2VecTrainer {
     config: Word2VecConfig,
     /// Word to vocabulary index.
@@ -170,6 +204,13 @@ pub struct Word2VecTrainer {
 
 impl Word2VecTrainer {
     /// Create a new trainer with the given configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::word2vec::{Word2VecConfig, Word2VecTrainer};
+    /// let trainer = Word2VecTrainer::new(Word2VecConfig::new().with_dim(16));
+    /// ```
     #[must_use]
     pub fn new(config: Word2VecConfig) -> Self {
         Self {
@@ -380,6 +421,21 @@ impl Word2VecTrainer {
     ///
     /// Returns `NlpError::EmptyInput` if the corpus is empty, or
     /// `NlpError::EmptyVocabulary` if no words survive the `min_count` filter.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::word2vec::{Word2VecConfig, Word2VecTrainer};
+    /// let corpus = vec![
+    ///     vec!["the", "cat", "sat"],
+    ///     vec!["the", "dog", "sat"],
+    /// ];
+    /// let borrowed: Vec<&[&str]> = corpus.iter().map(Vec::as_slice).collect();
+    /// let config = Word2VecConfig::new().with_dim(8).with_epochs(2);
+    /// let mut trainer = Word2VecTrainer::new(config);
+    /// let emb = trainer.train(&borrowed).unwrap();
+    /// assert!(emb.get("cat").is_some());
+    /// ```
     pub fn train(&mut self, corpus: &[&[&str]]) -> Result<WordEmbeddings<f64>> {
         if corpus.is_empty() {
             return Err(NlpError::EmptyInput);

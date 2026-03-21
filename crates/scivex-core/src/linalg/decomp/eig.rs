@@ -11,6 +11,16 @@ use crate::error::{CoreError, Result};
 use crate::tensor::Tensor;
 
 /// Result of an eigendecomposition for symmetric matrices.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::linalg::decomp::EigDecomposition;
+/// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 3.0], vec![2, 2]).unwrap();
+/// let eig = EigDecomposition::decompose_symmetric(&a).unwrap();
+/// assert_eq!(eig.eigenvalues().len(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -158,11 +168,34 @@ impl<T: Float> EigDecomposition<T> {
     }
 
     /// The eigenvalues, sorted by descending absolute value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::EigDecomposition;
+    /// let a = Tensor::from_vec(vec![3.0_f64, 0.0, 0.0, 5.0], vec![2, 2]).unwrap();
+    /// let eig = EigDecomposition::decompose_symmetric(&a).unwrap();
+    /// let vals = eig.eigenvalues();
+    /// assert!((vals[0] - 5.0).abs() < 1e-10);
+    /// assert!((vals[1] - 3.0).abs() < 1e-10);
+    /// ```
     pub fn eigenvalues(&self) -> &[T] {
         &self.eigenvalues
     }
 
     /// The eigenvalues as a 1-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::EigDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 0.0, 0.0, 3.0], vec![2, 2]).unwrap();
+    /// let eig = EigDecomposition::decompose_symmetric(&a).unwrap();
+    /// let vals = eig.eigenvalues_tensor();
+    /// assert_eq!(vals.shape(), &[2]);
+    /// ```
     pub fn eigenvalues_tensor(&self) -> Tensor<T> {
         // SAFETY: eigenvalues always has exactly n elements, matching shape [n].
         Tensor::from_vec(self.eigenvalues.clone(), vec![self.n])
@@ -170,6 +203,17 @@ impl<T: Float> EigDecomposition<T> {
     }
 
     /// The eigenvector matrix `V` (n x n, columns are eigenvectors).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::EigDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 3.0], vec![2, 2]).unwrap();
+    /// let eig = EigDecomposition::decompose_symmetric(&a).unwrap();
+    /// let v = eig.eigenvectors();
+    /// assert_eq!(v.shape(), &[2, 2]);
+    /// ```
     pub fn eigenvectors(&self) -> Tensor<T> {
         // SAFETY: eigenvectors always has exactly n*n elements, matching shape [n, n].
         Tensor::from_vec(self.eigenvectors.clone(), vec![self.n, self.n])

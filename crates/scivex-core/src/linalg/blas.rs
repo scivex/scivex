@@ -427,6 +427,16 @@ impl<T: Scalar> Tensor<T> {
     /// Matrix-vector multiply: returns `A @ x` as a new 1-D tensor.
     ///
     /// `self` must be 2-D `[m, n]`, `x` must be 1-D `[n]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+    /// let x = Tensor::from_vec(vec![5.0, 6.0], vec![2]).unwrap();
+    /// let y = a.matvec(&x).unwrap();
+    /// assert_eq!(y.as_slice(), &[17.0, 39.0]);
+    /// ```
     pub fn matvec(&self, x: &Tensor<T>) -> Result<Tensor<T>> {
         let m = self.shape().first().copied().unwrap_or(0);
         let mut y = Tensor::zeros(vec![m]);
@@ -437,6 +447,16 @@ impl<T: Scalar> Tensor<T> {
     /// Matrix-matrix multiply: returns `self @ other` as a new 2-D tensor.
     ///
     /// `self` must be 2-D `[m, k]`, `other` must be 2-D `[k, n]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+    /// let b = Tensor::from_vec(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2]).unwrap();
+    /// let c = a.matmul(&b).unwrap();
+    /// assert_eq!(c.as_slice(), &[19.0, 22.0, 43.0, 50.0]);
+    /// ```
     pub fn matmul(&self, other: &Tensor<T>) -> Result<Tensor<T>> {
         let m = self.shape().first().copied().unwrap_or(0);
         let n = other.shape().get(1).copied().unwrap_or(0);
@@ -446,6 +466,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Dot product with another 1-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+    /// let y = Tensor::from_vec(vec![4.0, 5.0, 6.0], vec![3]).unwrap();
+    /// assert_eq!(x.dot(&y).unwrap(), 32.0);
+    /// ```
     pub fn dot(&self, other: &Tensor<T>) -> Result<T> {
         dot(self, other)
     }
@@ -453,6 +482,14 @@ impl<T: Scalar> Tensor<T> {
 
 impl<T: Float> Tensor<T> {
     /// Euclidean (L2) norm of a 1-D tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let x = Tensor::from_vec(vec![3.0_f64, 4.0], vec![2]).unwrap();
+    /// assert!((x.norm().unwrap() - 5.0).abs() < 1e-10);
+    /// ```
     pub fn norm(&self) -> Result<T> {
         nrm2(self)
     }
@@ -460,6 +497,17 @@ impl<T: Float> Tensor<T> {
     /// Solve the linear system `self * x = b` for a square matrix `self`.
     ///
     /// Uses LU decomposition with partial pivoting.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let b = Tensor::from_vec(vec![5.0_f64, 6.0], vec![2]).unwrap();
+    /// let x = a.solve(&b).unwrap();
+    /// assert!((x.as_slice()[0] - 2.0).abs() < 1e-10);
+    /// assert!((x.as_slice()[1] - 1.0).abs() < 1e-10);
+    /// ```
     pub fn solve(&self, b: &Tensor<T>) -> Result<Tensor<T>> {
         crate::linalg::solve(self, b)
     }
@@ -467,6 +515,16 @@ impl<T: Float> Tensor<T> {
     /// Compute the inverse of a square matrix.
     ///
     /// Uses LU decomposition with partial pivoting.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let inv = a.inv().unwrap();
+    /// let eye = a.matmul(&inv).unwrap();
+    /// assert!((eye.as_slice()[0] - 1.0).abs() < 1e-10);
+    /// ```
     pub fn inv(&self) -> Result<Tensor<T>> {
         crate::linalg::inv(self)
     }
@@ -474,6 +532,14 @@ impl<T: Float> Tensor<T> {
     /// Compute the determinant of a square matrix.
     ///
     /// Uses LU decomposition with partial pivoting.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// assert!((a.det().unwrap() - 7.0).abs() < 1e-10);
+    /// ```
     pub fn det(&self) -> Result<T> {
         crate::linalg::det(self)
     }
@@ -481,6 +547,17 @@ impl<T: Float> Tensor<T> {
     /// Solve the least-squares problem `min ||self * x - b||_2`.
     ///
     /// Uses QR decomposition with Householder reflections.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// // Overdetermined system: 2x = [2, 4, 6] => x ≈ [1, 2, 3] / something
+    /// let a = Tensor::from_vec(vec![1.0_f64, 1.0, 1.0], vec![3, 1]).unwrap();
+    /// let b = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+    /// let x = a.lstsq(&b).unwrap();
+    /// assert_eq!(x.shape(), &[1]);
+    /// ```
     pub fn lstsq(&self, b: &Tensor<T>) -> Result<Tensor<T>> {
         crate::linalg::lstsq(self, b)
     }

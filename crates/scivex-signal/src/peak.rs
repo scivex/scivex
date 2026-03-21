@@ -11,6 +11,17 @@ use crate::error::{Result, SignalError};
 /// previously accepted peak.
 ///
 /// Returns the indices of the detected peaks.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::peak::find_peaks;
+/// let data = vec![0.0_f64, 1.0, 0.0, 2.0, 0.0];
+/// let x = Tensor::from_vec(data, vec![5]).unwrap();
+/// let peaks = find_peaks(&x, None, None).unwrap();
+/// assert_eq!(peaks, vec![1, 3]);
+/// ```
 pub fn find_peaks<T: Float>(
     x: &Tensor<T>,
     min_height: Option<T>,
@@ -72,6 +83,17 @@ pub fn find_peaks<T: Float>(
 /// that does not contain a higher peak. In simpler terms, for each peak we
 /// walk left and right until we find a higher peak (or the signal boundary),
 /// and the prominence is `peak_height - max(min_left, min_right)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::peak::peak_prominences;
+/// let data = vec![0.0_f64, 0.0, 1.0, 0.0, 0.0];
+/// let x = Tensor::from_vec(data, vec![5]).unwrap();
+/// let proms = peak_prominences(&x, &[2]).unwrap();
+/// assert!((proms[0] - 1.0).abs() < 1e-10);
+/// ```
 pub fn peak_prominences<T: Float>(x: &Tensor<T>, peaks: &[usize]) -> Result<Vec<T>> {
     if x.ndim() != 1 {
         return Err(SignalError::InvalidParameter {

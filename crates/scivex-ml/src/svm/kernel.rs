@@ -1,6 +1,15 @@
 use scivex_core::Float;
 
 /// Kernel function for SVM.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// let k = Kernel::<f64>::Linear;
+/// let val = k.compute(&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0]);
+/// assert!((val - 32.0).abs() < 1e-10);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

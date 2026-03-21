@@ -10,6 +10,18 @@ use super::{MinimizeOptions, MinimizeResult};
 ///
 /// The gradient is provided by the `grad` closure. For numerical gradients,
 /// use [`numerical_gradient`](super::numerical_gradient) to construct one.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_optim::minimize::{gradient_descent, MinimizeOptions};
+/// let f = |x: &Tensor<f64>| { let s = x.as_slice(); s[0] * s[0] };
+/// let g = |x: &Tensor<f64>| Tensor::from_vec(vec![2.0 * x.as_slice()[0]], vec![1]).unwrap();
+/// let x0 = Tensor::from_vec(vec![5.0_f64], vec![1]).unwrap();
+/// let result = gradient_descent(f, g, &x0, &MinimizeOptions::default()).unwrap();
+/// assert!(result.f_val < 1e-4);
+/// ```
 pub fn gradient_descent<T, F, G>(
     f: F,
     grad: G,

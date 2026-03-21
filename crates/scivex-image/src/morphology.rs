@@ -6,6 +6,15 @@ use crate::error::{ImageError, Result};
 use crate::image::{Image, PixelFormat};
 
 /// Structuring element for morphological operations.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::morphology::StructuringElement;
+/// let se = StructuringElement::Rect(3, 3);
+/// let cross = StructuringElement::Cross(1);
+/// let disk = StructuringElement::Disk(2);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StructuringElement {
     /// Rectangular structuring element with the given height and width.
@@ -46,6 +55,18 @@ impl StructuringElement {
 ///
 /// For each output pixel, the minimum of all overlapping source pixels
 /// covered by the structuring element is taken.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::morphology::{erode, StructuringElement};
+/// let mut img = Image::<u8>::new(5, 5, PixelFormat::Gray).unwrap();
+/// img.set_pixel(2, 2, &[255]).unwrap();
+/// let se = StructuringElement::Rect(3, 3);
+/// let eroded = erode(&img, &se).unwrap();
+/// assert_eq!(eroded.get_pixel(2, 2).unwrap(), vec![0]); // single pixel removed
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn erode<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Result<Image<T>> {
     if img.format() != PixelFormat::Gray {
@@ -100,6 +121,19 @@ pub fn erode<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Result
 ///
 /// For each output pixel, the maximum of all overlapping source pixels
 /// covered by the structuring element is taken.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::morphology::{dilate, StructuringElement};
+/// let mut img = Image::<u8>::new(5, 5, PixelFormat::Gray).unwrap();
+/// img.set_pixel(2, 2, &[255]).unwrap();
+/// let se = StructuringElement::Rect(3, 3);
+/// let dilated = dilate(&img, &se).unwrap();
+/// assert_eq!(dilated.get_pixel(2, 2).unwrap(), vec![255]);
+/// assert_eq!(dilated.get_pixel(1, 2).unwrap(), vec![255]); // grew
+/// ```
 #[allow(clippy::cast_possible_wrap)]
 pub fn dilate<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Result<Image<T>> {
     if img.format() != PixelFormat::Gray {
@@ -152,6 +186,18 @@ pub fn dilate<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Resul
 /// Morphological opening: erosion followed by dilation.
 ///
 /// Removes small bright features while preserving overall shape.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::morphology::{opening, StructuringElement};
+/// let mut img = Image::<u8>::new(5, 5, PixelFormat::Gray).unwrap();
+/// img.set_pixel(2, 2, &[255]).unwrap(); // single bright pixel
+/// let se = StructuringElement::Rect(3, 3);
+/// let opened = opening(&img, &se).unwrap();
+/// assert_eq!(opened.get_pixel(2, 2).unwrap(), vec![0]); // removed
+/// ```
 pub fn opening<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Result<Image<T>> {
     let eroded = erode(img, se)?;
     dilate(&eroded, se)
@@ -160,6 +206,19 @@ pub fn opening<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Resu
 /// Morphological closing: dilation followed by erosion.
 ///
 /// Fills small dark holes while preserving overall shape.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::morphology::{closing, StructuringElement};
+/// // 3x3 white block with a hole in center
+/// let data = vec![255u8, 255, 255, 255, 0, 255, 255, 255, 255];
+/// let img = Image::from_raw(data, 3, 3, PixelFormat::Gray).unwrap();
+/// let se = StructuringElement::Rect(3, 3);
+/// let closed = closing(&img, &se).unwrap();
+/// assert_eq!(closed.get_pixel(1, 1).unwrap(), vec![255]); // hole filled
+/// ```
 pub fn closing<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Result<Image<T>> {
     let dilated = dilate(img, se)?;
     erode(&dilated, se)
@@ -168,6 +227,24 @@ pub fn closing<T: Scalar + Ord>(img: &Image<T>, se: &StructuringElement) -> Resu
 /// Morphological gradient: dilation minus erosion.
 ///
 /// Highlights the boundaries of objects.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::morphology::{morphological_gradient, StructuringElement};
+/// let data = vec![
+///     0, 0, 0, 0, 0,
+///     0, 255, 255, 255, 0,
+///     0, 255, 255, 255, 0,
+///     0, 255, 255, 255, 0,
+///     0, 0, 0, 0, 0u8,
+/// ];
+/// let img = Image::from_raw(data, 5, 5, PixelFormat::Gray).unwrap();
+/// let se = StructuringElement::Rect(3, 3);
+/// let grad = morphological_gradient(&img, &se).unwrap();
+/// assert_eq!(grad.get_pixel(2, 2).unwrap(), vec![0]); // interior = 0
+/// ```
 pub fn morphological_gradient<T: Scalar + Ord>(
     img: &Image<T>,
     se: &StructuringElement,

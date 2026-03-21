@@ -23,6 +23,15 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAss
 ///
 /// This intentionally does *not* require floating-point operations so that
 /// integer tensors remain first-class citizens.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::dtype::Scalar;
+/// assert_eq!(f64::zero(), 0.0_f64);
+/// assert_eq!(i32::one(), 1_i32);
+/// assert_eq!(f32::from_usize(7), 7.0_f32);
+/// ```
 pub trait Scalar:
     Copy
     + Clone
@@ -59,6 +68,14 @@ pub trait Scalar:
 // ---------------------------------------------------------------------------
 
 /// Marker trait for integer scalar types.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::dtype::Integer;
+/// assert_eq!(Integer::rem(10_i32, 3), 1);
+/// assert_eq!(Integer::rem(15_u64, 4), 3);
+/// ```
 pub trait Integer: Scalar {
     /// Remainder after division.
     fn rem(self, rhs: Self) -> Self;
@@ -69,6 +86,17 @@ pub trait Integer: Scalar {
 // ---------------------------------------------------------------------------
 
 /// Trait for floating-point scalar types (`f32`, `f64`).
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::dtype::Float;
+/// let x = 4.0_f64;
+/// assert_eq!(Float::sqrt(x), 2.0_f64);
+/// assert!((Float::ln(1.0_f64)).abs() < 1e-15);
+/// let pi: f64 = Float::pi();
+/// assert!((pi - std::f64::consts::PI).abs() < 1e-15);
+/// ```
 pub trait Float: Scalar + Neg<Output = Self> {
     /// Mathematical constant pi.
     fn pi() -> Self;
@@ -119,6 +147,16 @@ pub trait Float: Scalar + Neg<Output = Self> {
 ///
 /// Currently identical to [`Float`]; exists so that future complex-number
 /// support can distinguish `Float` (the full set) from `Real` (the reals).
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::dtype::Real;
+/// fn real_norm<T: Real>(x: T, y: T) -> T {
+///     (x * x + y * y).sqrt()
+/// }
+/// assert!((real_norm(3.0_f64, 4.0_f64) - 5.0_f64).abs() < 1e-15);
+/// ```
 pub trait Real: Float {}
 
 // ===========================================================================

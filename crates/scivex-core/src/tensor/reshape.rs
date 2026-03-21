@@ -10,6 +10,15 @@ impl<T: Scalar> Tensor<T> {
     /// Reshape the tensor to a new shape without copying data.
     ///
     /// The total number of elements must remain the same.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![6]).unwrap();
+    /// let t = t.reshape(vec![2, 3]).unwrap();
+    /// assert_eq!(t.shape(), &[2, 3]);
+    /// ```
     pub fn reshape(mut self, new_shape: Vec<usize>) -> Result<Self> {
         let new_numel: usize = new_shape.iter().product();
         if new_numel != self.numel() {
@@ -24,11 +33,30 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Return a reshaped view without consuming the tensor (copies data).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4], vec![4]).unwrap();
+    /// let r = t.reshaped(vec![2, 2]).unwrap();
+    /// assert_eq!(r.shape(), &[2, 2]);
+    /// assert_eq!(t.shape(), &[4]); // original unchanged
+    /// ```
     pub fn reshaped(&self, new_shape: Vec<usize>) -> Result<Self> {
         self.clone().reshape(new_shape)
     }
 
     /// Flatten the tensor into a 1-D tensor (consumes self, no copy).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4], vec![2, 2]).unwrap();
+    /// let flat = t.flatten();
+    /// assert_eq!(flat.shape(), &[4]);
+    /// ```
     pub fn flatten(self) -> Self {
         let n = self.numel();
         Tensor {
@@ -39,6 +67,16 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Return a flattened copy of the tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4], vec![2, 2]).unwrap();
+    /// let flat = t.flattened();
+    /// assert_eq!(flat.shape(), &[4]);
+    /// assert_eq!(t.shape(), &[2, 2]); // original unchanged
+    /// ```
     pub fn flattened(&self) -> Self {
         let n = self.numel();
         Tensor {
@@ -51,6 +89,15 @@ impl<T: Scalar> Tensor<T> {
     /// Transpose a 2-D tensor (matrix). Returns a new tensor with copied data.
     ///
     /// For higher-rank tensors, use [`permute`](Self::permute).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3, 4, 5, 6], vec![2, 3]).unwrap();
+    /// let tt = t.transpose().unwrap();
+    /// assert_eq!(tt.shape(), &[3, 2]);
+    /// ```
     pub fn transpose(&self) -> Result<Self> {
         if self.ndim() != 2 {
             return Err(CoreError::InvalidArgument {
@@ -72,6 +119,15 @@ impl<T: Scalar> Tensor<T> {
     /// Permute the dimensions of the tensor according to the given axes.
     ///
     /// `axes` must be a permutation of `0..ndim`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::<i32>::arange(24).reshape(vec![2, 3, 4]).unwrap();
+    /// let p = t.permute(&[2, 0, 1]).unwrap();
+    /// assert_eq!(p.shape(), &[4, 2, 3]);
+    /// ```
     pub fn permute(&self, axes: &[usize]) -> Result<Self> {
         if axes.len() != self.ndim() {
             return Err(CoreError::InvalidArgument {
@@ -129,6 +185,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Insert a dimension of size 1 at the given axis.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// let t = t.unsqueeze(0).unwrap();
+    /// assert_eq!(t.shape(), &[1, 3]);
+    /// ```
     pub fn unsqueeze(mut self, axis: usize) -> Result<Self> {
         if axis > self.ndim() {
             return Err(CoreError::AxisOutOfBounds {
@@ -142,6 +207,15 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Remove all dimensions of size 1.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let t = Tensor::from_vec(vec![1, 2, 3], vec![1, 3, 1]).unwrap();
+    /// let t = t.squeeze();
+    /// assert_eq!(t.shape(), &[3]);
+    /// ```
     pub fn squeeze(mut self) -> Self {
         self.shape.retain(|&d| d != 1);
         if self.shape.is_empty() && self.numel() == 1 {
@@ -154,6 +228,16 @@ impl<T: Scalar> Tensor<T> {
     /// Concatenate a list of tensors along the given axis.
     ///
     /// All tensors must have the same shape except along the concatenation axis.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![1, 2, 3], vec![1, 3]).unwrap();
+    /// let b = Tensor::from_vec(vec![4, 5, 6], vec![1, 3]).unwrap();
+    /// let c = Tensor::concat(&[&a, &b], 0).unwrap();
+    /// assert_eq!(c.shape(), &[2, 3]);
+    /// ```
     pub fn concat(tensors: &[&Tensor<T>], axis: usize) -> Result<Self> {
         if tensors.is_empty() {
             return Err(CoreError::InvalidArgument {
@@ -208,6 +292,16 @@ impl<T: Scalar> Tensor<T> {
     /// Stack tensors along a new axis inserted at position `axis`.
     ///
     /// All tensors must have identical shapes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// let a = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
+    /// let b = Tensor::from_vec(vec![4, 5, 6], vec![3]).unwrap();
+    /// let c = Tensor::stack(&[&a, &b], 0).unwrap();
+    /// assert_eq!(c.shape(), &[2, 3]);
+    /// ```
     pub fn stack(tensors: &[&Tensor<T>], axis: usize) -> Result<Self> {
         if tensors.is_empty() {
             return Err(CoreError::InvalidArgument {

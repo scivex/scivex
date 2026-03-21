@@ -10,6 +10,14 @@ use super::Series;
 
 impl<T: Scalar> Series<T> {
     /// Sum of all non-null elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1_i32, 2, 3]);
+    /// assert_eq!(s.sum(), 6);
+    /// ```
     pub fn sum(&self) -> T {
         self.non_null_iter()
             .copied()
@@ -17,6 +25,14 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Product of all non-null elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![2_i32, 3, 4]);
+    /// assert_eq!(s.product(), 24);
+    /// ```
     pub fn product(&self) -> T {
         self.non_null_iter()
             .copied()
@@ -24,6 +40,14 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Minimum non-null element, or `None` if empty / all null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![3_i32, 1, 4]);
+    /// assert_eq!(s.min(), Some(1));
+    /// ```
     pub fn min(&self) -> Option<T> {
         self.non_null_iter()
             .copied()
@@ -31,6 +55,14 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Maximum non-null element, or `None` if empty / all null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![3_i32, 1, 4]);
+    /// assert_eq!(s.max(), Some(4));
+    /// ```
     pub fn max(&self) -> Option<T> {
         self.non_null_iter()
             .copied()
@@ -38,6 +70,15 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Apply `f` element-wise, returning a new series.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1_i32, 2, 3]);
+    /// let doubled = s.apply(|v| v * 2);
+    /// assert_eq!(doubled.as_slice(), &[2, 4, 6]);
+    /// ```
     pub fn apply<F: Fn(T) -> T>(&self, f: F) -> Series<T> {
         let data = self.data.iter().map(|v| f(*v)).collect();
         Series {
@@ -48,6 +89,15 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Map each element to a different type, returning a new series.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1_i32, 2, 3]);
+    /// let floats = s.map(|v| v as f64 * 0.5);
+    /// assert_eq!(floats.as_slice(), &[0.5, 1.0, 1.5]);
+    /// ```
     pub fn map<U: Scalar, F: Fn(T) -> U>(&self, f: F) -> Series<U> {
         let data = self.data.iter().map(|v| f(*v)).collect();
         Series {
@@ -75,6 +125,14 @@ impl<T: Scalar> Series<T> {
 
 impl<T: Float> Series<T> {
     /// Arithmetic mean of non-null elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1.0_f64, 2.0, 3.0]);
+    /// assert!((s.mean() - 2.0).abs() < 1e-10);
+    /// ```
     pub fn mean(&self) -> T {
         let count = self.count();
         if count == 0 {
@@ -84,6 +142,14 @@ impl<T: Float> Series<T> {
     }
 
     /// Population variance of non-null elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![2.0_f64, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
+    /// assert!(s.var() > 0.0);
+    /// ```
     pub fn var(&self) -> T {
         let count = self.count();
         if count == 0 {
@@ -98,11 +164,27 @@ impl<T: Float> Series<T> {
     }
 
     /// Population standard deviation of non-null elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1.0_f64, 1.0, 1.0]);
+    /// assert!((s.std()).abs() < 1e-10); // all same → std = 0
+    /// ```
     pub fn std(&self) -> T {
         self.var().sqrt()
     }
 
     /// Median of non-null elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![3.0_f64, 1.0, 2.0]);
+    /// assert!((s.median() - 2.0).abs() < 1e-10);
+    /// ```
     pub fn median(&self) -> T {
         let mut vals: Vec<T> = self.non_null_iter().copied().collect();
         if vals.is_empty() {

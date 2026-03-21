@@ -20,6 +20,14 @@ pub struct LogNormal<T: Float> {
 
 impl<T: Float> LogNormal<T> {
     /// Create a new log-normal distribution with parameters `mu` and `sigma > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{LogNormal, Distribution};
+    /// let ln = LogNormal::new(0.0_f64, 1.0).unwrap();
+    /// assert!(ln.pdf(1.0) > 0.0);
+    /// ```
     pub fn new(mu: T, sigma: T) -> Result<Self> {
         if sigma <= T::zero() {
             return Err(StatsError::InvalidParameter {

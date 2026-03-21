@@ -101,6 +101,16 @@ pub struct Series<T: Scalar> {
 
 impl<T: Scalar> Series<T> {
     /// Create a new series from a `Vec<T>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("age", vec![25, 30, 35]);
+    /// assert_eq!(s.name(), "age");
+    /// assert_eq!(s.len(), 3);
+    /// assert_eq!(s.get(1), Some(30));
+    /// ```
     pub fn new(name: impl Into<String>, data: Vec<T>) -> Self {
         Self {
             name: name.into(),
@@ -110,6 +120,14 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Create a new series from a slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::from_slice("vals", &[10_i32, 20, 30]);
+    /// assert_eq!(s.as_slice(), &[10, 20, 30]);
+    /// ```
     pub fn from_slice(name: impl Into<String>, data: &[T]) -> Self {
         Self::new(name, data.to_vec())
     }
@@ -117,6 +135,16 @@ impl<T: Scalar> Series<T> {
     /// Create a series with explicit null positions.
     ///
     /// `null_mask[i] == true` means the i-th element is null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls("x", vec![1.0_f64, 0.0, 3.0], vec![false, true, false]).unwrap();
+    /// assert_eq!(s.get(0), Some(1.0));
+    /// assert_eq!(s.get(1), None); // null
+    /// assert_eq!(s.null_count(), 1);
+    /// ```
     pub fn with_nulls(name: impl Into<String>, data: Vec<T>, null_mask: Vec<bool>) -> Result<Self> {
         if data.len() != null_mask.len() {
             return Err(FrameError::RowCountMismatch {
@@ -158,6 +186,15 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Get the element at `index`, or `None` if out of bounds or null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![10_i32, 20, 30]);
+    /// assert_eq!(s.get(1), Some(20));
+    /// assert_eq!(s.get(5), None); // out of bounds
+    /// ```
     pub fn get(&self, index: usize) -> Option<T> {
         if index >= self.data.len() {
             return None;
@@ -191,11 +228,29 @@ impl<T: Scalar> Series<T> {
     // -- Mutators -----------------------------------------------------------
 
     /// Rename this series in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let mut s = Series::new("old", vec![1_i32]);
+    /// s.rename("new");
+    /// assert_eq!(s.name(), "new");
+    /// ```
     pub fn rename(&mut self, name: impl Into<String>) {
         self.name = name.into();
     }
 
     /// Set the element at `index`. Clears the null flag for that position.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let mut s = Series::new("x", vec![1_i32, 2, 3]);
+    /// s.set(1, 20).unwrap();
+    /// assert_eq!(s.get(1), Some(20));
+    /// ```
     pub fn set(&mut self, index: usize, value: T) -> Result<()> {
         if index >= self.data.len() {
             return Err(FrameError::IndexOutOfBounds {
@@ -211,6 +266,16 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Append a value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let mut s = Series::new("x", vec![1_i32]);
+    /// s.push(2);
+    /// assert_eq!(s.len(), 2);
+    /// assert_eq!(s.get(1), Some(2));
+    /// ```
     pub fn push(&mut self, value: T) {
         self.data.push(value);
         if let Some(ref mut mask) = self.null_mask {
@@ -219,6 +284,16 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Append a null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let mut s = Series::new("x", vec![1_i32, 2]);
+    /// s.push_null();
+    /// assert_eq!(s.len(), 3);
+    /// assert!(s.is_null_at(2));
+    /// ```
     pub fn push_null(&mut self) {
         self.data.push(T::zero());
         if let Some(ref mut mask) = self.null_mask {

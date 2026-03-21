@@ -38,6 +38,15 @@ use scivex_core::Float;
 use crate::error::Result;
 
 /// Result of an ODE integration.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::ode::{euler, OdeOptions};
+/// let result = euler(|_t, y: &[f64]| vec![-y[0]], [0.0, 1.0], &[1.0], &OdeOptions::default()).unwrap();
+/// assert!(result.success);
+/// assert!(!result.t.is_empty());
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -60,6 +69,14 @@ pub struct OdeResult<T: Float> {
 pub type EventFn<T> = Box<dyn Fn(T, &[T]) -> T>;
 
 /// Options for ODE solvers.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::ode::OdeOptions;
+/// let opts = OdeOptions::<f64>::default();
+/// assert_eq!(opts.max_steps, 10_000);
+/// ```
 pub struct OdeOptions<T: Float> {
     /// Absolute tolerance for adaptive methods.
     pub atol: T,
@@ -87,6 +104,14 @@ impl<T: Float> Default for OdeOptions<T> {
 }
 
 /// Available ODE solver methods.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::ode::OdeMethod;
+/// let method = OdeMethod::RK45;
+/// assert_eq!(method, OdeMethod::RK45);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -114,6 +139,22 @@ pub enum OdeMethod {
 /// # Returns
 ///
 /// An [`OdeResult`] containing the time values and solution trajectory.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::ode::{solve_ivp, OdeMethod, OdeOptions};
+/// // dy/dt = -y, y(0) = 1  →  y(t) = e^(-t)
+/// let result = solve_ivp(
+///     |_t: f64, y: &[f64]| vec![-y[0]],
+///     [0.0, 1.0],
+///     &[1.0],
+///     OdeMethod::RK45,
+///     &OdeOptions::default(),
+/// ).unwrap();
+/// let y_final = result.y.last().unwrap()[0];
+/// assert!((y_final - (-1.0_f64).exp()).abs() < 1e-6);
+/// ```
 pub fn solve_ivp<T, F>(
     f: F,
     t_span: [T; 2],

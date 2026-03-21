@@ -4,6 +4,16 @@
 //! are decoded from raw bytes by our own minimal protobuf parser.
 
 /// ONNX tensor element data types (matches `onnx::TensorProto::DataType` enum values).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::OnnxDataType;
+/// let dt = OnnxDataType::Float;
+/// assert_eq!(dt as i32, 1);
+/// let dt2 = OnnxDataType::Double;
+/// assert_eq!(dt2 as i32, 11);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -84,6 +94,18 @@ pub struct OnnxTensor {
 
 impl OnnxTensor {
     /// Create a new empty tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::onnx::ir::{OnnxTensor, OnnxDataType};
+    /// let mut t = OnnxTensor::new();
+    /// t.name = "weight".to_string();
+    /// t.data_type = OnnxDataType::Float;
+    /// t.dims = vec![2, 3];
+    /// t.float_data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+    /// assert_eq!(t.dims_usize(), vec![2, 3]);
+    /// ```
     pub fn new() -> Self {
         Self {
             name: String::new(),
@@ -156,6 +178,16 @@ impl Default for OnnxTensor {
 }
 
 /// Attribute value kinds in an ONNX node.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::OnnxAttributeValue;
+/// let v = OnnxAttributeValue::Int(3);
+/// if let OnnxAttributeValue::Int(n) = v {
+///     assert_eq!(n, 3);
+/// }
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -181,6 +213,17 @@ pub enum OnnxAttributeValue {
 }
 
 /// An attribute on an ONNX node.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::{OnnxAttribute, OnnxAttributeValue};
+/// let attr = OnnxAttribute {
+///     name: "kernel_shape".to_string(),
+///     value: OnnxAttributeValue::Ints(vec![3, 3]),
+/// };
+/// assert_eq!(attr.name, "kernel_shape");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -194,6 +237,15 @@ pub struct OnnxAttribute {
 }
 
 /// A single node (operator) in the ONNX computation graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::OnnxNode;
+/// let node = OnnxNode::new("Relu");
+/// assert_eq!(node.op_type, "Relu");
+/// assert!(node.inputs.is_empty());
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -214,6 +266,17 @@ pub struct OnnxNode {
 
 impl OnnxNode {
     /// Create a new node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::onnx::ir::OnnxNode;
+    /// let mut node = OnnxNode::new("MatMul");
+    /// node.inputs = vec!["X".to_string(), "W".to_string()];
+    /// node.outputs = vec!["Y".to_string()];
+    /// assert_eq!(node.op_type, "MatMul");
+    /// assert_eq!(node.inputs.len(), 2);
+    /// ```
     pub fn new(op_type: &str) -> Self {
         Self {
             op_type: op_type.to_owned(),
@@ -258,6 +321,19 @@ impl OnnxNode {
 }
 
 /// A typed input/output descriptor for the graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::{OnnxValueInfo, OnnxDataType};
+/// let vi = OnnxValueInfo {
+///     name: "input".to_string(),
+///     data_type: OnnxDataType::Float,
+///     shape: vec![1, 3, 224, 224],
+/// };
+/// assert_eq!(vi.name, "input");
+/// assert_eq!(vi.shape.len(), 4);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -273,6 +349,16 @@ pub struct OnnxValueInfo {
 }
 
 /// An ONNX computation graph.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::{OnnxGraph, OnnxNode};
+/// let mut graph = OnnxGraph::new();
+/// graph.name = "main_graph".to_string();
+/// graph.nodes.push(OnnxNode::new("Relu"));
+/// assert_eq!(graph.nodes.len(), 1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -293,6 +379,15 @@ pub struct OnnxGraph {
 
 impl OnnxGraph {
     /// Create a new empty graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::onnx::ir::OnnxGraph;
+    /// let graph = OnnxGraph::new();
+    /// assert!(graph.nodes.is_empty());
+    /// assert!(graph.initializers.is_empty());
+    /// ```
     pub fn new() -> Self {
         Self {
             name: String::new(),
@@ -311,6 +406,18 @@ impl Default for OnnxGraph {
 }
 
 /// An ONNX opset import.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::OnnxOpsetImport;
+/// let opset = OnnxOpsetImport {
+///     domain: String::new(), // default ONNX domain
+///     version: 17,
+/// };
+/// assert_eq!(opset.version, 17);
+/// assert!(opset.domain.is_empty());
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -324,6 +431,18 @@ pub struct OnnxOpsetImport {
 }
 
 /// Top-level ONNX model.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::onnx::ir::{OnnxModel, OnnxOpsetImport};
+/// let mut model = OnnxModel::new();
+/// model.ir_version = 8;
+/// model.producer_name = "scivex".to_string();
+/// model.opset_imports.push(OnnxOpsetImport { domain: String::new(), version: 17 });
+/// assert_eq!(model.ir_version, 8);
+/// assert_eq!(model.opset_imports.len(), 1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -344,6 +463,16 @@ pub struct OnnxModel {
 
 impl OnnxModel {
     /// Create a new empty model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::onnx::ir::OnnxModel;
+    /// let model = OnnxModel::new();
+    /// assert_eq!(model.ir_version, 0);
+    /// assert!(model.opset_imports.is_empty());
+    /// assert!(model.graph.nodes.is_empty());
+    /// ```
     pub fn new() -> Self {
         Self {
             ir_version: 0,

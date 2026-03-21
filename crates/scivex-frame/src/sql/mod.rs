@@ -45,6 +45,13 @@ pub struct SqlContext {
 
 impl SqlContext {
     /// Create an empty context.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::sql::SqlContext;
+    /// let ctx = SqlContext::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             tables: HashMap::new(),
@@ -52,11 +59,33 @@ impl SqlContext {
     }
 
     /// Register a `DataFrame` under the given name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::sql::SqlContext;
+    /// # use scivex_frame::{DataFrame, Series};
+    /// let mut ctx = SqlContext::new();
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32]).build().unwrap();
+    /// ctx.register("t", df);
+    /// ```
     pub fn register(&mut self, name: &str, df: DataFrame) {
         self.tables.insert(name.to_string(), df);
     }
 
     /// Execute a SQL query and return the result as a `DataFrame`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::sql::SqlContext;
+    /// # use scivex_frame::{DataFrame, Series};
+    /// let mut ctx = SqlContext::new();
+    /// let df = DataFrame::builder().add_column("x", vec![1_i32, 2, 3]).build().unwrap();
+    /// ctx.register("t", df);
+    /// let result = ctx.execute("SELECT * FROM t WHERE x > 1").unwrap();
+    /// assert_eq!(result.nrows(), 2);
+    /// ```
     pub fn execute(&self, sql: &str) -> Result<DataFrame> {
         let tokens = tokenizer::tokenize(sql)?;
         let stmt = parser::parse(&tokens)?;
@@ -71,6 +100,16 @@ impl Default for SqlContext {
 }
 
 /// Convenience function: query a single DataFrame (registered as `"t"`).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_frame::sql::sql;
+/// # use scivex_frame::{DataFrame, Series};
+/// let df = DataFrame::builder().add_column("x", vec![1_i32, 2, 3]).build().unwrap();
+/// let result = sql(&df, "SELECT * FROM t WHERE x > 1").unwrap();
+/// assert_eq!(result.nrows(), 2);
+/// ```
 pub fn sql(df: &DataFrame, query: &str) -> Result<DataFrame> {
     let mut ctx = SqlContext::new();
     ctx.register("t", df.clone());

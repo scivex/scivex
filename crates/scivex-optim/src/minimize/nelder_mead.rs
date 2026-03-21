@@ -15,6 +15,20 @@ use super::{MinimizeOptions, MinimizeResult};
 /// No gradient is required. Convergence is checked using `ftol` (function value
 /// spread) and `xtol` (simplex diameter). Standard coefficients are used:
 /// α=1 (reflection), γ=2 (expansion), ρ=0.5 (contraction), σ=0.5 (shrinkage).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_optim::minimize::{nelder_mead, MinimizeOptions};
+/// // Minimize f(x,y) = x^2 + y^2
+/// let result = nelder_mead(
+///     |x: &Tensor<f64>| { let s = x.as_slice(); s[0]*s[0] + s[1]*s[1] },
+///     &Tensor::from_vec(vec![5.0, 5.0], vec![2]).unwrap(),
+///     &MinimizeOptions::default(),
+/// ).unwrap();
+/// assert!(result.f_val < 1e-6);
+/// ```
 pub fn nelder_mead<T, F>(
     f: F,
     x0: &Tensor<T>,

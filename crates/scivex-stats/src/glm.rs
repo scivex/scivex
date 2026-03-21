@@ -11,6 +11,14 @@ use crate::error::{Result, StatsError};
 // ---------------------------------------------------------------------------
 
 /// Exponential family distribution for the response.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::glm::Family;
+/// let f = Family::Binomial;
+/// assert_eq!(f, Family::Binomial);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -28,6 +36,14 @@ pub enum Family {
 }
 
 /// Link function mapping the mean to the linear predictor.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::glm::LinkFunction;
+/// let link = LinkFunction::Logit;
+/// assert_eq!(link, LinkFunction::Logit);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -45,6 +61,17 @@ pub enum LinkFunction {
 }
 
 /// Result of a GLM fit.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_stats::glm::{glm, Family, LinkFunction};
+/// let x = Tensor::from_vec(vec![-3.0_f64, -2.0, -1.0, -0.5, 0.5, 1.0, 2.0, 3.0], vec![8, 1]).unwrap();
+/// let y = vec![0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0];
+/// let res = glm(&x, &y, Family::Binomial, LinkFunction::Logit).unwrap();
+/// assert!(res.coefficients[1] > 0.0); // positive slope
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -162,6 +189,20 @@ fn log_lik_unit<T: Float>(family: Family, y: T, mu: T) -> T {
 ///
 /// `x` is a `[n x p]` tensor of predictors (an intercept column is prepended
 /// automatically). `y` is a slice of `n` response values.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_stats::glm::{glm, Family, LinkFunction};
+/// let x = Tensor::from_vec(
+///     vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+///     vec![10, 1],
+/// ).unwrap();
+/// let y: Vec<f64> = vec![2.1, 3.9, 6.2, 7.8, 10.1, 12.0, 13.9, 16.1, 18.0, 20.2];
+/// let res = glm(&x, &y, Family::Gaussian, LinkFunction::Identity).unwrap();
+/// assert!(res.coefficients.len() == 2); // intercept + slope
+/// ```
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::similar_names)]
 pub fn glm<T: Float>(

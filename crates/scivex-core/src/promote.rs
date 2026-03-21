@@ -11,6 +11,15 @@ use crate::tensor::Tensor;
 // ---------------------------------------------------------------------------
 
 /// Runtime type tag for tensor element types.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::promote::DType;
+/// assert!(DType::F64.is_float());
+/// assert!(!DType::I32.is_float());
+/// assert_eq!(DType::F32.size_bytes(), 4);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DType {
     U8,
@@ -27,6 +36,14 @@ pub enum DType {
 
 impl DType {
     /// Size in bytes of a single element of this type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::promote::DType;
+    /// assert_eq!(DType::U8.size_bytes(), 1);
+    /// assert_eq!(DType::F64.size_bytes(), 8);
+    /// ```
     #[inline]
     pub fn size_bytes(self) -> usize {
         match self {
@@ -38,12 +55,29 @@ impl DType {
     }
 
     /// Returns `true` if this is a floating-point type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::promote::DType;
+    /// assert!(DType::F32.is_float());
+    /// assert!(!DType::I64.is_float());
+    /// ```
     #[inline]
     pub fn is_float(self) -> bool {
         matches!(self, DType::F32 | DType::F64)
     }
 
     /// Returns `true` if this is a signed type (signed integers or floats).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::promote::DType;
+    /// assert!(DType::I32.is_signed());
+    /// assert!(DType::F64.is_signed());
+    /// assert!(!DType::U8.is_signed());
+    /// ```
     #[inline]
     pub fn is_signed(self) -> bool {
         matches!(
@@ -53,6 +87,14 @@ impl DType {
     }
 
     /// Returns `true` if this is an integer type (signed or unsigned).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::promote::DType;
+    /// assert!(DType::U32.is_integer());
+    /// assert!(!DType::F32.is_integer());
+    /// ```
     #[inline]
     pub fn is_integer(self) -> bool {
         !self.is_float()
@@ -71,6 +113,15 @@ impl DType {
 /// - Signed + Unsigned -> signed type wide enough for both
 /// - Any Integer + Any Float -> the float type
 /// - F32 + F64 -> F64
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::promote::{DType, promote};
+/// assert_eq!(promote(DType::I32, DType::F64), DType::F64);
+/// assert_eq!(promote(DType::F32, DType::F64), DType::F64);
+/// assert_eq!(promote(DType::I8, DType::I32), DType::I32);
+/// ```
 pub fn promote(a: DType, b: DType) -> DType {
     if a == b {
         return a;
@@ -142,8 +193,23 @@ fn promote_int_float(_int_dt: DType, float_dt: DType) -> DType {
 // ---------------------------------------------------------------------------
 
 /// Trait to get the [`DType`] tag for a [`Scalar`] type at compile time.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::promote::{DType, DTypeOf};
+/// assert_eq!(<f64 as DTypeOf>::dtype(), DType::F64);
+/// assert_eq!(<i32 as DTypeOf>::dtype(), DType::I32);
+/// ```
 pub trait DTypeOf: Scalar {
     /// The runtime [`DType`] tag for this type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::promote::{DType, DTypeOf};
+    /// assert_eq!(f32::dtype(), DType::F32);
+    /// ```
     fn dtype() -> DType;
 }
 
@@ -184,8 +250,25 @@ impl_dtype_of!(
 /// - Float-to-integer truncates toward zero.
 /// - Integer-to-float may lose precision for large values.
 /// - f64-to-f32 may lose precision or become infinity.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::promote::CastFrom;
+/// let x: f64 = f64::cast_from(42_u8);
+/// assert_eq!(x, 42.0_f64);
+/// let y: i32 = i32::cast_from(3.9_f64);
+/// assert_eq!(y, 3);
+/// ```
 pub trait CastFrom<T> {
     /// Cast a value of type `T` into `Self`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_core::promote::CastFrom;
+    /// assert_eq!(f32::cast_from(255_u8), 255.0_f32);
+    /// ```
     fn cast_from(val: T) -> Self;
 }
 

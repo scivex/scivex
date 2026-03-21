@@ -14,6 +14,15 @@ use super::{RootOptions, RootResult};
 /// Requires `f(a)` and `f(b)` to have opposite signs. Combines bisection,
 /// secant, and inverse quadratic interpolation for robust superlinear
 /// convergence.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::roots::{brent_root, RootOptions};
+/// // Root of cos(x) on [0, 2] → π/2
+/// let result = brent_root(|x: f64| x.cos(), 0.0, 2.0, &RootOptions::default()).unwrap();
+/// assert!((result.root - std::f64::consts::FRAC_PI_2).abs() < 1e-10);
+/// ```
 pub fn brent_root<T: Float, F: Fn(T) -> T>(
     f: F,
     a: T,

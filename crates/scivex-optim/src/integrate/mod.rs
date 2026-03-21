@@ -11,6 +11,14 @@ pub use trapezoid::trapezoid;
 use scivex_core::Float;
 
 /// Result of a numerical integration.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::integrate::{simpson, QuadResult};
+/// let result = simpson(|x: f64| x * x, 0.0, 1.0, 100).unwrap();
+/// assert!((result.value - 1.0 / 3.0).abs() < 1e-6);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -26,6 +34,14 @@ pub struct QuadResult<T: Float> {
 }
 
 /// Options controlling numerical integration.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::integrate::QuadOptions;
+/// let opts = QuadOptions::<f64>::default();
+/// assert!(opts.abs_tol < 1e-5);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

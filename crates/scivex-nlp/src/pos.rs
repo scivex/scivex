@@ -2,6 +2,14 @@ use std::collections::HashMap;
 use std::fmt;
 
 /// Part-of-speech tag variants.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::PosTag;
+/// let tag = PosTag::Noun;
+/// assert_eq!(format!("{tag}"), "Noun");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PosTag {
     Noun,
@@ -37,6 +45,15 @@ impl fmt::Display for PosTag {
 }
 
 /// HMM-based part-of-speech tagger using the Viterbi algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::HmmPosTagger;
+/// let tagger = HmmPosTagger::new();
+/// let tagged = tagger.tag(&["the", "cat", "sat"]);
+/// assert_eq!(tagged.len(), 3);
+/// ```
 pub struct HmmPosTagger {
     /// Transition probabilities: P(tag_i | tag_{i-1}).
     transition: HashMap<(PosTag, PosTag), f64>,
@@ -56,6 +73,17 @@ impl Default for HmmPosTagger {
 
 impl HmmPosTagger {
     /// Create a new HMM POS tagger with built-in English transition/emission probabilities.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::pos::{HmmPosTagger, PosTag};
+    /// let tagger = HmmPosTagger::new();
+    /// let result = tagger.tag(&["the", "dog", "runs"]);
+    /// assert_eq!(result[0].1, PosTag::Determiner);
+    /// assert_eq!(result[1].1, PosTag::Noun);
+    /// assert_eq!(result[2].1, PosTag::Verb);
+    /// ```
     pub fn new() -> Self {
         let tags = vec![
             PosTag::Noun,
@@ -318,6 +346,17 @@ impl HmmPosTagger {
     /// Tag a sequence of tokens using the Viterbi algorithm.
     ///
     /// Returns a vector of (word, tag) pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::pos::{HmmPosTagger, PosTag};
+    /// let tagger = HmmPosTagger::new();
+    /// let result = tagger.tag(&["he", "is", "good"]);
+    /// assert_eq!(result[0].1, PosTag::Pronoun);
+    /// assert_eq!(result[1].1, PosTag::Verb);
+    /// assert_eq!(result[2].1, PosTag::Adjective);
+    /// ```
     pub fn tag(&self, tokens: &[&str]) -> Vec<(String, PosTag)> {
         if tokens.is_empty() {
             return Vec::new();
@@ -383,6 +422,15 @@ impl HmmPosTagger {
     }
 
     /// Tag text by first splitting on whitespace, then applying the Viterbi algorithm.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::pos::HmmPosTagger;
+    /// let tagger = HmmPosTagger::new();
+    /// let result = tagger.tag_str("the cat runs");
+    /// assert_eq!(result.len(), 3);
+    /// ```
     pub fn tag_str(&self, text: &str) -> Vec<(String, PosTag)> {
         let tokens: Vec<&str> = text.split_whitespace().collect();
         self.tag(&tokens)

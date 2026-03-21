@@ -11,6 +11,15 @@ pub use golden::golden_section;
 use scivex_core::Float;
 
 /// Result of a 1-D minimization algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::minimize_1d::golden_section;
+/// let result = golden_section(|x: f64| (x - 2.0).powi(2), 0.0, 5.0, 1e-10, 100).unwrap();
+/// assert!(result.converged);
+/// assert!((result.x_min - 2.0).abs() < 1e-5);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

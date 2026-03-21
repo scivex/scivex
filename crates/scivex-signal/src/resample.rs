@@ -8,6 +8,16 @@ use crate::filter::{FirFilter, lfilter};
 /// Resample a signal to `num_samples` using FFT-based method.
 ///
 /// Zero-pads or truncates in the frequency domain, then applies inverse FFT.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::resample::resample;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let y = resample(&x, 4).unwrap();
+/// assert_eq!(y.numel(), 4);
+/// ```
 pub fn resample<T: Float>(x: &Tensor<T>, num_samples: usize) -> Result<Tensor<T>> {
     if x.ndim() != 1 {
         return Err(SignalError::InvalidParameter {
@@ -73,6 +83,17 @@ pub fn resample<T: Float>(x: &Tensor<T>, num_samples: usize) -> Result<Tensor<T>
 /// Downsample by integer factor with low-pass anti-aliasing filter.
 ///
 /// `factor` must be >= 1.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::resample::decimate;
+/// let data: Vec<f64> = (0..100).map(|i| (f64::from(i) * 0.1).sin()).collect();
+/// let x = Tensor::from_vec(data, vec![100]).unwrap();
+/// let y = decimate(&x, 4).unwrap();
+/// assert_eq!(y.numel(), 25);
+/// ```
 pub fn decimate<T: Float>(x: &Tensor<T>, factor: usize) -> Result<Tensor<T>> {
     if x.ndim() != 1 {
         return Err(SignalError::InvalidParameter {
@@ -125,6 +146,17 @@ pub fn decimate<T: Float>(x: &Tensor<T>, factor: usize) -> Result<Tensor<T>> {
 /// Upsample by integer factor with linear interpolation.
 ///
 /// `factor` must be >= 1.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::resample::interpolate_linear;
+/// let x = Tensor::from_vec(vec![0.0_f64, 1.0, 2.0], vec![3]).unwrap();
+/// let y = interpolate_linear(&x, 2).unwrap();
+/// assert_eq!(y.numel(), 5); // (3-1)*2 + 1
+/// assert!((y.as_slice()[1] - 0.5).abs() < 1e-10);
+/// ```
 pub fn interpolate_linear<T: Float>(x: &Tensor<T>, factor: usize) -> Result<Tensor<T>> {
     if x.ndim() != 1 {
         return Err(SignalError::InvalidParameter {

@@ -12,6 +12,14 @@ use crate::spectral;
 /// Convert a frequency in Hertz to the mel scale (HTK formula).
 ///
 /// `mel = 2595 * log10(1 + hz / 700)`
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::features::hz_to_mel;
+/// let mel = hz_to_mel(1000.0_f64);
+/// assert!((mel - 1000.0).abs() < 100.0); // ~1000 mel at 1000 Hz
+/// ```
 pub fn hz_to_mel<T: Float>(hz: T) -> T {
     let one = T::one();
     let c2595 = T::from_f64(2595.0);
@@ -22,6 +30,15 @@ pub fn hz_to_mel<T: Float>(hz: T) -> T {
 /// Convert a mel-scale value back to Hertz.
 ///
 /// `hz = 700 * (10^(mel / 2595) - 1)`
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::features::{hz_to_mel, mel_to_hz};
+/// let mel = hz_to_mel(440.0_f64);
+/// let hz = mel_to_hz(mel);
+/// assert!((hz - 440.0).abs() < 1e-4);
+/// ```
 pub fn mel_to_hz<T: Float>(mel: T) -> T {
     let one = T::one();
     let c700 = T::from_f64(700.0);
@@ -38,6 +55,15 @@ pub fn mel_to_hz<T: Float>(mel: T) -> T {
 /// scale between `fmin` and `fmax`.
 ///
 /// Returns a `Vec<Vec<T>>` of shape `[n_mels][n_fft/2+1]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_signal::features::mel_filterbank;
+/// let bank = mel_filterbank(26, 512, 22050.0_f64, 0.0, 11025.0).unwrap();
+/// assert_eq!(bank.len(), 26);
+/// assert_eq!(bank[0].len(), 257); // n_fft/2 + 1
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn mel_filterbank<T: Float>(
     n_mels: usize,
@@ -129,6 +155,19 @@ pub fn mel_filterbank<T: Float>(
 /// 2. Multiply each frame by the mel filterbank.
 ///
 /// Returns a tensor of shape `[n_frames, n_mels]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::features::mel_spectrogram;
+/// let signal: Vec<f64> = (0..1024)
+///     .map(|i| (2.0 * std::f64::consts::PI * 440.0 * i as f64 / 16000.0).sin())
+///     .collect();
+/// let x = Tensor::from_vec(signal, vec![1024]).unwrap();
+/// let ms = mel_spectrogram(&x, 16000.0, 256, 128, 40).unwrap();
+/// assert_eq!(ms.shape()[1], 40);
+/// ```
 pub fn mel_spectrogram<T: Float>(
     x: &Tensor<T>,
     sample_rate: T,
@@ -197,6 +236,19 @@ fn dct_type2<T: Float>(input: &[T], n_out: usize) -> Vec<T> {
 /// 3. Apply a Type-II DCT to each frame, keeping the first `n_mfcc` coefficients.
 ///
 /// Returns a tensor of shape `[n_frames, n_mfcc]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::features::mfcc;
+/// let signal: Vec<f64> = (0..1024)
+///     .map(|i| (2.0 * std::f64::consts::PI * 440.0 * i as f64 / 16000.0).sin())
+///     .collect();
+/// let x = Tensor::from_vec(signal, vec![1024]).unwrap();
+/// let coeffs = mfcc(&x, 16000.0, 13, 40, 256, 128).unwrap();
+/// assert_eq!(coeffs.shape()[1], 13);
+/// ```
 pub fn mfcc<T: Float>(
     x: &Tensor<T>,
     sample_rate: T,
@@ -251,6 +303,19 @@ pub fn mfcc<T: Float>(
 /// Compute a chromagram by mapping FFT frequency bins to pitch classes.
 ///
 /// Returns a tensor of shape `[n_frames, n_chroma]`, typically `n_chroma = 12`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::features::chroma_stft;
+/// let signal: Vec<f64> = (0..2048)
+///     .map(|i| (2.0 * std::f64::consts::PI * 440.0 * i as f64 / 22050.0).sin())
+///     .collect();
+/// let x = Tensor::from_vec(signal, vec![2048]).unwrap();
+/// let ch = chroma_stft(&x, 22050.0, 512, 256, 12).unwrap();
+/// assert_eq!(ch.shape()[1], 12);
+/// ```
 #[allow(clippy::cast_possible_truncation)]
 pub fn chroma_stft<T: Float>(
     x: &Tensor<T>,
@@ -317,6 +382,20 @@ pub fn chroma_stft<T: Float>(
 /// `frame_size` — analysis window length in samples.
 /// `hop_size` — step between successive frames.
 /// `threshold` — cumulative mean normalised difference threshold (typical: 0.1--0.2).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_signal::features::pitch_yin;
+/// let sr = 16000.0_f64;
+/// let signal: Vec<f64> = (0..4096)
+///     .map(|i| (2.0 * std::f64::consts::PI * 440.0 * i as f64 / sr).sin())
+///     .collect();
+/// let x = Tensor::from_vec(signal, vec![4096]).unwrap();
+/// let pitches = pitch_yin(&x, sr, 1024, 512, 0.2).unwrap();
+/// assert!(!pitches.is_empty());
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn pitch_yin<T: Float>(
     x: &Tensor<T>,

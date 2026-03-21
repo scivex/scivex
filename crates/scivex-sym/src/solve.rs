@@ -7,6 +7,19 @@ use crate::simplify::simplify;
 ///
 /// Extracts `a` and `b` where `expr = a*var + b` via differentiation,
 /// then returns `-b / a`.
+///
+/// # Examples
+///
+/// ```
+/// # use std::collections::HashMap;
+/// # use scivex_sym::expr::{var, constant};
+/// # use scivex_sym::solve::solve_linear;
+/// // Solve 2x - 6 = 0  →  x = 3
+/// let expr = constant(2.0) * var("x") - constant(6.0);
+/// let sol = solve_linear(&expr, "x").unwrap();
+/// let val = sol.eval(&HashMap::new()).unwrap();
+/// assert!((val - 3.0).abs() < 1e-10);
+/// ```
 pub fn solve_linear(expr: &Expr, var: &str) -> Result<Expr> {
     let expr = simplify(expr);
 
@@ -34,6 +47,19 @@ pub fn solve_linear(expr: &Expr, var: &str) -> Result<Expr> {
 ///
 /// Returns up to two roots using the quadratic formula.
 /// Roots are returned as constant `Expr` values.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::expr::{var, constant};
+/// # use scivex_sym::solve::solve_quadratic;
+/// # use std::collections::HashMap;
+/// // x^2 - 5x + 6 = 0 → roots at 2 and 3
+/// let x = var("x");
+/// let expr = x.clone() * x - constant(5.0) * var("x") + constant(6.0);
+/// let roots = solve_quadratic(&expr, "x").unwrap();
+/// assert_eq!(roots.len(), 2);
+/// ```
 pub fn solve_quadratic(expr: &Expr, var: &str) -> Result<Vec<Expr>> {
     let expr = simplify(expr);
 

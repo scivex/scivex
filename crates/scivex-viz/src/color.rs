@@ -1,6 +1,16 @@
 use crate::error::{Result, VizError};
 
 /// An RGBA color with 8-bit channels.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::color::Color;
+/// let red = Color::rgb(255, 0, 0);
+/// assert_eq!(red, Color::RED);
+/// let semi = Color::rgba(0, 0, 255, 128);
+/// assert_eq!(semi.a, 128);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -49,18 +59,43 @@ impl Color {
     };
 
     /// Create an opaque color from RGB components.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::Color;
+    /// let c = Color::rgb(255, 127, 0);
+    /// assert_eq!(c.a, 255);
+    /// ```
     #[must_use]
     pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b, a: 255 }
     }
 
     /// Create a color from RGBA components.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::Color;
+    /// let c = Color::rgba(0, 255, 0, 64);
+    /// assert_eq!(c.g, 255);
+    /// assert_eq!(c.a, 64);
+    /// ```
     #[must_use]
     pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
 
     /// Parse a hex color string like `"#FF0000"` or `"#FF0000FF"`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::Color;
+    /// let red = Color::from_hex("#FF0000").unwrap();
+    /// assert_eq!(red, Color::RED);
+    /// ```
     pub fn from_hex(hex: &str) -> Result<Self> {
         let hex = hex.strip_prefix('#').unwrap_or(hex);
         let parse_byte = |s: &str| {
@@ -89,6 +124,13 @@ impl Color {
     }
 
     /// Convert to hex string like `"#ff0000"` (or `"#ff000080"` if alpha < 255).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::Color;
+    /// assert_eq!(Color::RED.to_hex(), "#ff0000");
+    /// ```
     #[must_use]
     pub fn to_hex(self) -> String {
         if self.a == 255 {
@@ -99,6 +141,14 @@ impl Color {
     }
 
     /// Linearly interpolate between two colors. `t` is clamped to `[0, 1]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::Color;
+    /// let mid = Color::BLACK.lerp(Color::WHITE, 0.5);
+    /// assert_eq!(mid.r, 128);
+    /// ```
     #[must_use]
     pub fn lerp(self, other: Self, t: f64) -> Self {
         let t = t.clamp(0.0, 1.0);
@@ -115,6 +165,15 @@ impl Color {
     }
 
     /// SVG-compatible color string (e.g. `"rgb(255,0,0)"`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::Color;
+    /// assert_eq!(Color::RED.to_svg_color(), "rgb(255,0,0)");
+    /// let semi = Color::rgba(0, 128, 0, 128);
+    /// assert!(semi.to_svg_color().starts_with("rgba(0,128,0,"));
+    /// ```
     #[must_use]
     pub fn to_svg_color(self) -> String {
         if self.a == 255 {
@@ -132,6 +191,15 @@ impl Color {
 }
 
 /// A continuous colormap that maps values in `[0, 1]` to colors.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::color::{Color, ColorMap};
+/// let cm = ColorMap::viridis();
+/// let c = cm.sample(0.0_f64);
+/// assert_eq!(c, Color::rgb(68, 1, 84));
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -146,6 +214,15 @@ impl ColorMap {
     ///
     /// # Errors
     /// Returns `EmptyData` if `colors` is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::{Color, ColorMap};
+    /// let cm = ColorMap::new(vec![Color::BLACK, Color::WHITE]).unwrap();
+    /// let mid = cm.sample(0.5);
+    /// assert_eq!(mid, Color::rgb(128, 128, 128));
+    /// ```
     pub fn new(colors: Vec<Color>) -> Result<Self> {
         if colors.is_empty() {
             return Err(VizError::EmptyData);
@@ -154,6 +231,15 @@ impl ColorMap {
     }
 
     /// Sample the colormap at `t` in `[0, 1]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::{Color, ColorMap};
+    /// let cm = ColorMap::new(vec![Color::BLACK, Color::WHITE]).unwrap();
+    /// let c = cm.sample(1.0_f64);
+    /// assert_eq!(c, Color::WHITE);
+    /// ```
     #[must_use]
     pub fn sample(&self, t: f64) -> Color {
         let t = t.clamp(0.0, 1.0);
@@ -168,6 +254,14 @@ impl ColorMap {
     }
 
     /// Viridis-like colormap (8-stop approximation).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::ColorMap;
+    /// let cm = ColorMap::viridis();
+    /// let _ = cm.sample(0.5_f64);
+    /// ```
     #[must_use]
     pub fn viridis() -> Self {
         Self {
@@ -185,6 +279,14 @@ impl ColorMap {
     }
 
     /// Plasma-like colormap (8-stop approximation).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::ColorMap;
+    /// let cm = ColorMap::plasma();
+    /// let _ = cm.sample(0.5_f64);
+    /// ```
     #[must_use]
     pub fn plasma() -> Self {
         Self {
@@ -202,6 +304,14 @@ impl ColorMap {
     }
 
     /// Inferno-like colormap (8-stop approximation).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::ColorMap;
+    /// let cm = ColorMap::inferno();
+    /// let _ = cm.sample(0.5_f64);
+    /// ```
     #[must_use]
     pub fn inferno() -> Self {
         Self {
@@ -219,6 +329,14 @@ impl ColorMap {
     }
 
     /// Cool-warm diverging colormap.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::color::ColorMap;
+    /// let cm = ColorMap::coolwarm();
+    /// let _ = cm.sample(0.5_f64);
+    /// ```
     #[must_use]
     pub fn coolwarm() -> Self {
         Self {
@@ -236,6 +354,14 @@ impl ColorMap {
 }
 
 /// Default 10-color categorical palette (similar to matplotlib tab10).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::color::default_palette;
+/// let palette = default_palette();
+/// assert_eq!(palette.len(), 10);
+/// ```
 #[must_use]
 pub fn default_palette() -> Vec<Color> {
     vec![

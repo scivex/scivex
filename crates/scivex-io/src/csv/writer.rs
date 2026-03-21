@@ -8,6 +8,14 @@ use scivex_frame::DataFrame;
 use crate::error::Result;
 
 /// Controls when fields are quoted in CSV output.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::csv::QuoteStyle;
+/// assert_eq!(QuoteStyle::Necessary, QuoteStyle::Necessary);
+/// assert_ne!(QuoteStyle::Always, QuoteStyle::Never);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -26,18 +34,18 @@ pub enum QuoteStyle {
 
 /// Builder for writing a [`DataFrame`] as CSV.
 ///
-/// # Example
+/// # Examples
 ///
-/// ```no_run
-/// use scivex_io::csv::CsvWriterBuilder;
-/// use scivex_frame::DataFrame;
-///
-/// fn example(df: &DataFrame) {
-///     let mut buf = Vec::new();
-///     CsvWriterBuilder::new()
-///         .write(&mut buf, df)
-///         .unwrap();
-/// }
+/// ```
+/// # use scivex_io::csv::{CsvWriterBuilder, read_csv};
+/// let csv = "x,y\n1,2\n3,4\n";
+/// let df = read_csv(csv.as_bytes()).unwrap();
+/// let mut buf = Vec::new();
+/// CsvWriterBuilder::new()
+///     .write(&mut buf, &df)
+///     .unwrap();
+/// let output = String::from_utf8(buf).unwrap();
+/// assert!(output.contains("x,y"));
 /// ```
 #[cfg_attr(
     feature = "serde-support",
@@ -191,6 +199,17 @@ impl CsvWriterBuilder {
 }
 
 /// Write a `DataFrame` as CSV to a writer with default settings.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_io::csv::{write_csv, read_csv};
+/// let df = read_csv("a,b\n1,2\n".as_bytes()).unwrap();
+/// let mut buf = Vec::new();
+/// write_csv(&mut buf, &df).unwrap();
+/// let out = String::from_utf8(buf).unwrap();
+/// assert!(out.starts_with("a,b\n"));
+/// ```
 pub fn write_csv<W: Write>(writer: W, df: &DataFrame) -> Result<()> {
     CsvWriterBuilder::new().write(writer, df)
 }

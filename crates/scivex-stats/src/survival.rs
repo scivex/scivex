@@ -11,6 +11,14 @@ use crate::error::{Result, StatsError};
 // ---------------------------------------------------------------------------
 
 /// A single survival observation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::survival::SurvivalRecord;
+/// let r = SurvivalRecord { time: 5.0_f64, event: true };
+/// assert!(r.event);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -24,6 +32,19 @@ pub struct SurvivalRecord<T: Float> {
 }
 
 /// Result of a Kaplan-Meier estimate.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::survival::{SurvivalRecord, kaplan_meier};
+/// let records = vec![
+///     SurvivalRecord { time: 1.0_f64, event: true },
+///     SurvivalRecord { time: 2.0, event: false },
+///     SurvivalRecord { time: 3.0, event: true },
+/// ];
+/// let km = kaplan_meier(&records).unwrap();
+/// assert!(!km.times.is_empty());
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -45,6 +66,24 @@ pub struct KaplanMeierEstimate<T: Float> {
 }
 
 /// Result of a log-rank test.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::survival::{SurvivalRecord, log_rank_test};
+/// let g1 = vec![
+///     SurvivalRecord { time: 1.0_f64, event: true },
+///     SurvivalRecord { time: 3.0, event: true },
+///     SurvivalRecord { time: 5.0, event: true },
+/// ];
+/// let g2 = vec![
+///     SurvivalRecord { time: 2.0_f64, event: true },
+///     SurvivalRecord { time: 4.0, event: true },
+///     SurvivalRecord { time: 6.0, event: true },
+/// ];
+/// let res = log_rank_test(&g1, &g2).unwrap();
+/// assert!(res.p_value >= 0.0 && res.p_value <= 1.0);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -58,6 +97,21 @@ pub struct LogRankResult<T: Float> {
 }
 
 /// Result of Cox proportional-hazards regression.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_stats::survival::cox_ph;
+/// let times = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+/// let events = vec![true, true, false, true, true, false, true, true];
+/// let cov = Tensor::from_vec(
+///     vec![1.0_f64, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+///     vec![8, 1],
+/// ).unwrap();
+/// let res = cox_ph(&times, &events, &cov).unwrap();
+/// assert_eq!(res.coefficients.len(), 1);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -84,6 +138,20 @@ pub struct CoxPHResult<T: Float> {
 
 /// Compute the Kaplan-Meier (product-limit) survival estimate with 95 %
 /// Greenwood confidence intervals.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::survival::{SurvivalRecord, kaplan_meier};
+/// let records = vec![
+///     SurvivalRecord { time: 1.0_f64, event: true },
+///     SurvivalRecord { time: 2.0, event: true },
+///     SurvivalRecord { time: 3.0, event: false },
+///     SurvivalRecord { time: 4.0, event: true },
+/// ];
+/// let km = kaplan_meier(&records).unwrap();
+/// assert!(km.survival_prob[0] < 1.0);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn kaplan_meier<T: Float>(records: &[SurvivalRecord<T>]) -> Result<KaplanMeierEstimate<T>> {
     if records.is_empty() {
@@ -180,6 +248,20 @@ pub fn kaplan_meier<T: Float>(records: &[SurvivalRecord<T>]) -> Result<KaplanMei
 /// Return the median survival time from a Kaplan-Meier estimate, i.e. the
 /// first time at which S(t) <= 0.5.  Returns `None` if the curve never
 /// reaches 0.5 (heavy censoring).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::survival::{SurvivalRecord, kaplan_meier, median_survival_time};
+/// let records = vec![
+///     SurvivalRecord { time: 1.0_f64, event: true },
+///     SurvivalRecord { time: 2.0, event: true },
+///     SurvivalRecord { time: 3.0, event: true },
+/// ];
+/// let km = kaplan_meier(&records).unwrap();
+/// let med = median_survival_time(&km);
+/// assert!(med.is_some());
+/// ```
 pub fn median_survival_time<T: Float>(km: &KaplanMeierEstimate<T>) -> Option<T> {
     let half = T::from_f64(0.5);
     for (i, &s) in km.survival_prob.iter().enumerate() {
@@ -203,6 +285,22 @@ struct TaggedRecord<U: Float> {
 /// Two-sample log-rank test comparing survival distributions of two groups.
 ///
 /// Returns a chi-squared(1) test statistic and p-value.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::survival::{SurvivalRecord, log_rank_test};
+/// let g1 = vec![
+///     SurvivalRecord { time: 1.0_f64, event: true },
+///     SurvivalRecord { time: 3.0, event: true },
+/// ];
+/// let g2 = vec![
+///     SurvivalRecord { time: 2.0_f64, event: true },
+///     SurvivalRecord { time: 4.0, event: true },
+/// ];
+/// let res = log_rank_test(&g1, &g2).unwrap();
+/// assert!(res.statistic >= 0.0);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn log_rank_test<T: Float>(
     group1: &[SurvivalRecord<T>],
@@ -302,6 +400,21 @@ pub fn log_rank_test<T: Float>(
 /// - `times`: event/censoring times of length `n`.
 /// - `events`: `true` if the event occurred, length `n`.
 /// - `covariates`: `[n x p]` tensor of covariates.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_stats::survival::cox_ph;
+/// let times = vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+/// let events = vec![true, true, false, true, true, false, true, true];
+/// let cov = Tensor::from_vec(
+///     vec![1.0_f64, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+///     vec![8, 1],
+/// ).unwrap();
+/// let res = cox_ph(&times, &events, &cov).unwrap();
+/// assert!(res.hazard_ratios[0] > 0.0);
+/// ```
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::similar_names)]
 pub fn cox_ph<T: Float>(

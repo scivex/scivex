@@ -10,6 +10,18 @@ use super::kernel::Kernel;
 /// Uses a simplified SMO-like coordinate descent algorithm with an
 /// epsilon-insensitive loss function: only errors larger than `epsilon`
 /// contribute to the loss.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4, 1]).unwrap();
+/// let y = Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0], vec![4]).unwrap();
+/// let mut svr = SVR::new(Kernel::Linear, 100.0, 0.5).unwrap();
+/// svr.fit(&x, &y).unwrap();
+/// let preds = svr.predict(&x).unwrap();
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

@@ -5,6 +5,17 @@ use crate::image::Image;
 /// Compute a histogram for each channel of a `u8` image.
 ///
 /// Returns a tensor of shape `[channels, 256]` with `u32` counts.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::histogram::histogram;
+/// let img = Image::from_raw(vec![0u8; 9], 3, 3, PixelFormat::Gray).unwrap();
+/// let hist = histogram(&img);
+/// assert_eq!(hist.shape(), &[1, 256]);
+/// assert_eq!(*hist.get(&[0, 0]).unwrap(), 9); // all pixels are 0
+/// ```
 pub fn histogram(img: &Image<u8>) -> Tensor<u32> {
     let c = img.channels();
     let src = img.as_slice();
@@ -21,6 +32,17 @@ pub fn histogram(img: &Image<u8>) -> Tensor<u32> {
 /// Compute the cumulative histogram from a histogram tensor.
 ///
 /// Input shape: `[channels, 256]`. Output has the same shape.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::histogram::{histogram, cumulative_histogram};
+/// let img = Image::from_raw(vec![0u8, 1, 2, 3], 4, 1, PixelFormat::Gray).unwrap();
+/// let hist = histogram(&img);
+/// let cum = cumulative_histogram(&hist);
+/// assert_eq!(*cum.get(&[0, 3]).unwrap(), 4);
+/// ```
 pub fn cumulative_histogram(hist: &Tensor<u32>) -> Tensor<u32> {
     let shape = hist.shape();
     assert!(
@@ -45,6 +67,18 @@ pub fn cumulative_histogram(hist: &Tensor<u32>) -> Tensor<u32> {
 /// Histogram equalization for `u8` images.
 ///
 /// Independently equalizes each channel.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::histogram;
+/// let data: Vec<u8> = (0..25).map(|i| 100 + (i % 5) as u8).collect();
+/// let img = Image::from_raw(data, 5, 5, PixelFormat::Gray).unwrap();
+/// let eq = histogram::equalize(&img);
+/// let s = eq.as_slice();
+/// assert!(s.iter().max().unwrap() - s.iter().min().unwrap() > 4);
+/// ```
 pub fn equalize(img: &Image<u8>) -> Image<u8> {
     let (w, h) = img.dimensions();
     let c = img.channels();

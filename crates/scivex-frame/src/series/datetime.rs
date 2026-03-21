@@ -96,12 +96,28 @@ fn epoch_days_to_date(days: i64) -> (i32, u32, u32) {
 
 impl DateTime {
     /// Create from nanoseconds since the Unix epoch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_nanos(1_000_000_000);
+    /// assert_eq!(dt.timestamp(), 1);
+    /// ```
     #[inline]
     pub fn from_nanos(nanos: i64) -> Self {
         Self { nanos }
     }
 
     /// Create from seconds since the Unix epoch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_secs(86400);
+    /// assert_eq!(dt.day(), 2); // 1970-01-02
+    /// ```
     #[inline]
     pub fn from_secs(secs: i64) -> Self {
         Self {
@@ -110,6 +126,14 @@ impl DateTime {
     }
 
     /// Create from milliseconds since the Unix epoch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_millis(86_400_000);
+    /// assert_eq!(dt.day(), 2);
+    /// ```
     #[inline]
     pub fn from_millis(millis: i64) -> Self {
         Self {
@@ -118,6 +142,15 @@ impl DateTime {
     }
 
     /// Create from a civil date and time.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd_hms(2024, 3, 15, 14, 30, 0).unwrap();
+    /// assert_eq!(dt.year(), 2024);
+    /// assert_eq!(dt.hour(), 14);
+    /// ```
     pub fn from_ymd_hms(
         year: i32,
         month: u32,
@@ -151,28 +184,70 @@ impl DateTime {
     }
 
     /// Create from a date only (midnight).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd(2024, 12, 25).unwrap();
+    /// assert_eq!(dt.month(), 12);
+    /// assert_eq!(dt.day(), 25);
+    /// ```
     pub fn from_ymd(year: i32, month: u32, day: u32) -> Result<Self> {
         Self::from_ymd_hms(year, month, day, 0, 0, 0)
     }
 
     /// The Unix epoch (1970-01-01T00:00:00Z).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::epoch();
+    /// assert_eq!(dt.year(), 1970);
+    /// assert_eq!(dt.timestamp(), 0);
+    /// ```
     pub fn epoch() -> Self {
         Self { nanos: 0 }
     }
 
     /// Nanoseconds since the Unix epoch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_secs(1);
+    /// assert_eq!(dt.timestamp_nanos(), 1_000_000_000_i64);
+    /// ```
     #[inline]
     pub fn timestamp_nanos(&self) -> i64 {
         self.nanos
     }
 
     /// Seconds since the Unix epoch (truncated toward zero).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_secs(42);
+    /// assert_eq!(dt.timestamp(), 42);
+    /// ```
     #[inline]
     pub fn timestamp(&self) -> i64 {
         self.nanos.div_euclid(NANOS_PER_SEC)
     }
 
     /// Milliseconds since the Unix epoch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_millis(5000);
+    /// assert_eq!(dt.timestamp_millis(), 5000);
+    /// ```
     #[inline]
     pub fn timestamp_millis(&self) -> i64 {
         self.nanos.div_euclid(NANOS_PER_MILLI)
@@ -191,45 +266,109 @@ impl DateTime {
     }
 
     /// Year component.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd(2024, 6, 15).unwrap();
+    /// assert_eq!(dt.year(), 2024);
+    /// ```
     pub fn year(&self) -> i32 {
         epoch_days_to_date(self.epoch_days()).0
     }
 
     /// Month component (1–12).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd(2024, 7, 4).unwrap();
+    /// assert_eq!(dt.month(), 7);
+    /// ```
     pub fn month(&self) -> u32 {
         epoch_days_to_date(self.epoch_days()).1
     }
 
     /// Day-of-month component (1–31).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd(2024, 7, 4).unwrap();
+    /// assert_eq!(dt.day(), 4);
+    /// ```
     pub fn day(&self) -> u32 {
         epoch_days_to_date(self.epoch_days()).2
     }
 
     /// Hour component (0–23).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd_hms(2024, 1, 1, 15, 0, 0).unwrap();
+    /// assert_eq!(dt.hour(), 15);
+    /// ```
     #[allow(clippy::cast_possible_truncation)]
     pub fn hour(&self) -> u32 {
         (self.day_nanos() / NANOS_PER_HOUR) as u32
     }
 
     /// Minute component (0–59).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd_hms(2024, 1, 1, 0, 45, 0).unwrap();
+    /// assert_eq!(dt.minute(), 45);
+    /// ```
     #[allow(clippy::cast_possible_truncation)]
     pub fn minute(&self) -> u32 {
         ((self.day_nanos() % NANOS_PER_HOUR) / NANOS_PER_MIN) as u32
     }
 
     /// Second component (0–59).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd_hms(2024, 1, 1, 0, 0, 30).unwrap();
+    /// assert_eq!(dt.second(), 30);
+    /// ```
     #[allow(clippy::cast_possible_truncation)]
     pub fn second(&self) -> u32 {
         ((self.day_nanos() % NANOS_PER_MIN) / NANOS_PER_SEC) as u32
     }
 
     /// Nanosecond component within the second.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_nanos(1_000_000_500);
+    /// assert_eq!(dt.nanosecond(), 500);
+    /// ```
     #[allow(clippy::cast_possible_truncation)]
     pub fn nanosecond(&self) -> u32 {
         (self.day_nanos() % NANOS_PER_SEC) as u32
     }
 
     /// Day of week (0 = Monday, 6 = Sunday).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::epoch(); // 1970-01-01 was a Thursday
+    /// assert_eq!(dt.weekday(), 3);
+    /// ```
     #[allow(clippy::cast_possible_truncation)]
     pub fn weekday(&self) -> u32 {
         // 1970-01-01 was a Thursday (day 3, 0-indexed from Monday).
@@ -237,6 +376,14 @@ impl DateTime {
     }
 
     /// Day of year (1–366).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::from_ymd(2024, 1, 1).unwrap();
+    /// assert_eq!(dt.day_of_year(), 1);
+    /// ```
     #[allow(clippy::cast_possible_truncation)]
     pub fn day_of_year(&self) -> u32 {
         let (year, _month, _day) = epoch_days_to_date(self.epoch_days());
@@ -247,6 +394,15 @@ impl DateTime {
     // -- Arithmetic ---------------------------------------------------------
 
     /// Add a [`Duration`] to this timestamp.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, Duration};
+    /// let dt = DateTime::from_ymd(2024, 1, 1).unwrap();
+    /// let later = dt.add_duration(Duration::days(31));
+    /// assert_eq!(later.month(), 2);
+    /// ```
     pub fn add_duration(&self, dur: Duration) -> Self {
         Self {
             nanos: self.nanos + dur.nanos,
@@ -254,6 +410,16 @@ impl DateTime {
     }
 
     /// Subtract a [`Duration`] from this timestamp.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, Duration};
+    /// let dt = DateTime::from_ymd(2024, 2, 1).unwrap();
+    /// let earlier = dt.sub_duration(Duration::days(1));
+    /// assert_eq!(earlier.month(), 1);
+    /// assert_eq!(earlier.day(), 31);
+    /// ```
     pub fn sub_duration(&self, dur: Duration) -> Self {
         Self {
             nanos: self.nanos - dur.nanos,
@@ -261,6 +427,15 @@ impl DateTime {
     }
 
     /// Duration between two timestamps (self - other).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let a = DateTime::from_ymd(2024, 1, 10).unwrap();
+    /// let b = DateTime::from_ymd(2024, 1, 1).unwrap();
+    /// assert_eq!(a.duration_since(&b).total_days(), 9);
+    /// ```
     pub fn duration_since(&self, other: &DateTime) -> Duration {
         Duration {
             nanos: self.nanos - other.nanos,
@@ -270,6 +445,15 @@ impl DateTime {
     // -- Parsing ------------------------------------------------------------
 
     /// Parse from ISO 8601 format: `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTime;
+    /// let dt = DateTime::parse("2024-06-15").unwrap();
+    /// assert_eq!(dt.year(), 2024);
+    /// assert_eq!(dt.month(), 6);
+    /// ```
     pub fn parse(s: &str) -> Result<Self> {
         let s = s.trim();
         // Try YYYY-MM-DDTHH:MM:SS or YYYY-MM-DD HH:MM:SS
@@ -355,12 +539,28 @@ pub struct Duration {
 
 impl Duration {
     /// Create from nanoseconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::nanoseconds(1_000_000);
+    /// assert_eq!(d.total_nanos(), 1_000_000);
+    /// ```
     #[inline]
     pub fn nanoseconds(nanos: i64) -> Self {
         Self { nanos }
     }
 
     /// Create from microseconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::microseconds(1_000_000);
+    /// assert_eq!(d.total_seconds(), 1);
+    /// ```
     #[inline]
     pub fn microseconds(micros: i64) -> Self {
         Self {
@@ -369,6 +569,14 @@ impl Duration {
     }
 
     /// Create from milliseconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::milliseconds(2000);
+    /// assert_eq!(d.total_seconds(), 2);
+    /// ```
     #[inline]
     pub fn milliseconds(millis: i64) -> Self {
         Self {
@@ -377,6 +585,14 @@ impl Duration {
     }
 
     /// Create from seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::seconds(60);
+    /// assert_eq!(d.total_minutes(), 1);
+    /// ```
     #[inline]
     pub fn seconds(secs: i64) -> Self {
         Self {
@@ -385,6 +601,14 @@ impl Duration {
     }
 
     /// Create from minutes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::minutes(90);
+    /// assert_eq!(d.total_hours(), 1);
+    /// ```
     #[inline]
     pub fn minutes(mins: i64) -> Self {
         Self {
@@ -393,6 +617,14 @@ impl Duration {
     }
 
     /// Create from hours.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::hours(24);
+    /// assert_eq!(d.total_days(), 1);
+    /// ```
     #[inline]
     pub fn hours(hours: i64) -> Self {
         Self {
@@ -401,6 +633,14 @@ impl Duration {
     }
 
     /// Create from days.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::days(2);
+    /// assert_eq!(d.total_hours(), 48);
+    /// ```
     #[inline]
     pub fn days(days: i64) -> Self {
         Self {
@@ -409,48 +649,112 @@ impl Duration {
     }
 
     /// Zero duration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::zero();
+    /// assert_eq!(d.total_nanos(), 0);
+    /// ```
     #[inline]
     pub fn zero() -> Self {
         Self { nanos: 0 }
     }
 
     /// Total nanoseconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::nanoseconds(500);
+    /// assert_eq!(d.total_nanos(), 500);
+    /// ```
     #[inline]
     pub fn total_nanos(&self) -> i64 {
         self.nanos
     }
 
     /// Total seconds (truncated).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::seconds(90);
+    /// assert_eq!(d.total_seconds(), 90);
+    /// ```
     #[inline]
     pub fn total_seconds(&self) -> i64 {
         self.nanos / NANOS_PER_SEC
     }
 
     /// Total milliseconds (truncated).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::seconds(2);
+    /// assert_eq!(d.total_millis(), 2000);
+    /// ```
     #[inline]
     pub fn total_millis(&self) -> i64 {
         self.nanos / NANOS_PER_MILLI
     }
 
     /// Total minutes (truncated).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::minutes(3);
+    /// assert_eq!(d.total_minutes(), 3);
+    /// ```
     #[inline]
     pub fn total_minutes(&self) -> i64 {
         self.nanos / NANOS_PER_MIN
     }
 
     /// Total hours (truncated).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::hours(2);
+    /// assert_eq!(d.total_hours(), 2);
+    /// ```
     #[inline]
     pub fn total_hours(&self) -> i64 {
         self.nanos / NANOS_PER_HOUR
     }
 
     /// Total days (truncated).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::days(7);
+    /// assert_eq!(d.total_days(), 7);
+    /// ```
     #[inline]
     pub fn total_days(&self) -> i64 {
         self.nanos / NANOS_PER_DAY
     }
 
     /// Absolute value of this duration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::Duration;
+    /// let d = Duration::seconds(-90);
+    /// assert_eq!(d.abs().total_seconds(), 90);
+    /// ```
     pub fn abs(&self) -> Self {
         Self {
             nanos: self.nanos.abs(),
@@ -488,6 +792,15 @@ pub struct DateTimeSeries {
 
 impl DateTimeSeries {
     /// Create a new datetime series from a vector of `DateTime` values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let dates = vec![DateTime::from_ymd(2024, 1, 1).unwrap()];
+    /// let s = DateTimeSeries::new("dt", dates);
+    /// assert_eq!(s.len(), 1);
+    /// ```
     pub fn new(name: impl Into<String>, data: Vec<DateTime>) -> Self {
         Self {
             name: name.into(),
@@ -497,6 +810,14 @@ impl DateTimeSeries {
     }
 
     /// Create from epoch-second timestamps.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::from_timestamps("ts", &[0, 86400]);
+    /// assert_eq!(s.len(), 2);
+    /// ```
     pub fn from_timestamps(name: impl Into<String>, timestamps: &[i64]) -> Self {
         Self::new(
             name,
@@ -505,6 +826,15 @@ impl DateTimeSeries {
     }
 
     /// Create from epoch-millisecond timestamps.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::from_millis("ts", &[0, 86_400_000]);
+    /// assert_eq!(s.len(), 2);
+    /// assert_eq!(s.get(1).unwrap().day(), 2);
+    /// ```
     pub fn from_millis(name: impl Into<String>, millis: &[i64]) -> Self {
         Self::new(
             name,
@@ -515,6 +845,15 @@ impl DateTimeSeries {
     /// Parse from string slices in ISO 8601 format.
     ///
     /// Values that fail to parse become null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::parse("dates", &["2024-01-01", "invalid"]);
+    /// assert!(!s.is_null_at(0));
+    /// assert!(s.is_null_at(1));
+    /// ```
     pub fn parse(name: impl Into<String>, values: &[&str]) -> Self {
         let mut data = Vec::with_capacity(values.len());
         let mut nulls = Vec::with_capacity(values.len());
@@ -537,6 +876,17 @@ impl DateTimeSeries {
     }
 
     /// Create with explicit null positions.
+    ///
+    /// `null_mask[i] = true` means element `i` is null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let dates = vec![DateTime::from_ymd(2024, 1, 1).unwrap(), DateTime::epoch()];
+    /// let s = DateTimeSeries::with_nulls("dt", dates, vec![false, true]).unwrap();
+    /// assert_eq!(s.null_count(), 1);
+    /// ```
     pub fn with_nulls(
         name: impl Into<String>,
         data: Vec<DateTime>,
@@ -556,6 +906,16 @@ impl DateTimeSeries {
     }
 
     /// Generate a date range from start to end (inclusive) with a step duration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries, Duration};
+    /// let start = DateTime::from_ymd(2024, 1, 1).unwrap();
+    /// let end = DateTime::from_ymd(2024, 1, 5).unwrap();
+    /// let s = DateTimeSeries::date_range("r", start, end, Duration::days(1)).unwrap();
+    /// assert_eq!(s.len(), 5);
+    /// ```
     pub fn date_range(
         name: impl Into<String>,
         start: DateTime,
@@ -586,24 +946,59 @@ impl DateTimeSeries {
     // -- Accessors ----------------------------------------------------------
 
     /// Column name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::from_timestamps("events", &[0]);
+    /// assert_eq!(s.name(), "events");
+    /// ```
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Number of elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::from_timestamps("ts", &[0, 1, 2]);
+    /// assert_eq!(s.len(), 3);
+    /// ```
     #[inline]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
     /// Whether the series is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::from_timestamps("ts", &[]);
+    /// assert!(s.is_empty());
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
     /// Get the element at `index`.
+    ///
+    /// Returns `None` if the index is out of bounds or the element is null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::from_timestamps("ts", &[0]);
+    /// assert_eq!(s.get(0), Some(&DateTime::epoch()));
+    /// assert!(s.get(1).is_none());
+    /// ```
     pub fn get(&self, index: usize) -> Option<&DateTime> {
         if index >= self.data.len() || self.is_null_at(index) {
             return None;
@@ -612,6 +1007,15 @@ impl DateTimeSeries {
     }
 
     /// Whether the element at `index` is null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::parse("dt", &["2024-01-01", "bad"]);
+    /// assert!(!s.is_null_at(0));
+    /// assert!(s.is_null_at(1));
+    /// ```
     #[inline]
     pub fn is_null_at(&self, index: usize) -> bool {
         self.null_mask
@@ -620,6 +1024,14 @@ impl DateTimeSeries {
     }
 
     /// Number of null entries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let s = DateTimeSeries::parse("dt", &["2024-01-01", "bad", "also-bad"]);
+    /// assert_eq!(s.null_count(), 2);
+    /// ```
     pub fn null_count(&self) -> usize {
         self.null_mask
             .as_ref()
@@ -627,11 +1039,28 @@ impl DateTimeSeries {
     }
 
     /// Rename in place.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::DateTimeSeries;
+    /// let mut s = DateTimeSeries::from_timestamps("old", &[0]);
+    /// s.rename("new");
+    /// assert_eq!(s.name(), "new");
+    /// ```
     pub fn rename(&mut self, name: impl Into<String>) {
         self.name = name.into();
     }
 
     /// Underlying data as a slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::from_timestamps("ts", &[0]);
+    /// assert_eq!(s.as_slice(), &[DateTime::epoch()]);
+    /// ```
     pub fn as_slice(&self) -> &[DateTime] {
         &self.data
     }
@@ -639,36 +1068,93 @@ impl DateTimeSeries {
     // -- Component extraction (vectorized) ----------------------------------
 
     /// Extract year from each element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd(2024, 6, 1).unwrap()]);
+    /// assert_eq!(s.year(), vec![Some(2024)]);
+    /// ```
     pub fn year(&self) -> Vec<Option<i32>> {
         self.map_component(DateTime::year)
     }
 
     /// Extract month (1–12) from each element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd(2024, 6, 1).unwrap()]);
+    /// assert_eq!(s.month(), vec![Some(6)]);
+    /// ```
     pub fn month(&self) -> Vec<Option<u32>> {
         self.map_component(DateTime::month)
     }
 
     /// Extract day-of-month (1–31) from each element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd(2024, 6, 15).unwrap()]);
+    /// assert_eq!(s.day(), vec![Some(15)]);
+    /// ```
     pub fn day(&self) -> Vec<Option<u32>> {
         self.map_component(DateTime::day)
     }
 
     /// Extract hour (0–23) from each element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd_hms(2024, 1, 1, 9, 0, 0).unwrap()]);
+    /// assert_eq!(s.hour(), vec![Some(9)]);
+    /// ```
     pub fn hour(&self) -> Vec<Option<u32>> {
         self.map_component(DateTime::hour)
     }
 
     /// Extract minute (0–59) from each element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd_hms(2024, 1, 1, 0, 30, 0).unwrap()]);
+    /// assert_eq!(s.minute(), vec![Some(30)]);
+    /// ```
     pub fn minute(&self) -> Vec<Option<u32>> {
         self.map_component(DateTime::minute)
     }
 
     /// Extract second (0–59) from each element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd_hms(2024, 1, 1, 0, 0, 45).unwrap()]);
+    /// assert_eq!(s.second(), vec![Some(45)]);
+    /// ```
     pub fn second(&self) -> Vec<Option<u32>> {
         self.map_component(DateTime::second)
     }
 
     /// Extract weekday (0=Monday, 6=Sunday) from each element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// // 1970-01-01 was a Thursday (3)
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::epoch()]);
+    /// assert_eq!(s.weekday(), vec![Some(3)]);
+    /// ```
     pub fn weekday(&self) -> Vec<Option<u32>> {
         self.map_component(DateTime::weekday)
     }
@@ -689,6 +1175,15 @@ impl DateTimeSeries {
     // -- Arithmetic ---------------------------------------------------------
 
     /// Add a duration to every element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries, Duration};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd(2024, 1, 1).unwrap()]);
+    /// let shifted = s.add_duration(Duration::days(10));
+    /// assert_eq!(shifted.get(0).unwrap().day(), 11);
+    /// ```
     pub fn add_duration(&self, dur: Duration) -> Self {
         Self {
             name: self.name.clone(),
@@ -698,6 +1193,15 @@ impl DateTimeSeries {
     }
 
     /// Subtract a duration from every element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries, Duration};
+    /// let s = DateTimeSeries::new("dt", vec![DateTime::from_ymd(2024, 1, 11).unwrap()]);
+    /// let shifted = s.sub_duration(Duration::days(10));
+    /// assert_eq!(shifted.get(0).unwrap().day(), 1);
+    /// ```
     pub fn sub_duration(&self, dur: Duration) -> Self {
         Self {
             name: self.name.clone(),
@@ -707,6 +1211,17 @@ impl DateTimeSeries {
     }
 
     /// Compute the minimum timestamp (ignoring nulls).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![
+    ///     DateTime::from_ymd(2024, 3, 1).unwrap(),
+    ///     DateTime::from_ymd(2024, 1, 1).unwrap(),
+    /// ]);
+    /// assert_eq!(s.min().unwrap().month(), 1);
+    /// ```
     pub fn min(&self) -> Option<DateTime> {
         self.data
             .iter()
@@ -717,6 +1232,17 @@ impl DateTimeSeries {
     }
 
     /// Compute the maximum timestamp (ignoring nulls).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::datetime::{DateTime, DateTimeSeries};
+    /// let s = DateTimeSeries::new("dt", vec![
+    ///     DateTime::from_ymd(2024, 1, 1).unwrap(),
+    ///     DateTime::from_ymd(2024, 12, 31).unwrap(),
+    /// ]);
+    /// assert_eq!(s.max().unwrap().month(), 12);
+    /// ```
     pub fn max(&self) -> Option<DateTime> {
         self.data
             .iter()

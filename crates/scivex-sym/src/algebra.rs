@@ -4,6 +4,23 @@ use crate::simplify::simplify;
 /// Expand products over sums: `a * (b + c)` → `a*b + a*c`.
 ///
 /// Recursively expands all sub-expressions and simplifies the result.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::expr::{Expr, var, constant};
+/// # use scivex_sym::algebra::expand;
+/// # use std::collections::HashMap;
+/// // a * (b + c) → a*b + a*c
+/// let e = var("a") * (var("b") + var("c"));
+/// let expanded = expand(&e);
+/// let vars = HashMap::from([
+///     ("a".to_string(), 2.0),
+///     ("b".to_string(), 3.0),
+///     ("c".to_string(), 4.0),
+/// ]);
+/// assert!((expanded.eval(&vars).unwrap() - 14.0).abs() < 1e-10);
+/// ```
 #[must_use]
 pub fn expand(expr: &Expr) -> Expr {
     let expanded = expand_inner(expr);
@@ -78,6 +95,19 @@ fn distribute(a: Expr, b: Expr) -> Expr {
 /// Given `term*a + term*b`, returns `term * (a + b)`.
 /// If the term cannot be factored from every addend, the expression is
 /// returned unchanged.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_sym::expr::{var, constant};
+/// # use scivex_sym::algebra::factor_out;
+/// # use std::collections::HashMap;
+/// // 2*x + 2*y → 2*(x + y)
+/// let expr = constant(2.0) * var("x") + constant(2.0) * var("y");
+/// let factored = factor_out(&expr, &constant(2.0));
+/// let vars = HashMap::from([("x".to_string(), 3.0), ("y".to_string(), 4.0)]);
+/// assert!((factored.eval(&vars).unwrap() - 14.0).abs() < 1e-10);
+/// ```
 #[must_use]
 pub fn factor_out(expr: &Expr, term: &Expr) -> Expr {
     let addends = collect_addends(expr);

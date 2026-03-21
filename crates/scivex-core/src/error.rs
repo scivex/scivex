@@ -1,6 +1,14 @@
 use core::fmt;
 
 /// All errors returned by `scivex-core`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::error::CoreError;
+/// let e = CoreError::SingularMatrix;
+/// assert_eq!(format!("{e}"), "singular matrix");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -71,4 +79,15 @@ impl fmt::Display for CoreError {
 impl std::error::Error for CoreError {}
 
 /// Convenience alias used throughout `scivex-core`.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_core::error::{CoreError, Result};
+/// fn check(ok: bool) -> Result<i32> {
+///     if ok { Ok(42) } else { Err(CoreError::SingularMatrix) }
+/// }
+/// assert_eq!(check(true).unwrap(), 42);
+/// assert!(check(false).is_err());
+/// ```
 pub type Result<T> = std::result::Result<T, CoreError>;

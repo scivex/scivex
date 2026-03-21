@@ -84,6 +84,18 @@ impl<T: Float> Bicubic2d<T> {
     }
 
     /// Evaluate at a single `(x, y)` point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Bicubic2d, Extrapolate};
+    /// let xs = vec![0.0_f64, 1.0, 2.0];
+    /// let ys = vec![0.0, 1.0, 2.0];
+    /// let zs = vec![vec![0.0, 0.0, 0.0], vec![0.0, 1.0, 2.0], vec![0.0, 2.0, 4.0]];
+    /// let interp = Bicubic2d::new(xs, ys, &zs, Extrapolate::Error).unwrap();
+    /// let z = interp.eval(1.0, 1.0).unwrap();
+    /// assert!((z - 1.0).abs() < 1e-10);
+    /// ```
     pub fn eval(&self, x: T, y: T) -> Result<T> {
         let (ix, xq) = find_interval(&self.xs, x, self.extrap)?;
         let (iy, yq) = find_interval(&self.ys, y, self.extrap)?;
@@ -111,6 +123,18 @@ impl<T: Float> Bicubic2d<T> {
     }
 
     /// Evaluate at many points.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{Bicubic2d, Extrapolate};
+    /// let xs = vec![0.0_f64, 1.0, 2.0];
+    /// let ys = vec![0.0, 1.0, 2.0];
+    /// let zs = vec![vec![0.0, 0.0, 0.0], vec![0.0, 1.0, 2.0], vec![0.0, 2.0, 4.0]];
+    /// let interp = Bicubic2d::new(xs, ys, &zs, Extrapolate::Error).unwrap();
+    /// let vals = interp.eval_many(&[(0.0, 0.0), (2.0, 2.0)]).unwrap();
+    /// assert_eq!(vals.len(), 2);
+    /// ```
     pub fn eval_many(&self, points: &[(T, T)]) -> Result<Vec<T>> {
         points.iter().map(|&(x, y)| self.eval(x, y)).collect()
     }

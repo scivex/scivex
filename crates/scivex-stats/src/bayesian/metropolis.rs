@@ -8,6 +8,17 @@ use crate::error::{Result, StatsError};
 use super::{McmcConfig, McmcResult};
 
 /// Random-walk Metropolis-Hastings sampler.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::{MetropolisHastings, McmcConfig};
+/// let mh = MetropolisHastings::new(vec![1.0_f64]);
+/// let log_prob = |x: &[f64]| -> f64 { -0.5 * x[0] * x[0] };
+/// let cfg = McmcConfig::new(100, 50, 42, 1);
+/// let result = mh.sample(log_prob, &[0.0], &cfg).unwrap();
+/// assert_eq!(result.samples[0].len(), 100);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -20,6 +31,13 @@ pub struct MetropolisHastings<T: Float> {
 
 impl<T: Float> MetropolisHastings<T> {
     /// Create a new MH sampler with the given proposal scales.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::MetropolisHastings;
+    /// let mh = MetropolisHastings::new(vec![0.5_f64, 1.0]);
+    /// ```
     pub fn new(proposal_scale: Vec<T>) -> Self {
         Self { proposal_scale }
     }
@@ -29,6 +47,17 @@ impl<T: Float> MetropolisHastings<T> {
     /// - `log_prob`: function returning the (unnormalised) log-probability.
     /// - `initial`: starting parameter values.
     /// - `config`: MCMC configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::{MetropolisHastings, McmcConfig};
+    /// let mh = MetropolisHastings::new(vec![1.0_f64]);
+    /// let log_prob = |x: &[f64]| -> f64 { -0.5 * x[0] * x[0] };
+    /// let cfg = McmcConfig::new(100, 50, 42, 1);
+    /// let result = mh.sample(log_prob, &[0.0], &cfg).unwrap();
+    /// assert!(result.acceptance_rate[0] > 0.0);
+    /// ```
     pub fn sample<F>(
         &self,
         log_prob: F,

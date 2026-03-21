@@ -1,4 +1,12 @@
 /// Padding around a region.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::layout::Padding;
+/// let p = Padding::default();
+/// assert!(p.top > 0.0_f64);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -27,6 +35,14 @@ impl Default for Padding {
 }
 
 /// A simple bounding rectangle.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::layout::Rect;
+/// let r = Rect { x: 10.0_f64, y: 20.0_f64, w: 200.0_f64, h: 150.0_f64 };
+/// assert!(r.w > 0.0_f64);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -43,11 +59,20 @@ pub struct Rect {
     pub h: f64,
 }
 
+/// Grid layout for placing multiple axes inside a figure.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::layout::Layout;
+/// let l = Layout::grid(2, 3);
+/// assert_eq!(l.rows, 2);
+/// assert_eq!(l.cols, 3);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-/// Grid layout for placing multiple axes inside a figure.
 #[derive(Debug, Clone)]
 pub struct Layout {
     /// Number of rows in the grid.
@@ -66,6 +91,15 @@ pub struct Layout {
 
 impl Layout {
     /// A single-cell layout (1 row, 1 column).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::layout::Layout;
+    /// let l = Layout::single();
+    /// assert_eq!(l.rows, 1);
+    /// assert_eq!(l.cols, 1);
+    /// ```
     #[must_use]
     pub fn single() -> Self {
         Self {
@@ -79,6 +113,14 @@ impl Layout {
     }
 
     /// A grid layout with the given number of rows and columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::layout::Layout;
+    /// let l = Layout::grid(3, 4);
+    /// assert_eq!(l.rows, 3);
+    /// ```
     #[must_use]
     pub fn grid(rows: usize, cols: usize) -> Self {
         Self {
@@ -95,6 +137,15 @@ impl Layout {
     ///
     /// Weights are relative — `vec![1.0, 3.0]` gives the second row 3× the
     /// height of the first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::layout::Layout;
+    /// let l = Layout::weighted_grid(vec![1.0_f64, 3.0_f64], vec![2.0_f64, 1.0_f64]);
+    /// assert_eq!(l.rows, 2);
+    /// assert_eq!(l.cols, 2);
+    /// ```
     #[must_use]
     pub fn weighted_grid(row_weights: Vec<f64>, col_weights: Vec<f64>) -> Self {
         Self {
@@ -109,6 +160,16 @@ impl Layout {
 
     /// Compute the pixel bounds for the cell at `(row, col)` within a figure
     /// of the given `width` and `height`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::layout::Layout;
+    /// let l = Layout::single();
+    /// let r = l.cell_bounds(0, 0, 800.0_f64, 600.0_f64);
+    /// assert!(r.w > 0.0_f64);
+    /// assert!(r.h > 0.0_f64);
+    /// ```
     #[must_use]
     pub fn cell_bounds(&self, row: usize, col: usize, width: f64, height: f64) -> Rect {
         let usable_w = width - self.padding.left - self.padding.right;

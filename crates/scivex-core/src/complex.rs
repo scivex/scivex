@@ -13,6 +13,14 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAss
 // ---------------------------------------------------------------------------
 
 /// A complex number with real and imaginary parts of type `T`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::complex::Complex;
+/// let z = Complex::new(3.0_f64, 4.0);
+/// assert_eq!(z.norm(), 5.0);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Complex<T> {
     /// Real part.
@@ -27,18 +35,44 @@ pub struct Complex<T> {
 
 impl<T: Float> Complex<T> {
     /// Create a new complex number from real and imaginary parts.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// let z = Complex::new(1.0_f64, 2.0);
+    /// assert_eq!(z.re, 1.0);
+    /// assert_eq!(z.im, 2.0);
+    /// ```
     #[inline]
     pub fn new(re: T, im: T) -> Self {
         Self { re, im }
     }
 
     /// Create a complex number from a real value (imaginary part is zero).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// let z = Complex::from_real(3.0_f64);
+    /// assert_eq!(z.im, 0.0);
+    /// ```
     #[inline]
     pub fn from_real(re: T) -> Self {
         Self { re, im: T::zero() }
     }
 
     /// Create a complex number from polar form: `r * (cos(theta) + i*sin(theta))`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// let z = Complex::from_polar(1.0_f64, 0.0_f64);
+    /// assert!((z.re - 1.0).abs() < 1e-15);
+    /// assert!(z.im.abs() < 1e-15);
+    /// ```
     #[inline]
     pub fn from_polar(r: T, theta: T) -> Self {
         Self {
@@ -48,6 +82,16 @@ impl<T: Float> Complex<T> {
     }
 
     /// Complex conjugate: flips the sign of the imaginary part.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// let z = Complex::new(3.0_f64, 4.0);
+    /// let c = z.conj();
+    /// assert_eq!(c.re, 3.0);
+    /// assert_eq!(c.im, -4.0);
+    /// ```
     #[inline]
     pub fn conj(self) -> Self {
         Self {
@@ -57,6 +101,14 @@ impl<T: Float> Complex<T> {
     }
 
     /// Squared modulus: `re² + im²`. Avoids the `sqrt` in [`norm`](Self::norm).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// let z = Complex::new(3.0_f64, 4.0);
+    /// assert_eq!(z.norm_sqr(), 25.0);
+    /// ```
     #[inline]
     pub fn norm_sqr(self) -> T {
         self.re * self.re + self.im * self.im
@@ -69,6 +121,15 @@ impl<T: Float> Complex<T> {
     }
 
     /// Phase angle (argument): `atan2(im, re)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// let z = Complex::new(0.0_f64, 1.0); // i
+    /// let angle = z.arg();
+    /// assert!((angle - std::f64::consts::FRAC_PI_2).abs() < 1e-10);
+    /// ```
     #[inline]
     pub fn arg(self) -> T {
         // atan2 is not on Float trait; compute via the identity:
@@ -79,6 +140,17 @@ impl<T: Float> Complex<T> {
     }
 
     /// Complex exponential: `e^(a+bi) = e^a * (cos b + i sin b)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// // e^0 = 1
+    /// let z = Complex::new(0.0_f64, 0.0);
+    /// let e = z.exp();
+    /// assert!((e.re - 1.0).abs() < 1e-15);
+    /// assert!(e.im.abs() < 1e-15);
+    /// ```
     #[inline]
     pub fn exp(self) -> Self {
         let ea = self.re.exp();
@@ -89,6 +161,17 @@ impl<T: Float> Complex<T> {
     }
 
     /// Complex natural logarithm: `ln|z| + i*arg(z)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// // ln(1) = 0
+    /// let z = Complex::new(1.0_f64, 0.0);
+    /// let l = z.ln();
+    /// assert!(l.re.abs() < 1e-15);
+    /// assert!(l.im.abs() < 1e-15);
+    /// ```
     #[inline]
     pub fn ln(self) -> Self {
         Self {
@@ -111,6 +194,17 @@ impl<T: Float> Complex<T> {
     }
 
     /// Complex power: `z^n = e^(n * ln(z))`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// // (1+0i)^5 = 1
+    /// let z = Complex::new(1.0_f64, 0.0);
+    /// let p = z.pow(5.0_f64);
+    /// assert!((p.re - 1.0).abs() < 1e-10);
+    /// assert!(p.im.abs() < 1e-10);
+    /// ```
     #[inline]
     pub fn pow(self, n: T) -> Self {
         let ln_z = self.ln();
@@ -122,12 +216,28 @@ impl<T: Float> Complex<T> {
     }
 
     /// Returns `true` if both real and imaginary parts are finite.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// assert!(Complex::new(1.0_f64, 2.0).is_finite());
+    /// assert!(!Complex::new(f64::INFINITY, 0.0).is_finite());
+    /// ```
     #[inline]
     pub fn is_finite(self) -> bool {
         self.re.is_finite() && self.im.is_finite()
     }
 
     /// Returns `true` if either part is NaN.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// assert!(!Complex::new(1.0_f64, 2.0).is_nan());
+    /// assert!(Complex::new(f64::NAN, 0.0).is_nan());
+    /// ```
     #[inline]
     pub fn is_nan(self) -> bool {
         self.re.is_nan() || self.im.is_nan()
@@ -140,6 +250,15 @@ impl<T: Float> Complex<T> {
 
 impl<T: Float> Complex<T> {
     /// The imaginary unit `i`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::complex::Complex;
+    /// let i = Complex::<f64>::i();
+    /// assert_eq!(i.re, 0.0);
+    /// assert_eq!(i.im, 1.0);
+    /// ```
     #[inline]
     pub fn i() -> Self {
         Self {
@@ -363,6 +482,17 @@ impl<T: Float> Scalar for Complex<T> {
 /// Convert interleaved real data `[re0, im0, re1, im1, ...]` to a `Vec<Complex<T>>`.
 ///
 /// The input slice length must be even. If it is odd the last element is ignored.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::complex::{Complex, from_interleaved};
+/// let data = [1.0_f64, 2.0, 3.0, 4.0];
+/// let v = from_interleaved(&data);
+/// assert_eq!(v.len(), 2);
+/// assert_eq!(v[0], Complex::new(1.0, 2.0));
+/// assert_eq!(v[1], Complex::new(3.0, 4.0));
+/// ```
 pub fn from_interleaved<T: Float>(data: &[T]) -> Vec<Complex<T>> {
     let n = data.len() / 2;
     let mut out = Vec::with_capacity(n);
@@ -373,6 +503,15 @@ pub fn from_interleaved<T: Float>(data: &[T]) -> Vec<Complex<T>> {
 }
 
 /// Convert a slice of `Complex<T>` to interleaved real data `[re0, im0, re1, im1, ...]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::complex::{Complex, to_interleaved};
+/// let v = vec![Complex::new(1.0_f64, 2.0), Complex::new(3.0, 4.0)];
+/// let flat = to_interleaved(&v);
+/// assert_eq!(flat, vec![1.0_f64, 2.0, 3.0, 4.0]);
+/// ```
 pub fn to_interleaved<T: Float>(data: &[Complex<T>]) -> Vec<T> {
     let mut out = Vec::with_capacity(data.len() * 2);
     for c in data {

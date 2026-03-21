@@ -7,6 +7,14 @@ pub fn stopwords() -> &'static [&'static str] {
 }
 
 /// Returns `true` if `word` (lowercased) is an English stopword.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::text::is_stopword;
+/// assert!(is_stopword("the"));
+/// assert!(!is_stopword("science"));
+/// ```
 #[must_use]
 pub fn is_stopword(word: &str) -> bool {
     let lower = word.to_lowercase();
@@ -29,6 +37,15 @@ pub fn remove_stopwords<'a>(tokens: &[&'a str]) -> Vec<&'a str> {
 /// Produce word-level n-grams from a token list.
 ///
 /// Returns a vector of n-gram groups, each group being a `Vec` of `n` tokens.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::text::ngrams;
+/// let tokens = vec!["the", "cat", "sat"];
+/// let bigrams = ngrams(&tokens, 2);
+/// assert_eq!(bigrams, vec![vec!["the", "cat"], vec!["cat", "sat"]]);
+/// ```
 #[must_use]
 pub fn ngrams<'a>(tokens: &[&'a str], n: usize) -> Vec<Vec<&'a str>> {
     if n == 0 || tokens.len() < n {
@@ -41,6 +58,14 @@ pub fn ngrams<'a>(tokens: &[&'a str], n: usize) -> Vec<Vec<&'a str>> {
 
 /// Compute the Levenshtein edit distance between two strings
 /// using the Wagner-Fischer algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::text::levenshtein;
+/// assert_eq!(levenshtein("kitten", "sitting"), 3);
+/// assert_eq!(levenshtein("", "abc"), 3);
+/// ```
 #[must_use]
 pub fn levenshtein(a: &str, b: &str) -> usize {
     let a_chars: Vec<char> = a.chars().collect();
@@ -72,6 +97,13 @@ pub fn levenshtein(a: &str, b: &str) -> usize {
 }
 
 /// Lowercase and strip non-alphanumeric characters (keep spaces).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::text::normalize;
+/// assert_eq!(normalize("Hello, World!"), "hello world");
+/// ```
 #[must_use]
 pub fn normalize(text: &str) -> String {
     text.chars()
@@ -91,6 +123,16 @@ pub fn normalize(text: &str) -> String {
 ///
 /// Sequences shorter than `max_len` are right-padded with `pad_value`.
 /// Sequences longer than `max_len` are truncated.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::text::pad_sequences;
+/// let seqs = vec![vec![1, 2], vec![3, 4, 5, 6]];
+/// let padded = pad_sequences(&seqs, 3, 0);
+/// assert_eq!(padded[0], vec![1, 2, 0]);
+/// assert_eq!(padded[1], vec![3, 4, 5]);
+/// ```
 #[must_use]
 pub fn pad_sequences(
     sequences: &[Vec<usize>],

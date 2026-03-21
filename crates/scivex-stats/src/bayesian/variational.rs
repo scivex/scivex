@@ -28,6 +28,14 @@ fn normal_sample<T: Float>(state: &mut u64) -> T {
 // ---------------------------------------------------------------------------
 
 /// A fully factorized (mean-field) Gaussian variational distribution.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::VariationalDistribution;
+/// let q = VariationalDistribution::<f64>::new(3);
+/// assert_eq!(q.means.len(), 3);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -43,6 +51,14 @@ pub struct VariationalDistribution<T: Float> {
 impl<T: Float> VariationalDistribution<T> {
     /// Create a new variational distribution with `n_params` parameters,
     /// initialised to means = 0 and log_stds = 0 (i.e. σ = 1).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::VariationalDistribution;
+    /// let q = VariationalDistribution::<f64>::new(2);
+    /// assert_eq!(q.log_stds.len(), 2);
+    /// ```
     pub fn new(n_params: usize) -> Self {
         Self {
             means: vec![T::zero(); n_params],
@@ -51,6 +67,16 @@ impl<T: Float> VariationalDistribution<T> {
     }
 
     /// Draw a single sample from q(θ) = N(μ, diag(σ²)) using the reparameterisation trick.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::VariationalDistribution;
+    /// let q = VariationalDistribution::<f64>::new(2);
+    /// let mut rng = 42u64;
+    /// let s = q.sample(&mut rng);
+    /// assert_eq!(s.len(), 2);
+    /// ```
     pub fn sample(&self, rng_state: &mut u64) -> Vec<T> {
         self.means
             .iter()
@@ -63,6 +89,15 @@ impl<T: Float> VariationalDistribution<T> {
     }
 
     /// Entropy of the factorized Gaussian: Σ (0.5 * ln(2πe) + log_std).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::VariationalDistribution;
+    /// let q = VariationalDistribution::<f64>::new(1);
+    /// let h = q.entropy();
+    /// assert!(h > 0.0);
+    /// ```
     pub fn entropy(&self) -> T {
         // H = Σ_i [0.5 * ln(2πe) + log_σ_i]
         // 0.5 * ln(2πe) ≈ 1.4189385332
@@ -90,6 +125,15 @@ impl<T: Float> VariationalDistribution<T> {
 }
 
 /// Configuration for variational inference.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::ViConfig;
+/// let cfg = ViConfig::<f64>::new(3);
+/// assert_eq!(cfg.n_params, 3);
+/// assert_eq!(cfg.max_iter, 1000);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -112,6 +156,14 @@ pub struct ViConfig<T: Float> {
 
 impl<T: Float> ViConfig<T> {
     /// Create a configuration with sensible defaults.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::ViConfig;
+    /// let cfg = ViConfig::<f64>::new(2);
+    /// assert_eq!(cfg.n_samples, 10);
+    /// ```
     pub fn new(n_params: usize) -> Self {
         Self {
             n_params,
@@ -125,6 +177,15 @@ impl<T: Float> ViConfig<T> {
 }
 
 /// Result of variational inference.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::{cavi_gaussian, ViResult};
+/// let data = vec![5.0_f64, 5.1, 4.9, 5.0, 5.2];
+/// let result = cavi_gaussian(&data, 0.0, 100.0, 1.0, 10).unwrap();
+/// assert!(result.converged);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -164,6 +225,17 @@ pub struct ViResult<T: Float> {
 ///    f. Compute ELBO estimate = E[log_joint(θ)] + entropy(q).
 ///    g. Check convergence: |ELBO_new − ELBO_old| < tol.
 /// 3. Return means, exp(log_stds), ELBO history.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::{mean_field_vi, ViConfig};
+/// let log_joint = |x: &[f64]| -> f64 { -0.5 * (x[0] - 3.0) * (x[0] - 3.0) };
+/// let mut cfg = ViConfig::<f64>::new(1);
+/// cfg.max_iter = 100;
+/// let result = mean_field_vi(log_joint, &cfg).unwrap();
+/// assert_eq!(result.means.len(), 1);
+/// ```
 pub fn mean_field_vi<T, F>(log_joint: F, config: &ViConfig<T>) -> Result<ViResult<T>>
 where
     T: Float,
@@ -268,6 +340,15 @@ where
 ///
 /// This converges in one iteration (the posterior is exact), but iterates
 /// for demonstration of the CAVI procedure.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::cavi_gaussian;
+/// let data = vec![5.0_f64, 5.1, 4.9, 5.0, 5.2];
+/// let result = cavi_gaussian(&data, 0.0, 100.0, 1.0, 10).unwrap();
+/// assert!((result.means[0] - 5.04).abs() < 0.1);
+/// ```
 pub fn cavi_gaussian<T: Float>(
     data: &[T],
     prior_mean: T,

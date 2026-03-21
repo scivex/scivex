@@ -7,6 +7,16 @@ use crate::image::{Image, PixelFormat};
 /// `0.299*R + 0.587*G + 0.114*B`.
 ///
 /// Alpha channels are dropped.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::color;
+/// let img = Image::from_raw(vec![255u8, 255, 255], 1, 1, PixelFormat::Rgb).unwrap();
+/// let gray = color::to_grayscale(&img).unwrap();
+/// assert_eq!(gray.format(), PixelFormat::Gray);
+/// ```
 pub fn to_grayscale<T: Scalar>(img: &Image<T>) -> Result<Image<T>> {
     match img.format() {
         PixelFormat::Gray | PixelFormat::GrayAlpha => {
@@ -52,6 +62,16 @@ fn luminosity<T: Scalar>(r: T, g: T, b: T) -> T {
 }
 
 /// Convert a grayscale image to RGB by triplicating the channel.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::color;
+/// let img = Image::from_raw(vec![100u8], 1, 1, PixelFormat::Gray).unwrap();
+/// let rgb = color::to_rgb(&img).unwrap();
+/// assert_eq!(rgb.get_pixel(0, 0).unwrap(), vec![100, 100, 100]);
+/// ```
 pub fn to_rgb<T: Scalar>(img: &Image<T>) -> Result<Image<T>> {
     match img.format() {
         PixelFormat::Rgb => Ok(img.clone()),
@@ -86,6 +106,16 @@ pub fn to_rgb<T: Scalar>(img: &Image<T>) -> Result<Image<T>> {
 /// Convert an RGB `f32` image (values in `[0,1]`) to HSV.
 ///
 /// Output channels: H in `[0,1]` (representing 0-360), S in `[0,1]`, V in `[0,1]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::color;
+/// let img = Image::from_raw(vec![1.0f32, 0.0, 0.0], 1, 1, PixelFormat::Rgb).unwrap();
+/// let hsv = color::rgb_to_hsv(&img).unwrap();
+/// assert!((hsv.get_pixel(0, 0).unwrap()[2] - 1.0).abs() < 1e-6); // V=1
+/// ```
 pub fn rgb_to_hsv(img: &Image<f32>) -> Result<Image<f32>> {
     if img.format() != PixelFormat::Rgb {
         return Err(ImageError::UnsupportedChannels {
@@ -137,6 +167,17 @@ pub fn rgb_to_hsv(img: &Image<f32>) -> Result<Image<f32>> {
 /// Convert an HSV `f32` image back to RGB.
 ///
 /// Input channels: H in `[0,1]`, S in `[0,1]`, V in `[0,1]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::color;
+/// let rgb = Image::from_raw(vec![0.8f32, 0.2, 0.5], 1, 1, PixelFormat::Rgb).unwrap();
+/// let hsv = color::rgb_to_hsv(&rgb).unwrap();
+/// let back = color::hsv_to_rgb(&hsv).unwrap();
+/// assert!((back.as_slice()[0] - 0.8).abs() < 1e-5);
+/// ```
 pub fn hsv_to_rgb(img: &Image<f32>) -> Result<Image<f32>> {
     if img.format() != PixelFormat::Rgb {
         return Err(ImageError::UnsupportedChannels {
@@ -179,11 +220,31 @@ pub fn hsv_to_rgb(img: &Image<f32>) -> Result<Image<f32>> {
 }
 
 /// Invert pixel values. For `u8`: `255 - val`. For floats: `1.0 - val`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::color;
+/// let img = Image::from_raw(vec![0u8, 128, 255], 1, 1, PixelFormat::Rgb).unwrap();
+/// let inv = color::invert(&img);
+/// assert_eq!(inv.get_pixel(0, 0).unwrap(), vec![255, 127, 0]);
+/// ```
 pub fn invert(img: &Image<u8>) -> Image<u8> {
     img.map_pixels(|v| 255 - v)
 }
 
 /// Invert pixel values for `f32` images: `1.0 - val`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::prelude::*;
+/// # use scivex_image::color;
+/// let img = Image::from_raw(vec![0.0f32, 0.5, 1.0], 1, 1, PixelFormat::Rgb).unwrap();
+/// let inv = color::invert_f32(&img);
+/// assert!((inv.as_slice()[0] - 1.0).abs() < 1e-6);
+/// ```
 pub fn invert_f32(img: &Image<f32>) -> Image<f32> {
     img.map_pixels(|v| 1.0 - v)
 }

@@ -24,6 +24,17 @@ impl<T: Float> RMSprop<T> {
     ///
     /// - `params`: parameters to optimize
     /// - `lr`: learning rate
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::optim::{RMSprop, Optimizer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let x = Variable::new(Tensor::from_vec(vec![1.0_f64], vec![1]).unwrap(), true);
+    /// let mut optim = RMSprop::new(vec![x.clone()], 0.01);
+    /// optim.zero_grad();
+    /// ```
     pub fn new(params: Vec<Variable<T>>, lr: T) -> Self {
         let n = params.len();
         Self {

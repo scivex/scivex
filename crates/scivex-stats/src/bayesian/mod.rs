@@ -13,6 +13,15 @@ pub use variational::{VariationalDistribution, ViConfig, ViResult, cavi_gaussian
 use scivex_core::Float;
 
 /// Configuration for an MCMC sampler.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::McmcConfig;
+/// let cfg = McmcConfig::<f64>::new(1000, 500, 42, 1);
+/// assert_eq!(cfg.n_samples, 1000);
+/// assert_eq!(cfg.n_warmup, 500);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -33,6 +42,14 @@ pub struct McmcConfig<T: Float> {
 
 impl<T: Float> McmcConfig<T> {
     /// Create a new MCMC configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::bayesian::McmcConfig;
+    /// let cfg = McmcConfig::<f64>::new(2000, 1000, 42, 2);
+    /// assert_eq!(cfg.thin, 2);
+    /// ```
     pub fn new(n_samples: usize, n_warmup: usize, seed: u64, thin: usize) -> Self {
         Self {
             n_samples,
@@ -45,6 +62,17 @@ impl<T: Float> McmcConfig<T> {
 }
 
 /// Result of an MCMC run.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::bayesian::{MetropolisHastings, McmcConfig};
+/// let mh = MetropolisHastings::new(vec![1.0_f64]);
+/// let log_prob = |x: &[f64]| -> f64 { -0.5 * x[0] * x[0] };
+/// let cfg = McmcConfig::new(100, 50, 42, 1);
+/// let result = mh.sample(log_prob, &[0.0], &cfg).unwrap();
+/// assert!(!result.samples.is_empty());
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

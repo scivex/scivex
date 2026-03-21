@@ -17,6 +17,14 @@ pub struct Exponential<T: Float> {
 
 impl<T: Float> Exponential<T> {
     /// Create a new exponential distribution with rate `lambda > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Exponential, Distribution};
+    /// let exp = Exponential::new(2.0_f64).unwrap();
+    /// assert!((exp.mean() - 0.5).abs() < 1e-10);
+    /// ```
     pub fn new(lambda: T) -> Result<Self> {
         if lambda <= T::from_f64(0.0) {
             return Err(StatsError::InvalidParameter {

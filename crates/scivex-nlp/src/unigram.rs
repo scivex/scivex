@@ -17,6 +17,15 @@ use crate::error::{NlpError, Result};
 /// The vocabulary is a set of string pieces, each associated with a
 /// log-probability. Tokenization finds the segmentation that maximises the
 /// total log-probability using the Viterbi algorithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::UnigramTokenizer;
+/// let pieces = vec![("<unk>".into(), -10.0), ("h".into(), -1.0), ("he".into(), -0.5)];
+/// let tok = UnigramTokenizer::new(pieces, 0).unwrap();
+/// assert_eq!(tok.vocab_size(), 3);
+/// ```
 #[derive(Debug, Clone)]
 pub struct UnigramTokenizer {
     /// Vocabulary of (piece, log_probability) pairs, indexed by piece id.
@@ -34,6 +43,15 @@ impl UnigramTokenizer {
     ///
     /// Returns [`NlpError::EmptyVocabulary`] if `pieces` is empty.
     /// Returns [`NlpError::InvalidParameter`] if `unk_id` is out of range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::unigram::UnigramTokenizer;
+    /// let pieces = vec![("<unk>".into(), -10.0), ("a".into(), -1.0), ("ab".into(), -0.5)];
+    /// let tok = UnigramTokenizer::new(pieces, 0).unwrap();
+    /// assert_eq!(tok.vocab_size(), 3);
+    /// ```
     pub fn new(pieces: Vec<(String, f64)>, unk_id: usize) -> Result<Self> {
         if pieces.is_empty() {
             return Err(NlpError::EmptyVocabulary);
@@ -62,6 +80,19 @@ impl UnigramTokenizer {
     ///
     /// Returns an error if `words` and `scores` differ in length, either is
     /// empty, or `unk_id` is out of range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::unigram::UnigramTokenizer;
+    /// let tok = UnigramTokenizer::from_vocab(
+    ///     &["<unk>", "a", "b", "ab"],
+    ///     &[-10.0, -1.0, -1.0, -0.5],
+    ///     0,
+    /// ).unwrap();
+    /// let tokens = tok.tokenize_str("ab");
+    /// assert_eq!(tokens, vec!["ab"]); // Viterbi picks highest-score segmentation
+    /// ```
     pub fn from_vocab(words: &[&str], scores: &[f64], unk_id: usize) -> Result<Self> {
         if words.len() != scores.len() {
             return Err(NlpError::InvalidParameter {
@@ -92,6 +123,19 @@ impl UnigramTokenizer {
     /// Returns the segmentation that maximises the sum of log-probabilities.
     /// Characters that cannot be covered by any piece are replaced with the
     /// unknown token.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::unigram::UnigramTokenizer;
+    /// let tok = UnigramTokenizer::from_vocab(
+    ///     &["<unk>", "a", "b", "ab", "c", "abc"],
+    ///     &[-10.0, -1.0, -1.0, -0.5, -1.0, -0.3],
+    ///     0,
+    /// ).unwrap();
+    /// let tokens = tok.tokenize_str("abc");
+    /// assert_eq!(tokens, vec!["abc"]); // best single-piece segmentation
+    /// ```
     #[must_use]
     pub fn tokenize_str(&self, text: &str) -> Vec<String> {
         if text.is_empty() {
@@ -159,6 +203,19 @@ impl UnigramTokenizer {
     }
 
     /// Tokenize `text` and return piece IDs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::unigram::UnigramTokenizer;
+    /// let tok = UnigramTokenizer::from_vocab(
+    ///     &["<unk>", "a", "b", "ab"],
+    ///     &[-10.0, -1.0, -1.0, -0.5],
+    ///     0,
+    /// ).unwrap();
+    /// let ids = tok.encode("ab");
+    /// assert_eq!(ids, vec![3]); // "ab" is piece 3
+    /// ```
     #[must_use]
     pub fn encode(&self, text: &str) -> Vec<usize> {
         let tokens = self.tokenize_str(text);
@@ -178,6 +235,19 @@ impl UnigramTokenizer {
     /// # Errors
     ///
     /// Returns [`NlpError::InvalidParameter`] if any id is out of range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::unigram::UnigramTokenizer;
+    /// let tok = UnigramTokenizer::from_vocab(
+    ///     &["<unk>", "a", "b"],
+    ///     &[-10.0, -1.0, -1.0],
+    ///     0,
+    /// ).unwrap();
+    /// let text = tok.decode(&[1, 2]).unwrap();
+    /// assert_eq!(text, "ab");
+    /// ```
     pub fn decode(&self, ids: &[usize]) -> Result<String> {
         let mut out = String::new();
         for &id in ids {

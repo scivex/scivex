@@ -32,6 +32,18 @@ impl<T: Float> BSpline<T> {
     /// - `degree` must be >= 1 and < `xs.len()`.
     /// - `xs` and `ys` must have the same length (>= `degree + 1`).
     /// - `xs` must be strictly increasing.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{BSpline, Extrapolate};
+    /// let xs = [0.0_f64, 1.0, 2.0, 3.0, 4.0];
+    /// let ys = [0.0, 1.0, 0.0, 1.0, 0.0];
+    /// let spline = BSpline::fit(&xs, &ys, 3, Extrapolate::Error).unwrap();
+    /// // Interpolation passes through data points
+    /// assert!((spline.eval(0.0).unwrap() - 0.0).abs() < 1e-10);
+    /// assert!((spline.eval(1.0).unwrap() - 1.0).abs() < 1e-10);
+    /// ```
     pub fn fit(xs: &[T], ys: &[T], degree: usize, extrap: Extrapolate) -> Result<Self> {
         if xs.len() != ys.len() {
             return Err(OptimError::InvalidParameter {
@@ -73,6 +85,17 @@ impl<T: Float> BSpline<T> {
     }
 
     /// Create a B-spline directly from knots and control points.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{BSpline, Extrapolate};
+    /// let knots = vec![0.0_f64, 0.0, 0.0, 1.0, 1.0, 1.0]; // clamped cubic
+    /// let cps = vec![0.0_f64, 0.5, 1.0];
+    /// let spline = BSpline::from_knots(knots, cps, 2, Extrapolate::Clamp).unwrap();
+    /// let y = spline.eval(0.5).unwrap();
+    /// assert!((y - 0.5).abs() < 0.1);
+    /// ```
     pub fn from_knots(
         knots: Vec<T>,
         control_points: Vec<T>,
@@ -106,12 +129,30 @@ impl<T: Float> BSpline<T> {
     }
 
     /// Evaluate the B-spline at a single point using de Boor's algorithm.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{BSpline, Extrapolate};
+    /// let spline = BSpline::fit(&[0.0_f64, 1.0, 2.0, 3.0], &[0.0, 1.0, 0.0, 1.0], 2, Extrapolate::Error).unwrap();
+    /// let y = spline.eval(0.0).unwrap();
+    /// assert!((y - 0.0).abs() < 1e-10);
+    /// ```
     pub fn eval(&self, x: T) -> Result<T> {
         let xq = self.handle_extrap(x)?;
         Ok(self.de_boor(xq))
     }
 
     /// Evaluate at many points.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_optim::interpolate::{BSpline, Extrapolate};
+    /// let spline = BSpline::fit(&[0.0_f64, 1.0, 2.0, 3.0], &[0.0, 1.0, 0.0, 1.0], 2, Extrapolate::Error).unwrap();
+    /// let ys = spline.eval_many(&[0.5, 1.5]).unwrap();
+    /// assert_eq!(ys.len(), 2);
+    /// ```
     pub fn eval_many(&self, xs: &[T]) -> Result<Vec<T>> {
         xs.iter().map(|&x| self.eval(x)).collect()
     }

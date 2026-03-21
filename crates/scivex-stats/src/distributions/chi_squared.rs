@@ -21,6 +21,15 @@ pub struct ChiSquared<T: Float> {
 
 impl<T: Float> ChiSquared<T> {
     /// Create a new chi-squared distribution with `df > 0` degrees of freedom.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{ChiSquared, Distribution};
+    /// let chi2 = ChiSquared::new(5.0_f64).unwrap();
+    /// assert!((chi2.mean() - 5.0).abs() < 1e-10);
+    /// assert!((chi2.variance() - 10.0).abs() < 1e-10);
+    /// ```
     pub fn new(df: T) -> Result<Self> {
         if df <= T::from_f64(0.0) {
             return Err(StatsError::InvalidParameter {

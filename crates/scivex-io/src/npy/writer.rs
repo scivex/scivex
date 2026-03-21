@@ -15,6 +15,19 @@ const NPY_MAGIC: &[u8; 6] = b"\x93NUMPY";
 /// Write a `Tensor<f64>` to a writer in `.npy` format.
 ///
 /// Always writes in C-order (row-major), little-endian, f64 (`<f8`).
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::npy::write_npy;
+/// use scivex_core::Tensor;
+///
+/// let tensor = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+/// let mut buf = Vec::new();
+/// write_npy(&mut buf, &tensor).unwrap();
+/// // NPY files start with magic bytes \x93NUMPY
+/// assert_eq!(&buf[..6], b"\x93NUMPY");
+/// ```
 pub fn write_npy<W: Write>(mut writer: W, tensor: &Tensor<f64>) -> Result<()> {
     let header_bytes = build_npy_header(tensor.shape());
     writer.write_all(&header_bytes)?;
@@ -28,12 +41,38 @@ pub fn write_npy<W: Write>(mut writer: W, tensor: &Tensor<f64>) -> Result<()> {
 }
 
 /// Write a `Tensor<f64>` to a file path in `.npy` format.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::npy::write_npy_path;
+/// use scivex_core::Tensor;
+/// let tensor = Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap();
+/// write_npy_path("out.npy", &tensor).unwrap();
+/// ```
 pub fn write_npy_path<P: AsRef<Path>>(path: P, tensor: &Tensor<f64>) -> Result<()> {
     let file = File::create(path)?;
     write_npy(BufWriter::new(file), tensor)
 }
 
 /// Write multiple named tensors to a writer in `.npz` format (uncompressed ZIP).
+///
+/// # Examples
+///
+/// ```
+/// use std::io::Cursor;
+/// use std::collections::HashMap;
+/// use scivex_io::npy::write_npz;
+/// use scivex_core::Tensor;
+///
+/// let t = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap();
+/// let mut tensors = HashMap::new();
+/// tensors.insert("data".to_string(), t);
+/// let mut buf = Cursor::new(Vec::new());
+/// write_npz(&mut buf, &tensors).unwrap();
+/// // ZIP files start with PK signature
+/// assert_eq!(&buf.into_inner()[..2], b"PK");
+/// ```
 pub fn write_npz<W: Write + Seek, S: std::hash::BuildHasher>(
     mut writer: W,
     tensors: &HashMap<String, Tensor<f64>, S>,
@@ -79,6 +118,18 @@ pub fn write_npz<W: Write + Seek, S: std::hash::BuildHasher>(
 }
 
 /// Write multiple named tensors to a file path in `.npz` format.
+///
+/// # Examples
+///
+/// ```ignore
+/// use std::collections::HashMap;
+/// use scivex_io::npy::write_npz_path;
+/// use scivex_core::Tensor;
+/// let t = Tensor::from_vec(vec![1.0_f64], vec![1]).unwrap();
+/// let mut map = HashMap::new();
+/// map.insert("x".to_string(), t);
+/// write_npz_path("out.npz", &map).unwrap();
+/// ```
 pub fn write_npz_path<P: AsRef<Path>, S: std::hash::BuildHasher>(
     path: P,
     tensors: &HashMap<String, Tensor<f64>, S>,

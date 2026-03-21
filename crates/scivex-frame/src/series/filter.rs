@@ -7,6 +7,15 @@ use crate::error::{FrameError, Result};
 
 impl<T: Scalar> Series<T> {
     /// Keep only elements where `mask[i]` is true.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![10_i32, 20, 30, 40]);
+    /// let filtered = s.filter(&[true, false, true, false]).unwrap();
+    /// assert_eq!(filtered.as_slice(), &[10, 30]);
+    /// ```
     pub fn filter(&self, mask: &[bool]) -> Result<Series<T>> {
         if mask.len() != self.data.len() {
             return Err(FrameError::RowCountMismatch {
@@ -36,6 +45,15 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Sort the series by value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![3_i32, 1, 4, 1, 5]);
+    /// let sorted = s.sort(true);
+    /// assert_eq!(sorted.as_slice(), &[1, 1, 3, 4, 5]);
+    /// ```
     pub fn sort(&self, ascending: bool) -> Series<T> {
         let indices = self.argsort(ascending);
         let data: Vec<T> = indices.iter().map(|&i| self.data[i]).collect();
@@ -51,6 +69,14 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Return indices that would sort the series.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![30_i32, 10, 20]);
+    /// assert_eq!(s.argsort(true), vec![1, 2, 0]);
+    /// ```
     pub fn argsort(&self, ascending: bool) -> Vec<usize> {
         let mut indices: Vec<usize> = (0..self.data.len()).collect();
         indices.sort_by(|&a, &b| {
@@ -63,6 +89,15 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Unique values (preserving first-occurrence order).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::new("x", vec![1_i32, 2, 1, 3, 2]);
+    /// let u = s.unique();
+    /// assert_eq!(u.as_slice(), &[1, 2, 3]);
+    /// ```
     pub fn unique(&self) -> Series<T> {
         let mut seen = Vec::new();
         let mut data = Vec::new();

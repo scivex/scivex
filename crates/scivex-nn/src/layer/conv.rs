@@ -86,6 +86,19 @@ pub struct Conv2d<T: Float> {
 
 impl<T: Float> Conv2d<T> {
     /// Create a new Conv2d layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{Conv2d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let conv = Conv2d::<f64>::new(3, 16, (3, 3), true, &mut rng);
+    /// let x = Variable::new(Tensor::ones(vec![1, 3, 8, 8]), false);
+    /// let y = conv.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 16, 6, 6]);
+    /// ```
     pub fn new(
         in_channels: usize,
         out_channels: usize,
@@ -392,6 +405,19 @@ pub struct Conv1d<T: Float> {
 
 impl<T: Float> Conv1d<T> {
     /// Create a new Conv1d layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{Conv1d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let conv = Conv1d::<f64>::new(4, 8, 3, true, &mut rng);
+    /// let x = Variable::new(Tensor::ones(vec![1, 4, 16]), false);
+    /// let y = conv.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 8, 14]);
+    /// ```
     pub fn new(
         in_channels: usize,
         out_channels: usize,

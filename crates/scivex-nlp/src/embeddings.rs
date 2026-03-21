@@ -8,6 +8,17 @@ use crate::error::{NlpError, Result};
 use crate::similarity::cosine_similarity;
 
 /// Pre-computed word embedding vectors with lookup and similarity search.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::WordEmbeddings;
+/// let emb = WordEmbeddings::from_pairs(&[
+///     ("cat".into(), vec![1.0_f64, 0.0]),
+///     ("dog".into(), vec![0.9, 0.1]),
+/// ]).unwrap();
+/// assert_eq!(emb.vocab_size(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -21,6 +32,17 @@ pub struct WordEmbeddings<T: Float> {
 
 impl<T: Float> WordEmbeddings<T> {
     /// Create embeddings from a word list and a matrix of shape `(vocab_size, dim)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::embeddings::WordEmbeddings;
+    /// # use scivex_core::Tensor;
+    /// let words = vec!["cat".into(), "dog".into()];
+    /// let vecs = Tensor::from_vec(vec![1.0_f64, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+    /// let emb = WordEmbeddings::new(words, vecs).unwrap();
+    /// assert_eq!(emb.vocab_size(), 2);
+    /// ```
     pub fn new(words: Vec<String>, vectors: Tensor<T>) -> Result<Self> {
         if words.is_empty() {
             return Err(NlpError::EmptyVocabulary);
@@ -51,6 +73,18 @@ impl<T: Float> WordEmbeddings<T> {
     }
 
     /// Create embeddings from (word, vector) pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::embeddings::WordEmbeddings;
+    /// let pairs = vec![
+    ///     ("hello".into(), vec![1.0_f64, 0.0]),
+    ///     ("world".into(), vec![0.0, 1.0]),
+    /// ];
+    /// let emb = WordEmbeddings::from_pairs(&pairs).unwrap();
+    /// assert_eq!(emb.embedding_dim(), 2);
+    /// ```
     pub fn from_pairs(pairs: &[(String, Vec<T>)]) -> Result<Self> {
         if pairs.is_empty() {
             return Err(NlpError::EmptyVocabulary);
@@ -82,6 +116,17 @@ impl<T: Float> WordEmbeddings<T> {
     }
 
     /// Look up the embedding vector for a word.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::embeddings::WordEmbeddings;
+    /// let pairs = vec![("cat".into(), vec![1.0_f64, 2.0, 3.0])];
+    /// let emb = WordEmbeddings::from_pairs(&pairs).unwrap();
+    /// let v = emb.get("cat").unwrap();
+    /// assert_eq!(v.as_slice(), &[1.0, 2.0, 3.0]);
+    /// assert!(emb.get("dog").is_none());
+    /// ```
     #[must_use]
     pub fn get(&self, word: &str) -> Option<Tensor<T>> {
         let &idx = self.word_to_index.get(word)?;
@@ -92,6 +137,20 @@ impl<T: Float> WordEmbeddings<T> {
     }
 
     /// Find the `top_k` most similar words by cosine similarity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::embeddings::WordEmbeddings;
+    /// let pairs = vec![
+    ///     ("king".into(), vec![1.0_f64, 0.0, 1.0]),
+    ///     ("queen".into(), vec![1.0, 1.0, 0.0]),
+    ///     ("man".into(), vec![0.0, 0.0, 1.0]),
+    /// ];
+    /// let emb = WordEmbeddings::from_pairs(&pairs).unwrap();
+    /// let similar = emb.most_similar("king", 2).unwrap();
+    /// assert_eq!(similar.len(), 2);
+    /// ```
     pub fn most_similar(&self, word: &str, top_k: usize) -> Result<Vec<(String, T)>> {
         let query = self.get(word).ok_or_else(|| NlpError::UnknownToken {
             token: word.to_string(),
@@ -127,6 +186,21 @@ impl<T: Float> WordEmbeddings<T> {
     /// Solve analogies: "a is to b as c is to ?"
     ///
     /// Computes `b - a + c` and finds the nearest vectors (excluding a, b, c).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::embeddings::WordEmbeddings;
+    /// let pairs = vec![
+    ///     ("king".into(), vec![1.0_f64, 0.0, 1.0]),
+    ///     ("queen".into(), vec![1.0, 1.0, 0.0]),
+    ///     ("man".into(), vec![0.0, 0.0, 1.0]),
+    ///     ("woman".into(), vec![0.0, 1.0, 0.0]),
+    /// ];
+    /// let emb = WordEmbeddings::from_pairs(&pairs).unwrap();
+    /// let result = emb.analogy("man", "king", "woman", 1).unwrap();
+    /// assert_eq!(result[0].0, "queen");
+    /// ```
     pub fn analogy(&self, a: &str, b: &str, c: &str, top_k: usize) -> Result<Vec<(String, T)>> {
         let va = self.get(a).ok_or_else(|| NlpError::UnknownToken {
             token: a.to_string(),
@@ -181,12 +255,30 @@ impl<T: Float> WordEmbeddings<T> {
     }
 
     /// Number of words in the vocabulary.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::embeddings::WordEmbeddings;
+    /// let pairs = vec![("a".into(), vec![1.0_f64]), ("b".into(), vec![2.0])];
+    /// let emb = WordEmbeddings::from_pairs(&pairs).unwrap();
+    /// assert_eq!(emb.vocab_size(), 2);
+    /// ```
     #[must_use]
     pub fn vocab_size(&self) -> usize {
         self.index_to_word.len()
     }
 
     /// Dimensionality of each embedding vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::embeddings::WordEmbeddings;
+    /// let pairs = vec![("x".into(), vec![1.0_f64, 2.0, 3.0])];
+    /// let emb = WordEmbeddings::from_pairs(&pairs).unwrap();
+    /// assert_eq!(emb.embedding_dim(), 3);
+    /// ```
     #[must_use]
     pub fn embedding_dim(&self) -> usize {
         if self.vectors.ndim() == 2 {

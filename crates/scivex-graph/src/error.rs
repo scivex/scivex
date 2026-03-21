@@ -1,6 +1,14 @@
 use std::fmt;
 
 /// Errors that can occur during graph operations.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::GraphError;
+/// let err = GraphError::NodeNotFound { id: 42 };
+/// assert_eq!(format!("{err}"), "node 42 not found");
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

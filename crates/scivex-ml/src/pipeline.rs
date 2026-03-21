@@ -13,6 +13,20 @@ use crate::traits::{Predictor, Transformer};
 ///
 /// During `predict`, each transformer applies `transform` (not re-fitted),
 /// then the predictor predicts on the result.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0], vec![5, 1]).unwrap();
+/// let y = Tensor::from_vec(vec![3.0, 5.0, 7.0, 9.0, 11.0], vec![5]).unwrap();
+/// let mut pipe = Pipeline::new()
+///     .add_step("scaler", Box::new(StandardScaler::<f64>::new()))
+///     .set_predictor("lr", Box::new(LinearRegression::<f64>::new()));
+/// pipe.fit(&x, &y).unwrap();
+/// let preds = pipe.predict(&x).unwrap();
+/// ```
 pub struct Pipeline<T: Float> {
     steps: Vec<(String, Box<dyn Transformer<T>>)>,
     predictor: Option<(String, Box<dyn Predictor<T>>)>,
@@ -26,6 +40,14 @@ impl<T: Float> Default for Pipeline<T> {
 
 impl<T: Float> Pipeline<T> {
     /// Create an empty pipeline.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::Pipeline;
+    /// let pipe = Pipeline::<f64>::new();
+    /// assert_eq!(pipe.n_steps(), 0);
+    /// ```
     pub fn new() -> Self {
         Self {
             steps: Vec::new(),
@@ -34,18 +56,51 @@ impl<T: Float> Pipeline<T> {
     }
 
     /// Append a transformer step.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::Pipeline;
+    /// # use scivex_ml::preprocessing::StandardScaler;
+    /// let pipe = Pipeline::<f64>::new()
+    ///     .add_step("scaler", Box::new(StandardScaler::<f64>::new()));
+    /// assert_eq!(pipe.n_steps(), 1);
+    /// ```
     pub fn add_step(mut self, name: &str, transformer: Box<dyn Transformer<T>>) -> Self {
         self.steps.push((name.to_string(), transformer));
         self
     }
 
     /// Set the final predictor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::Pipeline;
+    /// # use scivex_ml::preprocessing::StandardScaler;
+    /// # use scivex_ml::linear::LinearRegression;
+    /// let pipe = Pipeline::<f64>::new()
+    ///     .add_step("scaler", Box::new(StandardScaler::<f64>::new()))
+    ///     .set_predictor("lr", Box::new(LinearRegression::<f64>::new()));
+    /// assert_eq!(pipe.n_steps(), 1);
+    /// ```
     pub fn set_predictor(mut self, name: &str, predictor: Box<dyn Predictor<T>>) -> Self {
         self.predictor = Some((name.to_string(), predictor));
         self
     }
 
     /// Number of transformer steps (excluding the final predictor).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::Pipeline;
+    /// # use scivex_ml::preprocessing::StandardScaler;
+    /// let pipe = Pipeline::<f64>::new()
+    ///     .add_step("a", Box::new(StandardScaler::<f64>::new()))
+    ///     .add_step("b", Box::new(StandardScaler::<f64>::new()));
+    /// assert_eq!(pipe.n_steps(), 2);
+    /// ```
     pub fn n_steps(&self) -> usize {
         self.steps.len()
     }
@@ -96,6 +151,19 @@ impl<T: Float> Predictor<T> for Pipeline<T> {
 ///
 /// Each transformer is fit on the **full** input; their outputs are
 /// horizontally stacked (`hstack`).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2]).unwrap();
+/// let mut fu = FeatureUnion::new()
+///     .add("std", Box::new(StandardScaler::<f64>::new()))
+///     .add("mm", Box::new(MinMaxScaler::<f64>::new()));
+/// let out = fu.fit_transform(&x).unwrap();
+/// assert_eq!(out.shape(), &[3, 4]);
+/// ```
 pub struct FeatureUnion<T: Float> {
     transformers: Vec<(String, Box<dyn Transformer<T>>)>,
 }
@@ -108,6 +176,14 @@ impl<T: Float> Default for FeatureUnion<T> {
 
 impl<T: Float> FeatureUnion<T> {
     /// Create an empty feature union.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::FeatureUnion;
+    /// let fu = FeatureUnion::<f64>::new();
+    /// assert!(fu.is_empty());
+    /// ```
     pub fn new() -> Self {
         Self {
             transformers: Vec::new(),
@@ -115,17 +191,46 @@ impl<T: Float> FeatureUnion<T> {
     }
 
     /// Add a named transformer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::FeatureUnion;
+    /// # use scivex_ml::preprocessing::StandardScaler;
+    /// let fu = FeatureUnion::<f64>::new()
+    ///     .add("std", Box::new(StandardScaler::<f64>::new()));
+    /// assert_eq!(fu.len(), 1);
+    /// ```
     pub fn add(mut self, name: &str, transformer: Box<dyn Transformer<T>>) -> Self {
         self.transformers.push((name.to_string(), transformer));
         self
     }
 
     /// Number of transformers.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::FeatureUnion;
+    /// # use scivex_ml::preprocessing::StandardScaler;
+    /// let fu = FeatureUnion::<f64>::new()
+    ///     .add("a", Box::new(StandardScaler::<f64>::new()))
+    ///     .add("b", Box::new(StandardScaler::<f64>::new()));
+    /// assert_eq!(fu.len(), 2);
+    /// ```
     pub fn len(&self) -> usize {
         self.transformers.len()
     }
 
     /// Whether empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::FeatureUnion;
+    /// let fu = FeatureUnion::<f64>::new();
+    /// assert!(fu.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.transformers.is_empty()
     }
@@ -162,6 +267,22 @@ type ColumnStep<T> = (String, Box<dyn Transformer<T>>, Vec<usize>);
 
 /// Applies different transformers to different column subsets, then
 /// concatenates the results horizontally.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(
+///     vec![1.0_f64, 10.0, 2.0, 20.0, 3.0, 30.0],
+///     vec![3, 2],
+/// ).unwrap();
+/// let mut ct = ColumnTransformer::new()
+///     .add("col0", Box::new(StandardScaler::<f64>::new()), vec![0])
+///     .add("col1", Box::new(MinMaxScaler::<f64>::new()), vec![1]);
+/// let out = ct.fit_transform(&x).unwrap();
+/// assert_eq!(out.shape(), &[3, 2]);
+/// ```
 pub struct ColumnTransformer<T: Float> {
     transformers: Vec<ColumnStep<T>>,
 }
@@ -174,6 +295,13 @@ impl<T: Float> Default for ColumnTransformer<T> {
 
 impl<T: Float> ColumnTransformer<T> {
     /// Create an empty column transformer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::ColumnTransformer;
+    /// let ct = ColumnTransformer::<f64>::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             transformers: Vec::new(),
@@ -181,6 +309,15 @@ impl<T: Float> ColumnTransformer<T> {
     }
 
     /// Add a named transformer that operates on the given column indices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::pipeline::ColumnTransformer;
+    /// # use scivex_ml::preprocessing::StandardScaler;
+    /// let ct = ColumnTransformer::<f64>::new()
+    ///     .add("col0", Box::new(StandardScaler::<f64>::new()), vec![0]);
+    /// ```
     pub fn add(
         mut self,
         name: &str,

@@ -9,6 +9,18 @@ pub type TrainTestSplit<T> = (Tensor<T>, Tensor<T>, Tensor<T>, Tensor<T>);
 /// Split data into training and test sets.
 ///
 /// Returns `(x_train, x_test, y_train, y_test)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// # use scivex_core::random::Rng;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2]).unwrap();
+/// let y = Tensor::from_vec(vec![0.0, 1.0, 0.0], vec![3]).unwrap();
+/// let mut rng = Rng::new(42);
+/// let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.33, &mut rng).unwrap();
+/// ```
 pub fn train_test_split<T: Float>(
     x: &Tensor<T>,
     y: &Tensor<T>,
@@ -67,6 +79,18 @@ pub fn train_test_split<T: Float>(
 }
 
 /// K-Fold cross-validation index generator.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::random::Rng;
+/// let mut rng = Rng::new(42);
+/// let kfold = KFold::new(3, 9, &mut rng).unwrap();
+/// for (train_indices, test_indices) in &kfold {
+///     assert_eq!(train_indices.len() + test_indices.len(), 9);
+/// }
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -159,6 +183,25 @@ impl Iterator for KFoldIter<'_> {
 /// Run k-fold cross-validation, returning per-fold scores.
 ///
 /// `metric_fn` takes `(y_true, y_pred)` slices and returns a score.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// # use scivex_core::random::Rng;
+/// # use scivex_ml::metrics::regression::r2_score;
+/// let x = Tensor::from_vec(
+///     (1..=10).map(|i| i as f64).collect::<Vec<_>>(), vec![10, 1],
+/// ).unwrap();
+/// let y = Tensor::from_vec(
+///     (1..=10).map(|i| 2.0 * i as f64 + 1.0).collect::<Vec<_>>(), vec![10],
+/// ).unwrap();
+/// let model = LinearRegression::<f64>::new();
+/// let mut rng = Rng::new(42);
+/// let scores = cross_val_score(&model, &x, &y, 3, r2_score, &mut rng).unwrap();
+/// assert_eq!(scores.len(), 3);
+/// ```
 pub fn cross_val_score<T, M, F>(
     model: &M,
     x: &Tensor<T>,

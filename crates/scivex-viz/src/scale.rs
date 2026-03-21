@@ -1,4 +1,13 @@
 /// Trait for mapping data values to normalized `[0, 1]` space and back.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::scale::{LinearScale, Scale};
+/// let s = LinearScale::new(0.0_f64, 10.0_f64);
+/// assert!((s.transform(5.0_f64) - 0.5_f64).abs() < 1e-12);
+/// assert!((s.inverse(0.0_f64) - 0.0_f64).abs() < 1e-12);
+/// ```
 pub trait Scale {
     /// Map a data value to `[0, 1]`.
     fn transform(&self, value: f64) -> f64;
@@ -9,6 +18,15 @@ pub trait Scale {
 }
 
 /// A linear scale mapping `[min, max]` to `[0, 1]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::scale::{LinearScale, Scale};
+/// let s = LinearScale::new(0.0_f64, 100.0_f64);
+/// assert!((s.transform(0.0_f64)).abs() < 1e-12);
+/// assert!((s.transform(100.0_f64) - 1.0_f64).abs() < 1e-12);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -23,6 +41,14 @@ pub struct LinearScale {
 
 impl LinearScale {
     /// Create a linear scale spanning `[min, max]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::scale::LinearScale;
+    /// let s = LinearScale::new(-1.0_f64, 1.0_f64);
+    /// assert!((s.min - (-1.0_f64)).abs() < 1e-12);
+    /// ```
     #[must_use]
     pub fn new(min: f64, max: f64) -> Self {
         Self { min, max }
@@ -47,6 +73,15 @@ impl Scale for LinearScale {
 }
 
 /// A logarithmic scale mapping `[min, max]` (both > 0) to `[0, 1]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::scale::{LogScale, Scale};
+/// let s = LogScale::new(1.0_f64, 1000.0_f64);
+/// assert!((s.transform(1.0_f64)).abs() < 1e-12);
+/// assert!((s.transform(1000.0_f64) - 1.0_f64).abs() < 1e-12);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -63,6 +98,14 @@ pub struct LogScale {
 
 impl LogScale {
     /// Create a log scale spanning `[min, max]` with base 10.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::scale::LogScale;
+    /// let s = LogScale::new(1.0_f64, 100.0_f64);
+    /// assert!((s.base - 10.0_f64).abs() < 1e-12);
+    /// ```
     #[must_use]
     pub fn new(min: f64, max: f64) -> Self {
         Self {
@@ -73,6 +116,14 @@ impl LogScale {
     }
 
     /// Set a custom logarithm base (e.g. 2 or `e`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::scale::LogScale;
+    /// let s = LogScale::new(1.0_f64, 1024.0_f64).with_base(2.0_f64);
+    /// assert!((s.base - 2.0_f64).abs() < 1e-12);
+    /// ```
     #[must_use]
     pub fn with_base(mut self, base: f64) -> Self {
         self.base = base;
@@ -151,6 +202,14 @@ fn nice_num(x: f64, round: bool) -> f64 {
 }
 
 /// Generate approximately `n` nice tick values spanning `[min, max]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::scale::heckbert_nice_ticks;
+/// let ticks = heckbert_nice_ticks(0.0_f64, 10.0_f64, 5);
+/// assert!(!ticks.is_empty());
+/// ```
 #[must_use]
 pub fn heckbert_nice_ticks(min: f64, max: f64, n: usize) -> Vec<f64> {
     if n == 0 || min >= max {

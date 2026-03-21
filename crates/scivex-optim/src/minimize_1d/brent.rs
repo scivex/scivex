@@ -13,6 +13,15 @@ use super::Minimize1dResult;
 ///
 /// Combines golden-section search with parabolic interpolation.
 /// Superlinear convergence on smooth unimodal functions.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::minimize_1d::brent_min;
+/// // Minimum of (x - 2)^2 on [-5, 5]
+/// let result = brent_min(|x: f64| (x - 2.0) * (x - 2.0), -5.0, 5.0, 1e-8, 100).unwrap();
+/// assert!((result.x_min - 2.0).abs() < 1e-6);
+/// ```
 pub fn brent_min<T: Float, F: Fn(T) -> T>(
     f: F,
     a: T,

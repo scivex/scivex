@@ -16,6 +16,17 @@ use scivex_core::Float;
 use crate::error::Result;
 
 /// Result of a learning rate range test.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::training::LrFinder;
+/// let finder = LrFinder::<f64>::new().with_num_steps(10);
+/// let result = finder.run(|lr| Ok(1.0_f64 / lr)).unwrap();
+/// assert!(!result.lrs.is_empty());
+/// assert_eq!(result.lrs.len(), result.losses.len());
+/// assert!(result.suggested_lr > 0.0);
+/// ```
 #[derive(Debug, Clone)]
 pub struct LrFinderResult<T: Float> {
     /// Learning rates tested (one per step).
@@ -29,6 +40,18 @@ pub struct LrFinderResult<T: Float> {
 }
 
 /// Configuration for the LR range test.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::training::LrFinder;
+/// let finder = LrFinder::<f64>::new()
+///     .with_start_lr(1e-5)
+///     .with_end_lr(1.0)
+///     .with_num_steps(20);
+/// let result = finder.run(|lr| Ok(1.0_f64 - lr)).unwrap();
+/// assert!(result.suggested_lr > 0.0);
+/// ```
 pub struct LrFinder<T: Float> {
     start_lr: T,
     end_lr: T,
@@ -46,6 +69,15 @@ impl<T: Float> LrFinder<T> {
     /// - `num_steps`: 100
     /// - `smoothing`: 0.05 (exponential moving average weight for new loss)
     /// - `diverge_threshold`: 4.0 (stop if loss exceeds 4x the best loss)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::training::LrFinder;
+    /// let finder = LrFinder::<f64>::new();
+    /// let result = finder.run(|_lr| Ok(1.0_f64)).unwrap();
+    /// assert!(!result.lrs.is_empty());
+    /// ```
     pub fn new() -> Self {
         Self {
             start_lr: T::from_f64(1e-7),

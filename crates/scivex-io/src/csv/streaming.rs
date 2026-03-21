@@ -14,15 +14,17 @@ use crate::error::{IoError, Result};
 
 /// A streaming CSV reader that yields chunks of rows as `DataFrame`s.
 ///
-/// # Example
+/// # Examples
 ///
-/// ```no_run
-/// use scivex_io::csv::CsvChunkReader;
-///
-/// let mut reader = CsvChunkReader::open("data.csv", 1000).unwrap();
-/// while let Some(chunk) = reader.next_chunk().unwrap() {
-///     println!("got {} rows", chunk.nrows());
-/// }
+/// ```
+/// # use scivex_io::csv::CsvChunkReader;
+/// let csv = "x,y\n1,2\n3,4\n5,6\n";
+/// let mut reader = CsvChunkReader::from_reader(csv.as_bytes(), 2).unwrap();
+/// let chunk1 = reader.next_chunk().unwrap().unwrap();
+/// assert_eq!(chunk1.nrows(), 2);
+/// let chunk2 = reader.next_chunk().unwrap().unwrap();
+/// assert_eq!(chunk2.nrows(), 1);
+/// assert!(reader.next_chunk().unwrap().is_none());
 /// ```
 pub struct CsvChunkReader<R: Read> {
     buf_reader: BufReader<R>,

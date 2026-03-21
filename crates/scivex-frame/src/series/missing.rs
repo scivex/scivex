@@ -11,6 +11,16 @@ use crate::series::string::StringSeries;
 
 impl<T: Scalar> Series<T> {
     /// Replace null values with a constant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls("x", vec![1.0_f64, 0.0, 3.0], vec![false, true, false]).unwrap();
+    /// let filled = s.fill_null(99.0);
+    /// assert_eq!(filled.get(1), Some(99.0));
+    /// assert_eq!(filled.null_count(), 0);
+    /// ```
     pub fn fill_null(&self, value: T) -> Series<T> {
         let data: Vec<T> = self
             .data
@@ -23,6 +33,16 @@ impl<T: Scalar> Series<T> {
 
     /// Forward-fill: replace each null with the last non-null value.
     /// Leading nulls remain null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls("x", vec![1.0_f64, 0.0, 0.0, 4.0], vec![false, true, true, false]).unwrap();
+    /// let filled = s.fill_forward();
+    /// assert_eq!(filled.get(1), Some(1.0));
+    /// assert_eq!(filled.get(2), Some(1.0));
+    /// ```
     pub fn fill_forward(&self) -> Series<T> {
         let mut data = self.data.clone();
         let mut null_mask = self
@@ -50,6 +70,16 @@ impl<T: Scalar> Series<T> {
 
     /// Backward-fill: replace each null with the next non-null value.
     /// Trailing nulls remain null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls("x", vec![0.0_f64, 0.0, 3.0, 4.0], vec![true, true, false, false]).unwrap();
+    /// let filled = s.fill_backward();
+    /// assert_eq!(filled.get(0), Some(3.0));
+    /// assert_eq!(filled.get(1), Some(3.0));
+    /// ```
     pub fn fill_backward(&self) -> Series<T> {
         let mut data = self.data.clone();
         let mut null_mask = self
@@ -76,6 +106,16 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Drop all null values, returning a shorter series.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls("x", vec![1_i32, 0, 3, 0], vec![false, true, false, true]).unwrap();
+    /// let dropped = s.drop_null();
+    /// assert_eq!(dropped.len(), 2);
+    /// assert_eq!(dropped.as_slice(), &[1, 3]);
+    /// ```
     pub fn drop_null(&self) -> Series<T> {
         if self.null_mask.is_none() {
             return self.clone();
@@ -95,6 +135,14 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Boolean mask: `true` where the value is null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls("x", vec![1.0_f64, 0.0, 3.0], vec![false, true, false]).unwrap();
+    /// assert_eq!(s.is_null_mask(), vec![false, true, false]);
+    /// ```
     pub fn is_null_mask(&self) -> Vec<bool> {
         self.null_mask
             .clone()
@@ -102,6 +150,14 @@ impl<T: Scalar> Series<T> {
     }
 
     /// Boolean mask: `true` where the value is NOT null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls("x", vec![1.0_f64, 0.0, 3.0], vec![false, true, false]).unwrap();
+    /// assert_eq!(s.is_not_null_mask(), vec![true, false, true]);
+    /// ```
     pub fn is_not_null_mask(&self) -> Vec<bool> {
         self.is_null_mask().iter().map(|&v| !v).collect()
     }
@@ -114,6 +170,18 @@ impl<T: Scalar> Series<T> {
 impl<T: Float> Series<T> {
     /// Linear interpolation between non-null values.
     /// Leading/trailing nulls remain null.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::Series;
+    /// let s = Series::with_nulls(
+    ///     "x", vec![1.0_f64, 0.0, 0.0, 4.0], vec![false, true, true, false],
+    /// ).unwrap();
+    /// let interp = s.interpolate();
+    /// assert!((interp.get(1).unwrap() - 2.0).abs() < 1e-10);
+    /// assert!((interp.get(2).unwrap() - 3.0).abs() < 1e-10);
+    /// ```
     pub fn interpolate(&self) -> Series<T> {
         if self.null_mask.is_none() {
             return self.clone();
@@ -163,6 +231,17 @@ impl<T: Float> Series<T> {
 
 impl StringSeries {
     /// Replace null values with a constant string.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::with_nulls(
+    ///     "s", vec!["a".into(), String::new(), "c".into()], vec![false, true, false],
+    /// ).unwrap();
+    /// let filled = s.fill_null("X");
+    /// assert_eq!(filled.get(1), Some("X"));
+    /// ```
     pub fn fill_null(&self, value: &str) -> StringSeries {
         let data: Vec<String> = self
             .data
@@ -180,6 +259,18 @@ impl StringSeries {
     }
 
     /// Forward-fill: replace each null with the last non-null value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::with_nulls(
+    ///     "s", vec!["a".into(), String::new(), String::new()], vec![false, true, true],
+    /// ).unwrap();
+    /// let filled = s.fill_forward();
+    /// assert_eq!(filled.get(1), Some("a"));
+    /// assert_eq!(filled.get(2), Some("a"));
+    /// ```
     pub fn fill_forward(&self) -> StringSeries {
         let mut data = self.data.clone();
         let mut null_mask = self
@@ -206,6 +297,18 @@ impl StringSeries {
     }
 
     /// Backward-fill: replace each null with the next non-null value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::with_nulls(
+    ///     "s", vec![String::new(), String::new(), "c".into()], vec![true, true, false],
+    /// ).unwrap();
+    /// let filled = s.fill_backward();
+    /// assert_eq!(filled.get(0), Some("c"));
+    /// assert_eq!(filled.get(1), Some("c"));
+    /// ```
     pub fn fill_backward(&self) -> StringSeries {
         let mut data = self.data.clone();
         let mut null_mask = self
@@ -232,6 +335,17 @@ impl StringSeries {
     }
 
     /// Drop all null values, returning a shorter series.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::series::string::StringSeries;
+    /// let s = StringSeries::with_nulls(
+    ///     "s", vec!["a".into(), String::new(), "c".into()], vec![false, true, false],
+    /// ).unwrap();
+    /// let dropped = s.drop_null();
+    /// assert_eq!(dropped.len(), 2);
+    /// ```
     pub fn drop_null(&self) -> StringSeries {
         if self.null_mask.is_none() {
             return self.clone();

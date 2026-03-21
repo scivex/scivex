@@ -27,6 +27,18 @@ impl<T: Float> SinusoidalPositionalEncoding<T> {
     ///
     /// - `d_model`: dimensionality of the model
     /// - `max_len`: maximum sequence length supported
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{SinusoidalPositionalEncoding, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let pe = SinusoidalPositionalEncoding::<f64>::new(8, 100);
+    /// let x = Variable::new(Tensor::zeros(vec![1, 16]), false); // seq=2, d_model=8
+    /// let y = pe.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 16]);
+    /// ```
     pub fn new(d_model: usize, max_len: usize) -> Self {
         let mut data = vec![T::zero(); max_len * d_model];
 
@@ -144,6 +156,18 @@ impl<T: Float> RotaryPositionalEncoding<T> {
     ///
     /// - `d_model`: dimensionality (must be even)
     /// - `base`: base for frequency computation (typically 10000.0)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::RotaryPositionalEncoding;
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let rope = RotaryPositionalEncoding::<f64>::new(8, 10000.0_f64).unwrap();
+    /// let x = Variable::new(Tensor::ones(vec![1, 16]), false); // batch=1, seq=2, d_model=8
+    /// let y = rope.apply(&x, 2).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 16]);
+    /// ```
     pub fn new(d_model: usize, base: T) -> Result<Self> {
         #[allow(clippy::manual_is_multiple_of)]
         if d_model % 2 != 0 {
@@ -246,6 +270,17 @@ impl<T: Float> RotaryPositionalEncoding<T> {
 /// Returns a `[seq_len, seq_len]` variable where position `(i, j)` is `1.0`
 /// if `j <= i` (allowed) and `0.0` otherwise (masked). This can be used with
 /// masked attention to prevent attending to future positions.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nn::layer::causal_mask;
+/// let mask = causal_mask::<f64>(3);
+/// assert_eq!(mask.shape(), vec![3, 3]);
+/// // Row 0: only position 0 is allowed.
+/// assert_eq!(mask.data().as_slice()[0], 1.0);
+/// assert_eq!(mask.data().as_slice()[1], 0.0);
+/// ```
 pub fn causal_mask<T: Float>(seq_len: usize) -> Variable<T> {
     let mut data = vec![T::zero(); seq_len * seq_len];
     for i in 0..seq_len {

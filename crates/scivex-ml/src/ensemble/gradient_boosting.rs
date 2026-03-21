@@ -7,6 +7,14 @@ use crate::tree::DecisionTreeRegressor;
 // ── Loss functions ──
 
 /// Supported loss functions for gradient boosting.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::ensemble::GBLoss;
+/// let loss = GBLoss::Mse;
+/// assert_eq!(loss, GBLoss::Mse);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -63,6 +71,18 @@ fn negative_gradient<T: Float>(y: &[T], f: &[T], loss: Loss, delta: T) -> Vec<T>
 /// Sequentially fits decision tree regressors to the negative gradient
 /// (pseudo-residuals) of the loss function. The final prediction is the
 /// sum of the initial estimate plus learning-rate-scaled tree predictions.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![4, 1]).unwrap();
+/// let y = Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0], vec![4]).unwrap();
+/// let mut gbr = GradientBoostingRegressor::new(50, 0.1, Some(3), GBLoss::Mse).unwrap();
+/// gbr.fit(&x, &y).unwrap();
+/// let preds = gbr.predict(&x).unwrap();
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -263,6 +283,21 @@ impl<T: Float> Predictor<T> for GradientBoostingRegressor<T> {
 /// Uses log-loss (cross-entropy) with one-vs-all for multi-class.
 /// Each class gets its own sequence of regression trees fitted to
 /// the negative gradient of the log-loss.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(
+///     vec![1.0_f64, 1.0, 2.0, 2.0, 8.0, 8.0, 9.0, 9.0],
+///     vec![4, 2],
+/// ).unwrap();
+/// let y = Tensor::from_vec(vec![0.0, 0.0, 1.0, 1.0], vec![4]).unwrap();
+/// let mut gbc = GradientBoostingClassifier::new(50, 0.1, Some(3)).unwrap();
+/// gbc.fit(&x, &y).unwrap();
+/// let preds = gbc.predict(&x).unwrap();
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

@@ -19,6 +19,16 @@ impl<T: Float> Polynomial<T> {
     /// Create a polynomial from coefficients in ascending power order.
     ///
     /// `coeffs[0]` is the constant term, `coeffs[1]` is the `x` coefficient, etc.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// // p(x) = 1 + 2x + 3x^2
+    /// let p = Polynomial::new(vec![1.0_f64, 2.0, 3.0]);
+    /// assert_eq!(p.degree(), 2);
+    /// assert!((p.eval(1.0) - 6.0).abs() < 1e-10);
+    /// ```
     #[must_use]
     pub fn new(coeffs: Vec<T>) -> Self {
         let mut p = Self { coeffs };
@@ -27,6 +37,15 @@ impl<T: Float> Polynomial<T> {
     }
 
     /// The zero polynomial.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// let z = Polynomial::<f64>::zero();
+    /// assert_eq!(z.degree(), 0);
+    /// assert!((z.eval(5.0)).abs() < 1e-10);
+    /// ```
     #[must_use]
     pub fn zero() -> Self {
         Self {
@@ -35,12 +54,29 @@ impl<T: Float> Polynomial<T> {
     }
 
     /// A constant polynomial.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// let p = Polynomial::constant(7.0_f64);
+    /// assert_eq!(p.degree(), 0);
+    /// assert!((p.eval(99.0) - 7.0).abs() < 1e-10);
+    /// ```
     #[must_use]
     pub fn constant(c: T) -> Self {
         Self { coeffs: vec![c] }
     }
 
     /// Degree of the polynomial (0 for the zero polynomial).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// let p = Polynomial::new(vec![1.0_f64, 2.0, 3.0]); // 1 + 2x + 3x^2
+    /// assert_eq!(p.degree(), 2);
+    /// ```
     #[must_use]
     pub fn degree(&self) -> usize {
         if self.coeffs.len() <= 1 {
@@ -51,12 +87,28 @@ impl<T: Float> Polynomial<T> {
     }
 
     /// Borrow the coefficients slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// let p = Polynomial::new(vec![1.0_f64, 2.0]);
+    /// assert_eq!(p.coeffs(), &[1.0, 2.0]);
+    /// ```
     #[must_use]
     pub fn coeffs(&self) -> &[T] {
         &self.coeffs
     }
 
     /// Evaluate the polynomial at `x` using Horner's method.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// let p = Polynomial::new(vec![1.0_f64, 2.0, 3.0]); // 1 + 2x + 3x^2
+    /// assert!((p.eval(2.0) - 17.0).abs() < 1e-10); // 1 + 4 + 12
+    /// ```
     #[must_use]
     pub fn eval(&self, x: T) -> T {
         let mut result = T::zero();
@@ -67,6 +119,16 @@ impl<T: Float> Polynomial<T> {
     }
 
     /// Add two polynomials.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// let p1 = Polynomial::new(vec![1.0_f64, 2.0]);
+    /// let p2 = Polynomial::new(vec![3.0, 4.0, 5.0]);
+    /// let sum = p1.add(&p2);
+    /// assert_eq!(sum.coeffs(), &[4.0, 6.0, 5.0]);
+    /// ```
     #[must_use]
     pub fn add(&self, other: &Self) -> Self {
         let len = self.coeffs.len().max(other.coeffs.len());
@@ -82,6 +144,15 @@ impl<T: Float> Polynomial<T> {
     }
 
     /// Multiply two polynomials.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// let p = Polynomial::new(vec![1.0_f64, 1.0]); // 1 + x
+    /// let sq = p.mul(&p); // (1+x)^2 = 1 + 2x + x^2
+    /// assert_eq!(sq.coeffs(), &[1.0, 2.0, 1.0]);
+    /// ```
     #[must_use]
     pub fn mul(&self, other: &Self) -> Self {
         if self.coeffs.is_empty() || other.coeffs.is_empty() {
@@ -107,6 +178,18 @@ impl<T: Float> Polynomial<T> {
     }
 
     /// Find real roots for polynomials of degree <= 2.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// // x^2 - 5x + 6 = 0 → roots at 2 and 3
+    /// let p = Polynomial::new(vec![6.0_f64, -5.0, 1.0]);
+    /// let roots = p.roots().unwrap();
+    /// assert_eq!(roots.len(), 2);
+    /// assert!((roots[0] - 2.0).abs() < 1e-10);
+    /// assert!((roots[1] - 3.0).abs() < 1e-10);
+    /// ```
     pub fn roots(&self) -> Result<Vec<T>> {
         match self.degree() {
             0 => {
@@ -153,6 +236,17 @@ impl<T: Float> Polynomial<T> {
 
 impl Polynomial<f64> {
     /// Convert to a symbolic `Expr` using the given variable name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// # use std::collections::HashMap;
+    /// let p = Polynomial::new(vec![1.0, 2.0, 3.0]); // 1 + 2x + 3x^2
+    /// let expr = p.to_expr("x");
+    /// let vars = HashMap::from([("x".to_string(), 2.0)]);
+    /// assert!((expr.eval(&vars).unwrap() - 17.0).abs() < 1e-10);
+    /// ```
     #[must_use]
     #[allow(clippy::float_cmp)]
     pub fn to_expr(&self, var_name: &str) -> Expr {
@@ -191,6 +285,16 @@ impl Polynomial<f64> {
     /// The expression must be a polynomial in `var` with constant coefficients.
     /// Currently supports expressions built from `Const`, `Var`, `Add`, `Mul`,
     /// `Neg`, and `Pow` with non-negative integer exponents.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_sym::polynomial::Polynomial;
+    /// # use scivex_sym::expr::{var, constant};
+    /// let expr = constant(2.0) * var("x") + constant(3.0);
+    /// let p = Polynomial::from_expr(&expr, "x").unwrap();
+    /// assert!((p.eval(1.0) - 5.0).abs() < 1e-10);
+    /// ```
     pub fn from_expr(expr: &Expr, var_name: &str) -> Result<Self> {
         Self::extract(expr, var_name)
     }

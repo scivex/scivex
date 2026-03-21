@@ -262,6 +262,14 @@ struct PendingLeaf<T: Float> {
 // ── Importance Type ──
 
 /// Feature importance metric.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::ensemble::ImportanceType;
+/// let imp = ImportanceType::Gain;
+/// assert_eq!(imp, ImportanceType::Gain);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -313,6 +321,13 @@ impl<T: Float> HistGradientBoostingRegressor<T> {
     /// # Errors
     ///
     /// Returns `MlError::InvalidParameter` if any parameter is out of range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::ensemble::HistGradientBoostingRegressor;
+    /// let hgb = HistGradientBoostingRegressor::<f64>::new(100, 0.1, 31).unwrap();
+    /// ```
     pub fn new(n_estimators: usize, learning_rate: f64, max_leaf_nodes: usize) -> Result<Self> {
         if n_estimators == 0 {
             return Err(MlError::InvalidParameter {
@@ -1005,6 +1020,22 @@ impl<T: Float> HistGradientBoostingClassifier<T> {
     /// # Errors
     ///
     /// Returns `MlError::InvalidParameter` if any parameter is out of range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::ensemble::HistGradientBoostingClassifier;
+    /// # use scivex_ml::traits::Predictor;
+    /// # use scivex_core::Tensor;
+    /// let x = Tensor::from_vec(
+    ///     vec![1.0_f64, 1.0, 2.0, 2.0, 8.0, 8.0, 9.0, 9.0],
+    ///     vec![4, 2],
+    /// ).unwrap();
+    /// let y = Tensor::from_vec(vec![0.0, 0.0, 1.0, 1.0], vec![4]).unwrap();
+    /// let mut hgb = HistGradientBoostingClassifier::<f64>::new(50, 0.1, 31).unwrap();
+    /// hgb.fit(&x, &y).unwrap();
+    /// let preds = hgb.predict(&x).unwrap();
+    /// ```
     pub fn new(n_estimators: usize, learning_rate: f64, max_leaf_nodes: usize) -> Result<Self> {
         if n_estimators == 0 {
             return Err(MlError::InvalidParameter {

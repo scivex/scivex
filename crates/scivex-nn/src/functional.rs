@@ -7,6 +7,17 @@ use crate::ops;
 use crate::variable::Variable;
 
 /// ReLU activation: `max(0, x)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::relu;
+/// let x = Variable::new(Tensor::from_vec(vec![-1.0_f64, 0.0, 2.0], vec![3]).unwrap(), false);
+/// let y = relu(&x);
+/// assert_eq!(y.data().as_slice(), &[0.0, 0.0, 2.0]);
+/// ```
 pub fn relu<T: Float>(x: &Variable<T>) -> Variable<T> {
     let x_data = x.data();
     let zero = T::zero();
@@ -25,6 +36,17 @@ pub fn relu<T: Float>(x: &Variable<T>) -> Variable<T> {
 }
 
 /// Sigmoid activation: `1 / (1 + exp(-x))`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::sigmoid;
+/// let x = Variable::new(Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap(), false);
+/// let y = sigmoid(&x);
+/// assert!((y.data().as_slice()[0] - 0.5).abs() < 1e-10);
+/// ```
 pub fn sigmoid<T: Float>(x: &Variable<T>) -> Variable<T> {
     let x_data = x.data();
     let sig = x_data.map(|v| T::one() / (T::one() + (-v).exp()));
@@ -46,6 +68,17 @@ pub fn sigmoid<T: Float>(x: &Variable<T>) -> Variable<T> {
 /// Tanh activation: `(exp(x) - exp(-x)) / (exp(x) + exp(-x))`.
 ///
 /// The Float trait has no `tanh`, so we compute it manually.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::tanh_fn;
+/// let x = Variable::new(Tensor::from_vec(vec![0.0_f64], vec![1]).unwrap(), false);
+/// let y = tanh_fn(&x);
+/// assert!(y.data().as_slice()[0].abs() < 1e-10); // tanh(0) = 0
+/// ```
 pub fn tanh_fn<T: Float>(x: &Variable<T>) -> Variable<T> {
     let x_data = x.data();
     let out = x_data.map(|v| {
@@ -71,6 +104,18 @@ pub fn tanh_fn<T: Float>(x: &Variable<T>) -> Variable<T> {
 /// Softmax along the last axis of a 2-D variable `[batch, classes]`.
 ///
 /// For numerical stability, subtracts the row-max before exponentiating.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::softmax;
+/// let x = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![1, 3]).unwrap(), false);
+/// let y = softmax(&x).unwrap();
+/// let sum: f64 = y.data().as_slice().iter().sum();
+/// assert!((sum - 1.0).abs() < 1e-10); // probabilities sum to 1
+/// ```
 pub fn softmax<T: Float>(x: &Variable<T>) -> Result<Variable<T>> {
     let x_data = x.data();
     let shape = x_data.shape().to_vec();
@@ -139,6 +184,20 @@ pub fn softmax<T: Float>(x: &Variable<T>) -> Result<Variable<T>> {
 /// Log-softmax along the last axis: `log(softmax(x))`.
 ///
 /// Computed as `x - max - log(sum(exp(x - max)))` for numerical stability.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::log_softmax;
+/// let x = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![1, 3]).unwrap(), false);
+/// let y = log_softmax(&x).unwrap();
+/// // All log-softmax values are negative.
+/// for &v in y.data().as_slice() {
+///     assert!(v < 0.0);
+/// }
+/// ```
 pub fn log_softmax<T: Float>(x: &Variable<T>) -> Result<Variable<T>> {
     let x_data = x.data();
     let shape = x_data.shape().to_vec();
@@ -206,6 +265,17 @@ pub fn log_softmax<T: Float>(x: &Variable<T>) -> Result<Variable<T>> {
 }
 
 /// Element-wise exponential.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::exp;
+/// let x = Variable::new(Tensor::from_vec(vec![0.0_f64, 1.0], vec![2]).unwrap(), false);
+/// let y = exp(&x);
+/// assert!((y.data().as_slice()[0] - 1.0).abs() < 1e-10); // exp(0) = 1
+/// ```
 pub fn exp<T: Float>(x: &Variable<T>) -> Variable<T> {
     let x_data = x.data();
     let out = x_data.exp();
@@ -223,6 +293,17 @@ pub fn exp<T: Float>(x: &Variable<T>) -> Variable<T> {
 }
 
 /// Element-wise natural logarithm.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::ln;
+/// let x = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.718281828], vec![2]).unwrap(), false);
+/// let y = ln(&x);
+/// assert!(y.data().as_slice()[0].abs() < 1e-10); // ln(1) = 0
+/// ```
 pub fn ln<T: Float>(x: &Variable<T>) -> Variable<T> {
     let x_data = x.data();
     let out = x_data.ln();
@@ -239,6 +320,17 @@ pub fn ln<T: Float>(x: &Variable<T>) -> Variable<T> {
 }
 
 /// Clamp (not differentiable at boundaries, gradient passes through in range).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::functional::clamp;
+/// let x = Variable::new(Tensor::from_vec(vec![-5.0_f64, 0.5, 10.0], vec![3]).unwrap(), false);
+/// let y = clamp(&x, 0.0, 1.0);
+/// assert_eq!(y.data().as_slice(), &[0.0, 0.5, 1.0]);
+/// ```
 pub fn clamp<T: Float>(x: &Variable<T>, min: T, max: T) -> Variable<T> {
     let x_data = x.data();
     let out = x_data.clamp(min, max);

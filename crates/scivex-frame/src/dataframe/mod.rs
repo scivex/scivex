@@ -25,6 +25,16 @@ impl DataFrame {
     ///
     /// Returns an error if column names are duplicated or if column lengths
     /// do not match.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use scivex_frame::prelude::*;
+    /// let df = DataFrame::new(vec![
+    ///     Box::new(Series::new("a", vec![1_i32, 2])),
+    /// ]).unwrap();
+    /// assert_eq!(df.nrows(), 2);
+    /// ```
     pub fn new(columns: Vec<Box<dyn AnySeries>>) -> Result<Self> {
         // Check for duplicate names.
         for (i, col) in columns.iter().enumerate() {
@@ -54,6 +64,15 @@ impl DataFrame {
     }
 
     /// Create an empty `DataFrame` with no columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::empty();
+    /// assert!(df.is_empty());
+    /// assert_eq!(df.nrows(), 0);
+    /// ```
     pub fn empty() -> Self {
         Self {
             columns: Vec::new(),
@@ -61,6 +80,17 @@ impl DataFrame {
     }
 
     /// Alias for [`new`](Self::new).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let cols: Vec<Box<dyn AnySeries>> = vec![
+    ///     Box::new(Series::new("x", vec![1_i32, 2])),
+    /// ];
+    /// let df = DataFrame::from_series(cols).unwrap();
+    /// assert_eq!(df.nrows(), 2);
+    /// ```
     pub fn from_series(series: Vec<Box<dyn AnySeries>>) -> Result<Self> {
         Self::new(series)
     }
@@ -108,6 +138,18 @@ impl DataFrame {
     }
 
     /// Look up a column and downcast to `Series<T>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1.0_f64, 2.0])
+    ///     .build()
+    ///     .unwrap();
+    /// let col = df.column_typed::<f64>("x").unwrap();
+    /// assert_eq!(col.get(0), Some(1.0));
+    /// ```
     pub fn column_typed<T: Scalar + HasDType + 'static>(&self, name: &str) -> Result<&Series<T>> {
         let col = self.column(name)?;
         col.as_any()
@@ -119,6 +161,18 @@ impl DataFrame {
     }
 
     /// Index of a column by name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32])
+    ///     .add_column("b", vec![2_i32])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.column_index("b").unwrap(), 1);
+    /// ```
     pub fn column_index(&self, name: &str) -> Result<usize> {
         self.columns
             .iter()
@@ -129,16 +183,51 @@ impl DataFrame {
     }
 
     /// All columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.columns().len(), 1);
+    /// ```
     pub fn columns(&self) -> &[Box<dyn AnySeries>] {
         &self.columns
     }
 
     /// Column names in order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("a", vec![1_i32])
+    ///     .add_column("b", vec![2_i32])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.column_names(), vec!["a", "b"]);
+    /// ```
     pub fn column_names(&self) -> Vec<&str> {
         self.columns.iter().map(|c| c.name()).collect()
     }
 
     /// Data types of all columns in order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// # use scivex_frame::dtype::DType;
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1.0_f64])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.dtypes(), vec![DType::F64]);
+    /// ```
     pub fn dtypes(&self) -> Vec<DType> {
         self.columns.iter().map(|c| c.dtype()).collect()
     }
@@ -196,6 +285,13 @@ impl DataFrame {
     }
 
     /// Whether the data frame has no columns.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// assert!(DataFrame::empty().is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.columns.is_empty()
     }
@@ -218,6 +314,17 @@ impl DataFrameBuilder {
     }
 
     /// Add a typed column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::DataFrame;
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1_i32, 2, 3])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.nrows(), 3);
+    /// ```
     pub fn add_column<T: Scalar + HasDType + 'static>(
         mut self,
         name: impl Into<String>,
@@ -228,12 +335,33 @@ impl DataFrameBuilder {
     }
 
     /// Add a pre-built boxed column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::{DataFrame, Series};
+    /// # use scivex_frame::series::AnySeries;
+    /// let col: Box<dyn AnySeries> = Box::new(Series::new("x", vec![1_i32]));
+    /// let df = DataFrame::builder().add_boxed(col).build().unwrap();
+    /// assert_eq!(df.ncols(), 1);
+    /// ```
     pub fn add_boxed(mut self, col: Box<dyn AnySeries>) -> Self {
         self.columns.push(col);
         self
     }
 
     /// Finalize, validating lengths and uniqueness.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::DataFrame;
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![1_i32, 2])
+    ///     .build()
+    ///     .unwrap();
+    /// assert_eq!(df.shape(), (2, 1));
+    /// ```
     pub fn build(self) -> Result<DataFrame> {
         DataFrame::new(self.columns)
     }

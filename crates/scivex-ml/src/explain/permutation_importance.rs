@@ -24,6 +24,26 @@ pub struct PermutationImportanceResult<T: Float> {
 ///
 /// For each feature, the column is shuffled `n_repeats` times and the
 /// decrease in `scorer(y_true, y_pred)` is recorded.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Float, Tensor};
+/// # use scivex_ml::{tree::DecisionTreeRegressor, traits::Predictor, explain::permutation_importance};
+/// fn r2(y_true: &Tensor<f64>, y_pred: &Tensor<f64>) -> f64 {
+///     let (yt, yp) = (y_true.as_slice(), y_pred.as_slice());
+///     let mean = yt.iter().sum::<f64>() / yt.len() as f64;
+///     let ss_res: f64 = yt.iter().zip(yp).map(|(t, p)| (t - p).powi(2)).sum();
+///     let ss_tot: f64 = yt.iter().map(|t| (t - mean).powi(2)).sum();
+///     1.0 - ss_res / ss_tot
+/// }
+/// let x = Tensor::from_vec(vec![1.0_f64,2.0, 3.0,4.0, 5.0,6.0, 7.0,8.0], vec![4, 2]).unwrap();
+/// let y = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+/// let mut model = DecisionTreeRegressor::new(Some(3), 1);
+/// model.fit(&x, &y).unwrap();
+/// let result = permutation_importance(&model, &x, &y, 3, r2, 42).unwrap();
+/// assert_eq!(result.importances_mean.shape(), &[2]);
+/// ```
 pub fn permutation_importance<T, P>(
     model: &P,
     x: &Tensor<T>,

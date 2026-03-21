@@ -26,6 +26,23 @@ pub struct Embedding<T: Float> {
 
 impl<T: Float> Embedding<T> {
     /// Create a new Embedding layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{Embedding, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let emb = Embedding::<f64>::new(10, 8, &mut rng);
+    /// // batch=1, seq_len=3, indices [0, 1, 2]
+    /// let x = Variable::new(
+    ///     Tensor::from_vec(vec![0.0, 1.0, 2.0], vec![1, 3]).unwrap(),
+    ///     false,
+    /// );
+    /// let y = emb.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 24]); // 3 * 8
+    /// ```
     pub fn new(num_embeddings: usize, dim: usize, rng: &mut Rng) -> Self {
         let w_data = init::xavier_uniform::<T>(&[num_embeddings, dim], rng);
         let weight = Variable::new(w_data, true);

@@ -52,6 +52,13 @@ impl<T: Float> SGDRegressor<T> {
     /// # Errors
     ///
     /// Returns [`MlError::InvalidParameter`] if `learning_rate` is not positive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::online::SGDRegressor;
+    /// let sgd = SGDRegressor::<f64>::new(0.01).unwrap();
+    /// ```
     pub fn new(learning_rate: f64) -> Result<Self> {
         if learning_rate <= 0.0 {
             return Err(MlError::InvalidParameter {
@@ -70,6 +77,14 @@ impl<T: Float> SGDRegressor<T> {
     }
 
     /// Set the L2 regularisation coefficient (weight decay).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::online::SGDRegressor;
+    /// let mut sgd = SGDRegressor::<f64>::new(0.01).unwrap();
+    /// sgd.set_l2_penalty(0.001);
+    /// ```
     pub fn set_l2_penalty(&mut self, alpha: f64) -> &mut Self {
         self.l2_penalty = T::from_f64(alpha);
         self
@@ -183,6 +198,13 @@ impl<T: Float> SGDClassifier<T> {
     /// # Errors
     ///
     /// Returns [`MlError::InvalidParameter`] if `learning_rate` is not positive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::online::sgd::SGDClassifier;
+    /// let clf = SGDClassifier::<f64>::new(0.01).unwrap();
+    /// ```
     pub fn new(learning_rate: f64) -> Result<Self> {
         if learning_rate <= 0.0 {
             return Err(MlError::InvalidParameter {
@@ -201,6 +223,14 @@ impl<T: Float> SGDClassifier<T> {
     }
 
     /// Set the L2 regularisation coefficient (weight decay).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::online::sgd::SGDClassifier;
+    /// let mut clf = SGDClassifier::<f64>::new(0.1).unwrap();
+    /// clf.set_l2_penalty(0.01);
+    /// ```
     pub fn set_l2_penalty(&mut self, alpha: f64) -> &mut Self {
         self.l2_penalty = T::from_f64(alpha);
         self

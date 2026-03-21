@@ -5,6 +5,15 @@ use std::collections::HashSet;
 use crate::tokenize::WordTokenizer;
 
 /// Result of sentiment analysis on a text.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::SentimentAnalyzer;
+/// let analyzer = SentimentAnalyzer::new();
+/// let result = analyzer.analyze("great wonderful");
+/// assert!(result.polarity > 0.0);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -24,6 +33,15 @@ pub struct SentimentResult {
     derive(serde::Serialize, serde::Deserialize)
 )]
 /// Bag-of-words sentiment analyzer with a built-in English lexicon.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::SentimentAnalyzer;
+/// let analyzer = SentimentAnalyzer::new();
+/// let result = analyzer.analyze("terrible awful");
+/// assert!(result.polarity < 0.0);
+/// ```
 pub struct SentimentAnalyzer {
     positive_words: HashSet<String>,
     negative_words: HashSet<String>,
@@ -31,6 +49,16 @@ pub struct SentimentAnalyzer {
 
 impl SentimentAnalyzer {
     /// Create with the built-in positive/negative word lists.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::sentiment::SentimentAnalyzer;
+    /// let sa = SentimentAnalyzer::new();
+    /// let result = sa.analyze("This is a great and wonderful day");
+    /// assert!(result.polarity > 0.0);
+    /// assert!(result.positive >= 2);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         let positive_words: HashSet<String> =
@@ -44,6 +72,16 @@ impl SentimentAnalyzer {
     }
 
     /// Analyze the sentiment of a text string.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::sentiment::SentimentAnalyzer;
+    /// let sa = SentimentAnalyzer::new();
+    /// let neg = sa.analyze("This is terrible and awful");
+    /// assert!(neg.polarity < 0.0);
+    /// assert!(neg.negative >= 2);
+    /// ```
     #[must_use]
     pub fn analyze(&self, text: &str) -> SentimentResult {
         let tokenizer = WordTokenizer::new().with_lowercase(true);

@@ -23,6 +23,19 @@ impl<T: Float> Linear<T> {
     /// - `out_features`: size of each output sample
     /// - `use_bias`: whether to include a bias term
     /// - `rng`: random number generator for initialization
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// # use scivex_nn::layer::{Linear, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// let mut rng = Rng::new(42);
+    /// let layer = Linear::<f64>::new(4, 2, true, &mut rng);
+    /// let x = Variable::new(Tensor::ones(vec![3, 4]), true);
+    /// let y = layer.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![3, 2]);
+    /// ```
     pub fn new(in_features: usize, out_features: usize, use_bias: bool, rng: &mut Rng) -> Self {
         let w_data = init::kaiming_uniform::<T>(&[out_features, in_features], rng);
         let weight = Variable::new(w_data, true);

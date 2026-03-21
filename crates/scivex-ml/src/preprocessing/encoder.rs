@@ -3,6 +3,18 @@ use scivex_core::Float;
 use crate::error::{MlError, Result};
 
 /// Maps unique label values to contiguous integers `0..n_classes`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// let y = [3.0_f64, 1.0, 2.0, 1.0, 3.0];
+/// let mut enc = LabelEncoder::new();
+/// enc.fit(&y).unwrap();
+/// let encoded = enc.transform(&y).unwrap();
+/// let decoded = enc.inverse_transform(&encoded).unwrap();
+/// assert_eq!(decoded, y);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -20,6 +32,15 @@ impl<T: Float> Default for LabelEncoder<T> {
 
 impl<T: Float> LabelEncoder<T> {
     /// Create a new, unfitted label encoder.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::preprocessing::LabelEncoder;
+    /// let mut enc = LabelEncoder::<f64>::new();
+    /// enc.fit(&[1.0_f64, 2.0, 3.0]).unwrap();
+    /// assert_eq!(enc.n_classes(), Some(3));
+    /// ```
     pub fn new() -> Self {
         Self { classes: None }
     }

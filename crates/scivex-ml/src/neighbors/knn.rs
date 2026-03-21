@@ -19,6 +19,20 @@ pub struct KNNClassifier<T: Float> {
 
 impl<T: Float> KNNClassifier<T> {
     /// Create a new KNN classifier with `k` neighbours.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_ml::neighbors::KNNClassifier;
+    /// # use scivex_ml::traits::Predictor;
+    /// let x = Tensor::from_vec(vec![0.0_f64, 0.0, 10.0, 10.0], vec![2, 2]).unwrap();
+    /// let y = Tensor::from_vec(vec![0.0, 1.0], vec![2]).unwrap();
+    /// let mut knn = KNNClassifier::new(1).unwrap();
+    /// knn.fit(&x, &y).unwrap();
+    /// let preds = knn.predict(&x).unwrap();
+    /// assert_eq!(preds.as_slice(), &[0.0, 1.0]);
+    /// ```
     pub fn new(k: usize) -> Result<Self> {
         if k == 0 {
             return Err(MlError::InvalidParameter {
@@ -94,6 +108,18 @@ pub struct KNNRegressor<T: Float> {
 
 impl<T: Float> KNNRegressor<T> {
     /// Create a new KNN regressor with `k` neighbours.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_ml::neighbors::KNNRegressor;
+    /// # use scivex_ml::traits::Predictor;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 3.0, 5.0], vec![3, 1]).unwrap();
+    /// let y = Tensor::from_vec(vec![2.0, 6.0, 10.0], vec![3]).unwrap();
+    /// let mut knn = KNNRegressor::new(2).unwrap();
+    /// knn.fit(&x, &y).unwrap();
+    /// ```
     pub fn new(k: usize) -> Result<Self> {
         if k == 0 {
             return Err(MlError::InvalidParameter {

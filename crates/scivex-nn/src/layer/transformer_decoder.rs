@@ -45,6 +45,20 @@ impl<T: Float> TransformerDecoderLayer<T> {
     /// - `seq_len`: target sequence length
     /// - `pre_norm`: if `true`, apply LayerNorm before attention/FF (pre-norm);
     ///   otherwise, apply after (post-norm)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{TransformerDecoderLayer, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let layer = TransformerDecoderLayer::<f64>::new(8, 2, 32, 4, false, &mut rng).unwrap();
+    /// let tgt = Variable::new(Tensor::ones(vec![1, 32]), false);
+    /// let mem = Variable::new(Tensor::ones(vec![1, 32]), false);
+    /// let out = layer.forward_decoder(&tgt, &mem, None).unwrap();
+    /// assert_eq!(out.shape(), vec![1, 32]);
+    /// ```
     pub fn new(
         d_model: usize,
         n_heads: usize,

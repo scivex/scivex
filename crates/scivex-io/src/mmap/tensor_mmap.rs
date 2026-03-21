@@ -12,6 +12,15 @@ use crate::error::{IoError, Result};
 ///
 /// The file is memory-mapped rather than fully loaded, so only the accessed
 /// pages are brought into memory by the OS.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::mmap::MmapTensorReader;
+/// let reader = MmapTensorReader::open("large_array.npy").unwrap();
+/// println!("shape: {:?}, elements: {}", reader.shape(), reader.numel());
+/// let tensor = reader.read_tensor().unwrap();
+/// ```
 pub struct MmapTensorReader {
     mmap: Mmap,
     shape: Vec<usize>,
@@ -104,6 +113,14 @@ impl MmapTensorReader {
 }
 
 /// Memory-map a `.npy` file and read the tensor.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::mmap::mmap_npy;
+/// let tensor = mmap_npy("data.npy").unwrap();
+/// assert_eq!(tensor.shape(), &[100, 200]);
+/// ```
 pub fn mmap_npy<P: AsRef<Path>>(path: P) -> Result<Tensor<f64>> {
     let reader = MmapTensorReader::open(path)?;
     reader.read_tensor()

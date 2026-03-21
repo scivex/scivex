@@ -14,6 +14,16 @@ use crate::tensor::Tensor;
 /// Stores the factorization `PA = LU` in compact form: `L` and `U` are
 /// packed into a single matrix (the unit diagonal of `L` is implicit),
 /// and the permutation is stored as a pivot index vector.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::linalg::decomp::LuDecomposition;
+/// let a = Tensor::from_vec(vec![4.0_f64, 3.0, 6.0, 3.0], vec![2, 2]).unwrap();
+/// let lu = LuDecomposition::decompose(&a).unwrap();
+/// assert!((lu.det() - (-6.0)).abs() < 1e-10);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -107,6 +117,17 @@ impl<T: Float> LuDecomposition<T> {
     }
 
     /// Extract the lower triangular matrix `L` (with unit diagonal).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::LuDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let lu = LuDecomposition::decompose(&a).unwrap();
+    /// let l = lu.l();
+    /// assert_eq!(l.shape(), &[2, 2]);
+    /// ```
     pub fn l(&self) -> Tensor<T> {
         let n = self.n;
         let mut data = vec![T::zero(); n * n];
@@ -121,6 +142,17 @@ impl<T: Float> LuDecomposition<T> {
     }
 
     /// Extract the upper triangular matrix `U`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::LuDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let lu = LuDecomposition::decompose(&a).unwrap();
+    /// let u = lu.u();
+    /// assert_eq!(u.shape(), &[2, 2]);
+    /// ```
     pub fn u(&self) -> Tensor<T> {
         let n = self.n;
         let mut data = vec![T::zero(); n * n];
@@ -134,6 +166,17 @@ impl<T: Float> LuDecomposition<T> {
     }
 
     /// Extract the permutation matrix `P`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::LuDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let lu = LuDecomposition::decompose(&a).unwrap();
+    /// let p = lu.p();
+    /// assert_eq!(p.shape(), &[2, 2]);
+    /// ```
     pub fn p(&self) -> Tensor<T> {
         let n = self.n;
         let mut data = vec![T::zero(); n * n];
@@ -145,6 +188,16 @@ impl<T: Float> LuDecomposition<T> {
     }
 
     /// The permutation pivot vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::LuDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let lu = LuDecomposition::decompose(&a).unwrap();
+    /// assert_eq!(lu.pivots().len(), 2);
+    /// ```
     pub fn pivots(&self) -> &[usize] {
         &self.pivots
     }
@@ -152,6 +205,16 @@ impl<T: Float> LuDecomposition<T> {
     /// Compute the determinant from the LU factorization.
     ///
     /// `det(A) = sign * product(diag(U))`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::LuDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let lu = LuDecomposition::decompose(&a).unwrap();
+    /// assert!((lu.det() - 7.0).abs() < 1e-10);
+    /// ```
     pub fn det(&self) -> T {
         let n = self.n;
         let mut d = self.sign;
@@ -164,6 +227,17 @@ impl<T: Float> LuDecomposition<T> {
     /// Solve the linear system `Ax = b` using the precomputed LU factorization.
     ///
     /// `b` must be a 1-D tensor of length `n`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::LuDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let b = Tensor::from_vec(vec![5.0_f64, 6.0], vec![2]).unwrap();
+    /// let x = LuDecomposition::decompose(&a).unwrap().solve(&b).unwrap();
+    /// assert!((x.as_slice()[0] - 2.0).abs() < 1e-10);
+    /// ```
     pub fn solve(&self, b: &Tensor<T>) -> Result<Tensor<T>> {
         if b.ndim() != 1 {
             return Err(CoreError::InvalidArgument {
@@ -213,6 +287,17 @@ impl<T: Float> LuDecomposition<T> {
     /// Compute the inverse matrix using the LU factorization.
     ///
     /// Solves `AX = I` column by column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// # use scivex_core::linalg::decomp::LuDecomposition;
+    /// let a = Tensor::from_vec(vec![2.0_f64, 1.0, 1.0, 4.0], vec![2, 2]).unwrap();
+    /// let inv = LuDecomposition::decompose(&a).unwrap().inverse().unwrap();
+    /// let eye = a.matmul(&inv).unwrap();
+    /// assert!((eye.as_slice()[0] - 1.0).abs() < 1e-10);
+    /// ```
     pub fn inverse(&self) -> Result<Tensor<T>> {
         let n = self.n;
         let mut inv_data = vec![T::zero(); n * n];

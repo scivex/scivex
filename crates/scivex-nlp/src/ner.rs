@@ -2,6 +2,14 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 /// Named entity type variants.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::EntityType;
+/// let t = EntityType::Person;
+/// assert_eq!(format!("{t}"), "Person");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EntityType {
     Person,
@@ -27,6 +35,14 @@ impl fmt::Display for EntityType {
 }
 
 /// A recognized named entity with its type and position in the token sequence.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::ner::{Entity, EntityType};
+/// let e = Entity { text: "London".to_string(), entity_type: EntityType::Location, start: 0, end: 1 };
+/// assert_eq!(e.entity_type, EntityType::Location);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Entity {
     /// The entity text.
@@ -40,6 +56,16 @@ pub struct Entity {
 }
 
 /// Rule-based named entity recognizer using gazetteers and pattern rules.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::ner::{RuleBasedNer, EntityType};
+/// let mut ner = RuleBasedNer::new();
+/// ner.add_entity(EntityType::Person, "Alice");
+/// let entities = ner.recognize(&["Alice", "went", "home"]);
+/// assert_eq!(entities.len(), 1);
+/// ```
 pub struct RuleBasedNer {
     /// Known entity lists keyed by entity type.
     gazetteers: HashMap<EntityType, HashSet<String>>,
@@ -70,6 +96,16 @@ impl Default for RuleBasedNer {
 impl RuleBasedNer {
     /// Create a new rule-based NER with built-in gazetteers for persons,
     /// organizations, and locations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::ner::RuleBasedNer;
+    /// let ner = RuleBasedNer::new();
+    /// let entities = ner.recognize(&["John", "works", "at", "Google"]);
+    /// assert!(entities.iter().any(|e| e.text == "John"));
+    /// assert!(entities.iter().any(|e| e.text == "Google"));
+    /// ```
     pub fn new() -> Self {
         let mut gazetteers: HashMap<EntityType, HashSet<String>> = HashMap::new();
 
@@ -121,6 +157,16 @@ impl RuleBasedNer {
     }
 
     /// Add an entity to a gazetteer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::ner::{RuleBasedNer, EntityType};
+    /// let mut ner = RuleBasedNer::new();
+    /// ner.add_entity(EntityType::Organization, "Scivex");
+    /// let entities = ner.recognize(&["use", "Scivex"]);
+    /// assert!(entities.iter().any(|e| e.text == "Scivex"));
+    /// ```
     pub fn add_entity(&mut self, entity_type: EntityType, name: &str) {
         self.gazetteers
             .entry(entity_type)
@@ -132,6 +178,16 @@ impl RuleBasedNer {
     ///
     /// Applies gazetteer lookup, capitalization heuristics, month name detection,
     /// and number pattern matching.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::ner::{RuleBasedNer, EntityType};
+    /// let ner = RuleBasedNer::new();
+    /// let entities = ner.recognize(&["born", "in", "January", "42"]);
+    /// assert!(entities.iter().any(|e| e.entity_type == EntityType::Date));
+    /// assert!(entities.iter().any(|e| e.entity_type == EntityType::Number));
+    /// ```
     pub fn recognize(&self, tokens: &[&str]) -> Vec<Entity> {
         let mut entities = Vec::new();
 

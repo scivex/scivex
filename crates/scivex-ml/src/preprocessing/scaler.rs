@@ -4,6 +4,17 @@ use crate::error::{MlError, Result};
 use crate::traits::Transformer;
 
 /// Standardises features by removing the mean and scaling to unit variance.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![1.0_f64, 10.0, 2.0, 20.0, 3.0, 30.0], vec![3, 2]).unwrap();
+/// let mut scaler = StandardScaler::<f64>::new();
+/// let transformed = scaler.fit_transform(&x).unwrap();
+/// let recovered = scaler.inverse_transform(&transformed).unwrap();
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -22,6 +33,17 @@ impl<T: Float> Default for StandardScaler<T> {
 
 impl<T: Float> StandardScaler<T> {
     /// Create a new, unfitted standard scaler.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::prelude::*;
+    /// # use scivex_core::prelude::*;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+    /// let mut scaler = StandardScaler::<f64>::new();
+    /// let t = scaler.fit_transform(&x).unwrap();
+    /// assert_eq!(t.shape(), &[2, 2]);
+    /// ```
     pub fn new() -> Self {
         Self {
             mean: None,
@@ -109,6 +131,17 @@ impl<T: Float> Transformer<T> for StandardScaler<T> {
 }
 
 /// Scales features to the range `[0, 1]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![1.0_f64, 10.0, 5.0, 50.0], vec![2, 2]).unwrap();
+/// let mut scaler = MinMaxScaler::<f64>::new();
+/// let scaled = scaler.fit_transform(&x).unwrap();
+/// // Min is 0, max is 1 for each column
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -127,6 +160,17 @@ impl<T: Float> Default for MinMaxScaler<T> {
 
 impl<T: Float> MinMaxScaler<T> {
     /// Create a new, unfitted min-max scaler.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::prelude::*;
+    /// # use scivex_core::prelude::*;
+    /// let x = Tensor::from_vec(vec![0.0_f64, 10.0, 5.0, 20.0], vec![2, 2]).unwrap();
+    /// let mut scaler = MinMaxScaler::<f64>::new();
+    /// let t = scaler.fit_transform(&x).unwrap();
+    /// assert_eq!(t.shape(), &[2, 2]);
+    /// ```
     pub fn new() -> Self {
         Self {
             min: None,

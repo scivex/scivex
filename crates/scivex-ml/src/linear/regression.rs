@@ -97,6 +97,18 @@ impl<T: Float> Predictor<T> for LinearRegression<T> {
 /// Ridge regression (L2 regularisation).
 ///
 /// Solves `(X^T X + alpha * I) w = X^T y`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_ml::prelude::*;
+/// # use scivex_core::prelude::*;
+/// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0], vec![5, 1]).unwrap();
+/// let y = Tensor::from_vec(vec![3.0, 5.0, 7.0, 9.0, 11.0], vec![5]).unwrap();
+/// let mut ridge = Ridge::new(0.1).unwrap();
+/// ridge.fit(&x, &y).unwrap();
+/// let preds = ridge.predict(&x).unwrap();
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)

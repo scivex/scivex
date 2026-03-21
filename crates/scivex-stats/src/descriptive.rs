@@ -25,6 +25,15 @@ pub fn mean<T: Float>(data: &[T]) -> Result<T> {
 /// Compute the sample variance with `ddof` (delta degrees of freedom).
 ///
 /// Uses `ddof = 1` (Bessel's correction) by default in [`variance`].
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::variance_with_ddof;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let pop_var = variance_with_ddof(&data, 0).unwrap(); // population variance
+/// assert!((pop_var - 2.0).abs() < 1e-10);
+/// ```
 pub fn variance_with_ddof<T: Float>(data: &[T], ddof: usize) -> Result<T> {
     let n = data.len();
     if n <= ddof {
@@ -53,11 +62,29 @@ pub fn variance<T: Float>(data: &[T]) -> Result<T> {
 }
 
 /// Sample standard deviation with given `ddof`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::std_dev_with_ddof;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let s = std_dev_with_ddof(&data, 0).unwrap(); // population std dev
+/// assert!((s - 2.0_f64.sqrt()).abs() < 1e-10);
+/// ```
 pub fn std_dev_with_ddof<T: Float>(data: &[T], ddof: usize) -> Result<T> {
     Ok(variance_with_ddof(data, ddof)?.sqrt())
 }
 
 /// Sample standard deviation (ddof = 1).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::std_dev;
+/// let data = [2.0_f64, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0];
+/// let sd = std_dev(&data).unwrap();
+/// assert!((sd - 2.138_089_935_299_395).abs() < 1e-8);
+/// ```
 pub fn std_dev<T: Float>(data: &[T]) -> Result<T> {
     std_dev_with_ddof(data, 1)
 }
@@ -65,6 +92,14 @@ pub fn std_dev<T: Float>(data: &[T]) -> Result<T> {
 /// Compute the median of `data`.
 ///
 /// For even-length data, returns the average of the two middle values.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::median;
+/// let data = [1.0_f64, 3.0, 5.0, 7.0, 9.0];
+/// assert!((median(&data).unwrap() - 5.0).abs() < 1e-10);
+/// ```
 pub fn median<T: Float>(data: &[T]) -> Result<T> {
     if data.is_empty() {
         return Err(StatsError::EmptyInput);
@@ -80,6 +115,15 @@ pub fn median<T: Float>(data: &[T]) -> Result<T> {
 }
 
 /// Compute the `q`-th quantile (0 <= q <= 1) using linear interpolation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::quantile;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let q50 = quantile(&data, 0.5).unwrap();
+/// assert!((q50 - 3.0).abs() < 1e-10);
+/// ```
 pub fn quantile<T: Float>(data: &[T], q: T) -> Result<T> {
     if data.is_empty() {
         return Err(StatsError::EmptyInput);
@@ -124,6 +168,15 @@ fn float_to_usize<T: Float>(val: T, max_n: usize) -> usize {
 }
 
 /// Adjusted Fisher–Pearson skewness.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::skewness;
+/// let symmetric = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let sk = skewness(&symmetric).unwrap();
+/// assert!(sk.abs() < 0.1); // nearly symmetric
+/// ```
 pub fn skewness<T: Float>(data: &[T]) -> Result<T> {
     let n = data.len();
     if n < 3 {
@@ -140,6 +193,15 @@ pub fn skewness<T: Float>(data: &[T]) -> Result<T> {
 }
 
 /// Excess kurtosis.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::kurtosis;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let k = kurtosis(&data).unwrap();
+/// assert!(k.abs() < 2.0); // finite kurtosis
+/// ```
 pub fn kurtosis<T: Float>(data: &[T]) -> Result<T> {
     let n = data.len();
     if n < 4 {
@@ -156,6 +218,16 @@ pub fn kurtosis<T: Float>(data: &[T]) -> Result<T> {
 }
 
 /// Summary statistics returned by [`describe`].
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::describe;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let d = describe(&data).unwrap();
+/// assert_eq!(d.count, 5);
+/// assert!((d.mean - 3.0).abs() < 1e-10);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -175,6 +247,17 @@ pub struct DescribeResult<T: Float> {
 }
 
 /// Compute summary statistics for `data`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::descriptive::describe;
+/// let data = [1.0_f64, 2.0, 3.0, 4.0, 5.0];
+/// let d = describe(&data).unwrap();
+/// assert_eq!(d.count, 5);
+/// assert!((d.min - 1.0).abs() < 1e-10);
+/// assert!((d.max - 5.0).abs() < 1e-10);
+/// ```
 pub fn describe<T: Float>(data: &[T]) -> Result<DescribeResult<T>> {
     if data.is_empty() {
         return Err(StatsError::EmptyInput);

@@ -12,18 +12,18 @@ use crate::error::Result;
 
 /// Builder for writing a [`DataFrame`] as JSON.
 ///
-/// # Example
+/// # Examples
 ///
-/// ```no_run
-/// use scivex_io::json::JsonWriterBuilder;
-/// use scivex_frame::DataFrame;
+/// ```
+/// use scivex_io::json::{JsonWriterBuilder, read_json};
 ///
-/// fn example(df: &DataFrame) {
-///     let mut buf = Vec::new();
-///     JsonWriterBuilder::new()
-///         .write(&mut buf, df)
-///         .unwrap();
-/// }
+/// let json = r#"[{"a": 1}, {"a": 2}]"#;
+/// let df = read_json(json.as_bytes()).unwrap();
+/// let mut buf = Vec::new();
+/// JsonWriterBuilder::new()
+///     .write(&mut buf, &df)
+///     .unwrap();
+/// assert!(String::from_utf8(buf).unwrap().contains("\"a\""));
 /// ```
 #[cfg_attr(
     feature = "serde-support",
@@ -225,6 +225,19 @@ fn column_value_at(col: &dyn AnySeries, row: usize) -> Value {
 }
 
 /// Write a `DataFrame` as JSON to a writer with default settings.
+///
+/// # Examples
+///
+/// ```
+/// use scivex_io::json::{write_json, read_json};
+///
+/// let json = r#"[{"n": 10}, {"n": 20}]"#;
+/// let df = read_json(json.as_bytes()).unwrap();
+/// let mut buf = Vec::new();
+/// write_json(&mut buf, &df).unwrap();
+/// let out = String::from_utf8(buf).unwrap();
+/// assert!(out.contains("10"));
+/// ```
 pub fn write_json<W: Write>(writer: W, df: &DataFrame) -> Result<()> {
     JsonWriterBuilder::new().write(writer, df)
 }

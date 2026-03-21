@@ -7,6 +7,14 @@ use crate::error::{ImageError, Result};
 use crate::image::{Image, PixelFormat};
 
 /// A contour is an ordered sequence of boundary pixel coordinates `(row, col)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::contour::Contour;
+/// let c = Contour { points: vec![(0, 0), (0, 1), (1, 1), (1, 0)] };
+/// assert_eq!(c.points.len(), 4);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Contour {
     /// Ordered boundary points as `(row, col)`.
@@ -18,6 +26,18 @@ pub struct Contour {
 ///
 /// Pixels with value `>= threshold` are considered foreground. Each connected
 /// foreground boundary is returned as a separate [`Contour`].
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::contour::find_contours;
+/// let mut data = vec![0u8; 100];
+/// for r in 3..7 { for c in 3..7 { data[r * 10 + c] = 255; } }
+/// let img = Image::from_raw(data, 10, 10, PixelFormat::Gray).unwrap();
+/// let contours = find_contours(&img, 128).unwrap();
+/// assert!(!contours.is_empty());
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn find_contours(img: &Image<u8>, threshold: u8) -> Result<Vec<Contour>> {
     if img.format() != PixelFormat::Gray {
@@ -165,6 +185,14 @@ fn trace_boundary(
 /// Compute the area enclosed by a contour using the shoelace formula.
 ///
 /// Treats points as `(x=col, y=row)` coordinates. Returns the absolute area.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::contour::{Contour, contour_area};
+/// let c = Contour { points: vec![(0, 0), (0, 4), (4, 4), (4, 0)] };
+/// assert!((contour_area(&c) - 16.0).abs() < 1e-6);
+/// ```
 pub fn contour_area(contour: &Contour) -> f64 {
     let pts = &contour.points;
     let n = pts.len();
@@ -187,6 +215,14 @@ pub fn contour_area(contour: &Contour) -> f64 {
 
 /// Compute the perimeter of a contour as the sum of Euclidean distances
 /// between consecutive points.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::contour::{Contour, contour_perimeter};
+/// let c = Contour { points: vec![(0, 0), (0, 3), (3, 3), (3, 0)] };
+/// assert!((contour_perimeter(&c) - 12.0).abs() < 1e-6);
+/// ```
 pub fn contour_perimeter(contour: &Contour) -> f64 {
     let pts = &contour.points;
     let n = pts.len();

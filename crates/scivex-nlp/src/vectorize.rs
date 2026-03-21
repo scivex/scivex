@@ -12,6 +12,16 @@ use crate::tokenize::WordTokenizer;
 // ---------------------------------------------------------------------------
 
 /// Converts a collection of text documents into a term-count matrix.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::CountVectorizer;
+/// let mut cv = CountVectorizer::new();
+/// let docs = ["hello world", "hello rust"];
+/// let mat = cv.fit_transform::<f64>(&docs).unwrap();
+/// assert_eq!(mat.shape()[0], 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -23,6 +33,18 @@ pub struct CountVectorizer {
 
 impl CountVectorizer {
     /// Create a new, unfitted count vectorizer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::CountVectorizer;
+    /// # use scivex_core::Tensor;
+    /// let mut cv = CountVectorizer::new();
+    /// let docs = ["hello world", "hello rust"];
+    /// cv.fit(&docs).unwrap();
+    /// let matrix: Tensor<f64> = cv.transform(&docs).unwrap();
+    /// assert_eq!(matrix.shape()[0], 2); // 2 documents
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -32,6 +54,16 @@ impl CountVectorizer {
     }
 
     /// Build the vocabulary from a set of documents.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::CountVectorizer;
+    /// let mut cv = CountVectorizer::new();
+    /// cv.fit(&["hello world", "hello rust"]).unwrap();
+    /// assert!(cv.is_fitted());
+    /// assert!(cv.vocabulary().len() >= 3);
+    /// ```
     pub fn fit(&mut self, documents: &[&str]) -> Result<()> {
         if documents.is_empty() {
             return Err(NlpError::EmptyInput);
@@ -54,6 +86,17 @@ impl CountVectorizer {
     }
 
     /// Transform documents into a term-count matrix (n_docs × vocab_size).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::CountVectorizer;
+    /// # use scivex_core::Tensor;
+    /// let mut cv = CountVectorizer::new();
+    /// cv.fit(&["word word word"]).unwrap();
+    /// let m: Tensor<f64> = cv.transform(&["word word word"]).unwrap();
+    /// assert_eq!(m.as_slice(), &[3.0]); // "word" appears 3 times
+    /// ```
     pub fn transform<T: Float>(&self, documents: &[&str]) -> Result<Tensor<T>> {
         if !self.fitted {
             return Err(NlpError::NotFitted);
@@ -75,18 +118,45 @@ impl CountVectorizer {
     }
 
     /// Fit the vocabulary and transform in one step.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::CountVectorizer;
+    /// # use scivex_core::Tensor;
+    /// let mut cv = CountVectorizer::new();
+    /// let m: Tensor<f64> = cv.fit_transform(&["the cat sat", "the dog sat"]).unwrap();
+    /// assert_eq!(m.shape()[0], 2); // 2 documents
+    /// ```
     pub fn fit_transform<T: Float>(&mut self, documents: &[&str]) -> Result<Tensor<T>> {
         self.fit(documents)?;
         self.transform(documents)
     }
 
     /// Returns the fitted vocabulary (token → column index).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::CountVectorizer;
+    /// let mut cv = CountVectorizer::new();
+    /// cv.fit(&["hello world"]).unwrap();
+    /// assert!(cv.vocabulary().contains_key("hello"));
+    /// ```
     #[must_use]
     pub fn vocabulary(&self) -> &HashMap<String, usize> {
         &self.vocabulary
     }
 
     /// Returns `true` if the vocabulary has been built via [`fit`](Self::fit).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::CountVectorizer;
+    /// let cv = CountVectorizer::new();
+    /// assert!(!cv.is_fitted());
+    /// ```
     #[must_use]
     pub fn is_fitted(&self) -> bool {
         self.fitted
@@ -112,6 +182,16 @@ impl Default for CountVectorizer {
     derive(serde::Serialize, serde::Deserialize)
 )]
 /// frequency of the term.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_nlp::TfidfVectorizer;
+/// let mut tfidf = TfidfVectorizer::new();
+/// let docs = ["hello world", "hello rust"];
+/// let mat = tfidf.fit_transform::<f64>(&docs).unwrap();
+/// assert_eq!(mat.shape()[0], 2);
+/// ```
 pub struct TfidfVectorizer {
     count_vectorizer: CountVectorizer,
     idf: Option<Vec<f64>>,
@@ -119,6 +199,16 @@ pub struct TfidfVectorizer {
 
 impl TfidfVectorizer {
     /// Create a new, unfitted TF-IDF vectorizer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::TfidfVectorizer;
+    /// # use scivex_core::Tensor;
+    /// let mut tv = TfidfVectorizer::new();
+    /// let m: Tensor<f64> = tv.fit_transform(&["the cat", "the dog"]).unwrap();
+    /// assert_eq!(m.shape()[0], 2);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -128,6 +218,15 @@ impl TfidfVectorizer {
     }
 
     /// Fit the vectorizer on a set of documents, computing vocabulary and IDF.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::TfidfVectorizer;
+    /// let mut tv = TfidfVectorizer::new();
+    /// tv.fit(&["the cat", "the dog", "rare thing"]).unwrap();
+    /// assert!(tv.vocabulary().len() >= 4);
+    /// ```
     pub fn fit(&mut self, documents: &[&str]) -> Result<()> {
         if documents.is_empty() {
             return Err(NlpError::EmptyInput);
@@ -165,6 +264,17 @@ impl TfidfVectorizer {
     }
 
     /// Transform documents into TF-IDF weighted matrix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::TfidfVectorizer;
+    /// # use scivex_core::Tensor;
+    /// let mut tv = TfidfVectorizer::new();
+    /// tv.fit(&["the cat", "the dog"]).unwrap();
+    /// let m: Tensor<f64> = tv.transform(&["the cat"]).unwrap();
+    /// assert_eq!(m.shape()[0], 1);
+    /// ```
     pub fn transform<T: Float>(&self, documents: &[&str]) -> Result<Tensor<T>> {
         let idf = self.idf.as_ref().ok_or(NlpError::NotFitted)?;
         let counts: Tensor<T> = self.count_vectorizer.transform(documents)?;
@@ -186,12 +296,31 @@ impl TfidfVectorizer {
     }
 
     /// Fit and transform in one step.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::TfidfVectorizer;
+    /// # use scivex_core::Tensor;
+    /// let mut tv = TfidfVectorizer::new();
+    /// let m: Tensor<f64> = tv.fit_transform(&["hello world", "hello rust"]).unwrap();
+    /// assert_eq!(m.shape(), &[2, 3]); // 2 docs × 3 unique terms
+    /// ```
     pub fn fit_transform<T: Float>(&mut self, documents: &[&str]) -> Result<Tensor<T>> {
         self.fit(documents)?;
         self.transform(documents)
     }
 
     /// Returns the fitted vocabulary.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nlp::vectorize::TfidfVectorizer;
+    /// let mut tv = TfidfVectorizer::new();
+    /// tv.fit(&["hello world"]).unwrap();
+    /// assert!(tv.vocabulary().contains_key("hello"));
+    /// ```
     #[must_use]
     pub fn vocabulary(&self) -> &HashMap<String, usize> {
         self.count_vectorizer.vocabulary()

@@ -25,6 +25,12 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Create a tensor filled with ones.
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let t = Tensor::<f64>::ones(vec![2, 3]);
+    /// assert!(t.iter().all(|&x| x == 1.0));
+    /// ```
     pub fn ones(shape: Vec<usize>) -> Self {
         let numel: usize = shape.iter().product();
         let strides = compute_strides(&shape);
@@ -36,6 +42,12 @@ impl<T: Scalar> Tensor<T> {
     }
 
     /// Create a tensor filled with a constant value.
+    ///
+    /// ```
+    /// # use scivex_core::tensor::Tensor;
+    /// let t = Tensor::full(vec![2, 2], 7_i32);
+    /// assert!(t.iter().all(|&x| x == 7));
+    /// ```
     pub fn full(shape: Vec<usize>, value: T) -> Self {
         let numel: usize = shape.iter().product();
         let strides = compute_strides(&shape);

@@ -34,6 +34,13 @@ impl<T: Float> ProductQuantizer<T> {
     /// - `dim`: full vector dimensionality
     /// - `n_subvectors`: number of sub-spaces (must evenly divide `dim`)
     /// - `n_centroids`: centroids per sub-space (typically 256, max 256 for u8 codes)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::pq::ProductQuantizer;
+    /// let pq = ProductQuantizer::<f64>::new(4, 2, 8).unwrap();
+    /// ```
     pub fn new(dim: usize, n_subvectors: usize, n_centroids: usize) -> Result<Self> {
         if dim == 0 {
             return Err(MlError::InvalidParameter {
@@ -72,12 +79,29 @@ impl<T: Float> ProductQuantizer<T> {
     }
 
     /// Set the random seed for K-Means training.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::pq::ProductQuantizer;
+    /// let mut pq = ProductQuantizer::<f64>::new(4, 2, 8).unwrap();
+    /// pq.set_seed(123);
+    /// ```
     pub fn set_seed(&mut self, seed: u64) -> &mut Self {
         self.seed = seed;
         self
     }
 
     /// Set the distance metric (default: L2).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::neighbors::pq::ProductQuantizer;
+    /// # use scivex_ml::neighbors::distance::DistanceMetric;
+    /// let mut pq = ProductQuantizer::<f64>::new(4, 2, 8).unwrap();
+    /// pq.set_metric(DistanceMetric::Cosine);
+    /// ```
     pub fn set_metric(&mut self, metric: DistanceMetric) -> &mut Self {
         self.metric = metric;
         self

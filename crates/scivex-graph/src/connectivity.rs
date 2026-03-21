@@ -10,6 +10,20 @@ use crate::graph::Graph;
 ///
 /// Each component is a `Vec<usize>` of node IDs. Components are sorted by
 /// their smallest node ID.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, connectivity};
+/// let mut g = Graph::<f64>::new();
+/// let a = g.add_node();
+/// let b = g.add_node();
+/// let c = g.add_node();
+/// g.add_edge(a, b, 1.0).unwrap();
+/// // c is isolated
+/// let comps = connectivity::connected_components(&g);
+/// assert_eq!(comps.len(), 2);
+/// ```
 pub fn connected_components<T: Float>(graph: &Graph<T>) -> Vec<Vec<usize>> {
     let n = graph.capacity();
     let mut visited = vec![false; n];
@@ -43,6 +57,17 @@ pub fn connected_components<T: Float>(graph: &Graph<T>) -> Vec<Vec<usize>> {
 }
 
 /// Check if an undirected graph is connected.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{Graph, connectivity};
+/// let mut g = Graph::<f64>::new();
+/// let a = g.add_node();
+/// let b = g.add_node();
+/// g.add_edge(a, b, 1.0).unwrap();
+/// assert!(connectivity::is_connected(&g));
+/// ```
 pub fn is_connected<T: Float>(graph: &Graph<T>) -> bool {
     if graph.node_count() <= 1 {
         return true;
@@ -76,6 +101,15 @@ pub fn is_connected<T: Float>(graph: &Graph<T>) -> bool {
 /// Kosaraju's algorithm.
 ///
 /// Each SCC is a `Vec<usize>` of node IDs.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, connectivity};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 0, 1.0), (2, 3, 1.0)]).unwrap();
+/// let sccs = connectivity::strongly_connected_components(&g);
+/// assert_eq!(sccs.len(), 3); // {0,1}, {2}, {3}
+/// ```
 pub fn strongly_connected_components<T: Float>(graph: &DiGraph<T>) -> Vec<Vec<usize>> {
     let n = graph.capacity();
 
@@ -156,6 +190,14 @@ fn dfs_reverse<T: Float>(
 }
 
 /// Check if a directed graph is strongly connected.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, connectivity};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0), (2, 0, 1.0)]).unwrap();
+/// assert!(connectivity::is_strongly_connected(&g));
+/// ```
 pub fn is_strongly_connected<T: Float>(graph: &DiGraph<T>) -> bool {
     if graph.node_count() <= 1 {
         return true;
@@ -167,6 +209,15 @@ pub fn is_strongly_connected<T: Float>(graph: &DiGraph<T>) -> bool {
 /// Find weakly connected components of a directed graph.
 ///
 /// Treats all edges as undirected.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::{DiGraph, connectivity};
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (2, 3, 1.0)]).unwrap();
+/// let wcc = connectivity::weakly_connected_components(&g).unwrap();
+/// assert_eq!(wcc.len(), 2);
+/// ```
 pub fn weakly_connected_components<T: Float>(graph: &DiGraph<T>) -> Result<Vec<Vec<usize>>> {
     let undirected = graph.to_undirected()?;
     Ok(connected_components(&undirected))

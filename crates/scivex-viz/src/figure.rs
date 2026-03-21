@@ -19,7 +19,22 @@ pub struct Figure {
 }
 
 impl Figure {
-    /// Create a new figure with default size (800×600).
+    /// Create a new figure with default size (800x600).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_viz::figure::Figure;
+    /// # use scivex_viz::axes::Axes;
+    /// # use scivex_viz::plot::LinePlot;
+    /// let fig = Figure::new()
+    ///     .size(1024.0, 768.0)
+    ///     .plot(Axes::new()
+    ///         .title("Hello")
+    ///         .add_plot(LinePlot::new(vec![0.0, 1.0], vec![0.0, 1.0])));
+    /// let svg = fig.to_svg().unwrap();
+    /// assert!(svg.contains("<svg"));
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {

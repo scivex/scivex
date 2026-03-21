@@ -19,6 +19,14 @@ pub struct Binomial<T: Float> {
 
 impl<T: Float> Binomial<T> {
     /// Create a new binomial distribution with `n >= 1` trials and `p` in [0, 1].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Binomial, Distribution};
+    /// let b = Binomial::new(10, 0.5_f64).unwrap();
+    /// assert!((b.mean() - 5.0).abs() < 1e-10);
+    /// ```
     pub fn new(n: usize, p: T) -> Result<Self> {
         let zero = T::from_f64(0.0);
         let one = T::from_f64(1.0);

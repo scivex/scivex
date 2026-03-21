@@ -26,6 +26,19 @@ use super::QpResult;
 ///
 /// Returns [`OptimError::InvalidParameter`] if dimensions are inconsistent.
 /// Returns [`OptimError::ConvergenceFailure`] if `max_iter` is exhausted.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::quadprog::quadprog;
+/// // Minimize 0.5 * x^2 subject to x >= 1 (i.e. -x <= -1)
+/// let h = vec![vec![1.0_f64]];
+/// let c = vec![0.0];
+/// let a_ub = vec![vec![-1.0]];
+/// let b_ub = vec![-1.0];
+/// let result = quadprog(&h, &c, &a_ub, &b_ub, 100).unwrap();
+/// assert!((result.x[0] - 1.0).abs() < 1e-6);
+/// ```
 #[allow(clippy::too_many_lines)]
 pub fn quadprog<T: Float>(
     h: &[Vec<T>],

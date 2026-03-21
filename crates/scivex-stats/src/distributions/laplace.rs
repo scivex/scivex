@@ -20,6 +20,15 @@ pub struct Laplace<T: Float> {
 
 impl<T: Float> Laplace<T> {
     /// Create a new Laplace distribution with location `mu` and scale `b > 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_stats::distributions::{Laplace, Distribution};
+    /// let l = Laplace::new(0.0_f64, 1.0).unwrap();
+    /// assert!((l.mean() - 0.0).abs() < 1e-10);
+    /// assert!((l.variance() - 2.0).abs() < 1e-10);
+    /// ```
     pub fn new(mu: T, b: T) -> Result<Self> {
         if b <= T::zero() {
             return Err(StatsError::InvalidParameter {

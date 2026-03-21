@@ -25,6 +25,17 @@ use crate::parquet::read_parquet;
 ///
 /// The snapshot records the table version and the list of active Parquet data
 /// files as determined by replaying the transaction log.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::delta::DeltaSnapshot;
+///
+/// let snapshot = DeltaSnapshot::load("/path/to/delta/table").unwrap();
+/// println!("version: {}, files: {}", snapshot.version(), snapshot.files().len());
+/// let df = snapshot.to_dataframe("/path/to/delta/table").unwrap();
+/// assert!(df.nrows() > 0);
+/// ```
 #[derive(Debug, Clone)]
 pub struct DeltaSnapshot {
     version: u64,
@@ -89,6 +100,15 @@ impl DeltaSnapshot {
 /// Read the latest snapshot of a Delta Lake table into a [`DataFrame`].
 ///
 /// This is a shortcut for `DeltaSnapshot::load(path)?.to_dataframe(path)?`.
+///
+/// # Examples
+///
+/// ```ignore
+/// use scivex_io::delta::read_delta;
+///
+/// let df = read_delta("/path/to/delta/table").unwrap();
+/// assert!(df.nrows() > 0);
+/// ```
 pub fn read_delta(path: impl AsRef<Path>) -> Result<DataFrame> {
     let path = path.as_ref();
     let snapshot = DeltaSnapshot::load(path)?;

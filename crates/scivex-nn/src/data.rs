@@ -6,6 +6,19 @@ use scivex_core::{Float, Tensor};
 use crate::error::{NnError, Result};
 
 /// A dataset of input-target pairs.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::data::{TensorDataset, Dataset};
+/// let x = Tensor::<f64>::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+/// let y = Tensor::from_vec(vec![0.0, 1.0], vec![2]).unwrap();
+/// let ds = TensorDataset::new(x, y).unwrap();
+/// assert_eq!(ds.len(), 2);
+/// let (xi, yi) = ds.get(0).unwrap();
+/// assert_eq!(xi.shape(), &[2]);
+/// ```
 pub trait Dataset<T: Float> {
     /// Number of samples.
     fn len(&self) -> usize;
@@ -36,6 +49,17 @@ impl<T: Float> TensorDataset<T> {
     /// Create a new tensor dataset.
     ///
     /// `x` and `y` must have the same first dimension (number of samples).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_nn::data::{TensorDataset, Dataset};
+    /// let x = Tensor::<f64>::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+    /// let y = Tensor::from_vec(vec![0.0, 1.0], vec![2]).unwrap();
+    /// let ds = TensorDataset::new(x, y).unwrap();
+    /// assert_eq!(ds.len(), 2);
+    /// ```
     pub fn new(x: Tensor<T>, y: Tensor<T>) -> Result<Self> {
         let n = x.shape()[0];
         if y.shape()[0] != n {
@@ -83,6 +107,18 @@ impl<'a, T: Float, D: Dataset<T>> DataLoader<'a, T, D> {
     /// - `batch_size`: number of samples per batch
     /// - `shuffle`: whether to shuffle indices before each epoch
     /// - `rng`: optional RNG for shuffling
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_nn::data::{TensorDataset, DataLoader, Dataset};
+    /// let x = Tensor::<f64>::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4, 1]).unwrap();
+    /// let y = Tensor::from_vec(vec![0.0, 1.0, 0.0, 1.0], vec![4]).unwrap();
+    /// let ds = TensorDataset::new(x, y).unwrap();
+    /// let loader = DataLoader::new(&ds, 2, false, None);
+    /// assert_eq!(loader.num_batches(), 2);
+    /// ```
     pub fn new(dataset: &'a D, batch_size: usize, shuffle: bool, rng: Option<&mut Rng>) -> Self {
         let n = dataset.len();
         let mut indices: Vec<usize> = (0..n).collect();

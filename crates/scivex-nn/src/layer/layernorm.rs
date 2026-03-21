@@ -22,6 +22,21 @@ pub struct LayerNorm<T: Float> {
 
 impl<T: Float> LayerNorm<T> {
     /// Create a new LayerNorm for the given feature dimension.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{LayerNorm, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::Tensor;
+    /// let ln = LayerNorm::<f64>::new(4);
+    /// let x = Variable::new(
+    ///     Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![1, 4]).unwrap(),
+    ///     false,
+    /// );
+    /// let y = ln.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 4]);
+    /// ```
     pub fn new(num_features: usize) -> Self {
         Self {
             gamma: Variable::new(Tensor::ones(vec![num_features]), true),

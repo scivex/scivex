@@ -24,6 +24,21 @@ pub struct RandomForestClassifier<T: Float> {
 
 impl<T: Float> RandomForestClassifier<T> {
     /// Create a new random forest classifier.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::prelude::*;
+    /// # use scivex_core::prelude::*;
+    /// let x = Tensor::from_vec(
+    ///     vec![1.0_f64, 1.0, 2.0, 2.0, 8.0, 8.0, 9.0, 9.0],
+    ///     vec![4, 2],
+    /// ).unwrap();
+    /// let y = Tensor::from_vec(vec![0.0, 0.0, 1.0, 1.0], vec![4]).unwrap();
+    /// let mut rf = RandomForestClassifier::new(10, Some(3), None, 42).unwrap();
+    /// rf.fit(&x, &y).unwrap();
+    /// let preds = rf.predict(&x).unwrap();
+    /// ```
     pub fn new(
         n_trees: usize,
         max_depth: Option<usize>,
@@ -145,6 +160,18 @@ pub struct RandomForestRegressor<T: Float> {
 
 impl<T: Float> RandomForestRegressor<T> {
     /// Create a new random forest regressor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_ml::prelude::*;
+    /// # use scivex_core::prelude::*;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0], vec![5, 1]).unwrap();
+    /// let y = Tensor::from_vec(vec![2.0, 4.0, 6.0, 8.0, 10.0], vec![5]).unwrap();
+    /// let mut rf = RandomForestRegressor::new(20, Some(3), None, 42).unwrap();
+    /// rf.fit(&x, &y).unwrap();
+    /// let preds = rf.predict(&x).unwrap();
+    /// ```
     pub fn new(
         n_trees: usize,
         max_depth: Option<usize>,

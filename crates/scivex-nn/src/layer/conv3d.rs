@@ -98,6 +98,19 @@ pub struct Conv3d<T: Float> {
 
 impl<T: Float> Conv3d<T> {
     /// Create a new Conv3d layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{Conv3d, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let conv = Conv3d::<f64>::new(1, 4, (3, 3, 3), true, &mut rng);
+    /// let x = Variable::new(Tensor::ones(vec![1, 1, 8, 8, 8]), false);
+    /// let y = conv.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![1, 4, 6, 6, 6]);
+    /// ```
     pub fn new(
         in_channels: usize,
         out_channels: usize,

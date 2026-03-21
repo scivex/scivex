@@ -10,6 +10,15 @@ use super::{RootOptions, RootResult};
 ///
 /// Requires `f(a)` and `f(b)` to have opposite signs. Convergence is
 /// guaranteed and takes `O(log2((b-a)/xtol))` iterations.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_optim::roots::{bisection, RootOptions};
+/// // Root of x^2 - 2 on [0, 2] → √2
+/// let result = bisection(|x: f64| x * x - 2.0, 0.0, 2.0, &RootOptions::default()).unwrap();
+/// assert!((result.root - std::f64::consts::SQRT_2).abs() < 1e-8);
+/// ```
 pub fn bisection<T: Float, F: Fn(T) -> T>(
     f: F,
     a: T,

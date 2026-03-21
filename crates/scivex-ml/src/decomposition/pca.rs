@@ -34,6 +34,18 @@ pub struct PCA<T: Float> {
 
 impl<T: Float> PCA<T> {
     /// Create a new PCA that retains `n_components` dimensions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_ml::decomposition::PCA;
+    /// # use scivex_ml::traits::Transformer;
+    /// let x = Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2]).unwrap();
+    /// let mut pca = PCA::new(1).unwrap();
+    /// let reduced = pca.fit_transform(&x).unwrap();
+    /// assert_eq!(reduced.shape(), &[3, 1]);
+    /// ```
     pub fn new(n_components: usize) -> Result<Self> {
         if n_components == 0 {
             return Err(MlError::InvalidParameter {

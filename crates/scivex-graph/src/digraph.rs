@@ -8,6 +8,15 @@ use crate::graph::Graph;
 ///
 /// Stores both outgoing and incoming adjacency lists so that in-degree queries
 /// and reverse traversals (e.g., Kosaraju's SCC) are efficient.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_graph::DiGraph;
+/// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+/// assert_eq!(g.node_count(), 3);
+/// assert_eq!(g.edge_count(), 2);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -23,6 +32,18 @@ pub struct DiGraph<T: Float> {
 
 impl<T: Float> DiGraph<T> {
     /// Create an empty directed graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let mut g = DiGraph::<f64>::new();
+    /// let a = g.add_node();
+    /// let b = g.add_node();
+    /// g.add_edge(a, b, 1.0).unwrap();
+    /// assert_eq!(g.node_count(), 2);
+    /// assert_eq!(g.edge_count(), 1);
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -35,6 +56,16 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Add a node and return its ID.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let mut g = DiGraph::<f64>::new();
+    /// let a = g.add_node();
+    /// let b = g.add_node();
+    /// assert_eq!(g.node_count(), 2);
+    /// ```
     pub fn add_node(&mut self) -> usize {
         let id = self.adj.len();
         self.adj.push(Vec::new());
@@ -45,6 +76,18 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Add a directed edge from `u` to `v` with the given weight.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let mut g = DiGraph::<f64>::new();
+    /// let a = g.add_node();
+    /// let b = g.add_node();
+    /// g.add_edge(a, b, 2.5).unwrap();
+    /// assert!(g.has_edge(a, b).unwrap());
+    /// assert!(!g.has_edge(b, a).unwrap()); // directed!
+    /// ```
     pub fn add_edge(&mut self, u: usize, v: usize, weight: T) -> Result<()> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -61,6 +104,16 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Remove a node and all its incoming and outgoing edges.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let mut g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+    /// g.remove_node(1).unwrap();
+    /// assert_eq!(g.node_count(), 2);
+    /// assert_eq!(g.edge_count(), 0);
+    /// ```
     pub fn remove_node(&mut self, u: usize) -> Result<()> {
         self.check_node(u)?;
 
@@ -95,6 +148,15 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Remove the directed edge from `u` to `v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let mut g = DiGraph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// g.remove_edge(0, 1).unwrap();
+    /// assert_eq!(g.edge_count(), 0);
+    /// ```
     pub fn remove_edge(&mut self, u: usize, v: usize) -> Result<()> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -110,42 +172,101 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Outgoing neighbors of `u`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (0, 2, 2.0)]).unwrap();
+    /// let nbrs = g.neighbors(0).unwrap();
+    /// assert_eq!(nbrs.len(), 2);
+    /// ```
     pub fn neighbors(&self, u: usize) -> Result<&[(usize, T)]> {
         self.check_node(u)?;
         Ok(&self.adj[u])
     }
 
     /// Incoming neighbors of `u`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 2, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// let in_nbrs = g.in_neighbors(2).unwrap();
+    /// assert_eq!(in_nbrs.len(), 2);
+    /// ```
     pub fn in_neighbors(&self, u: usize) -> Result<&[(usize, T)]> {
         self.check_node(u)?;
         Ok(&self.in_adj[u])
     }
 
     /// Return the out-degree of node `u`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (0, 2, 1.0)]).unwrap();
+    /// assert_eq!(g.out_degree(0).unwrap(), 2);
+    /// ```
     pub fn out_degree(&self, u: usize) -> Result<usize> {
         self.check_node(u)?;
         Ok(self.adj[u].len())
     }
 
     /// Return the in-degree of node `u`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 2, 1.0_f64), (1, 2, 1.0)]).unwrap();
+    /// assert_eq!(g.in_degree(2).unwrap(), 2);
+    /// ```
     pub fn in_degree(&self, u: usize) -> Result<usize> {
         self.check_node(u)?;
         Ok(self.in_adj[u].len())
     }
 
     /// Number of active nodes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// assert_eq!(g.node_count(), 2);
+    /// ```
     #[must_use]
     pub fn node_count(&self) -> usize {
         self.node_count
     }
 
     /// Number of directed edges.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+    /// assert_eq!(g.edge_count(), 2);
+    /// ```
     #[must_use]
     pub fn edge_count(&self) -> usize {
         self.edge_count
     }
 
     /// Check if a directed edge exists from `u` to `v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// assert!(g.has_edge(0, 1).unwrap());
+    /// assert!(!g.has_edge(1, 0).unwrap());
+    /// ```
     pub fn has_edge(&self, u: usize, v: usize) -> Result<bool> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -153,6 +274,14 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Get the weight of the directed edge from `u` to `v`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 3.5_f64)]).unwrap();
+    /// assert!((g.get_weight(0, 1).unwrap() - 3.5).abs() < 1e-10);
+    /// ```
     pub fn get_weight(&self, u: usize, v: usize) -> Result<T> {
         self.check_node(u)?;
         self.check_node(v)?;
@@ -164,6 +293,15 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Build a CSR adjacency matrix for the directed graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// let mat = g.adjacency_matrix().unwrap();
+    /// assert_eq!(mat.shape(), (3, 3));
+    /// ```
     pub fn adjacency_matrix(&self) -> Result<CsrMatrix<T>> {
         let n = self.adj.len();
         let mut coo = CooMatrix::new(n, n);
@@ -179,6 +317,16 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Build a directed graph from a CSR adjacency matrix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g1 = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 2.0)]).unwrap();
+    /// let mat = g1.adjacency_matrix().unwrap();
+    /// let g2 = DiGraph::from_adjacency_matrix(&mat).unwrap();
+    /// assert_eq!(g2.node_count(), 3);
+    /// ```
     pub fn from_adjacency_matrix(mat: &CsrMatrix<T>) -> Result<Self> {
         let (nrows, ncols) = mat.shape();
         if nrows != ncols {
@@ -207,6 +355,14 @@ impl<T: Float> DiGraph<T> {
     /// Build a directed graph from a list of `(from, to, weight)` edges.
     ///
     /// Nodes are created as needed up to the maximum node ID referenced.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 3.0_f64), (1, 2, 4.0)]).unwrap();
+    /// assert_eq!(g.edge_count(), 2);
+    /// ```
     pub fn from_edges(edges: &[(usize, usize, T)]) -> Result<Self> {
         let max_node = edges
             .iter()
@@ -224,6 +380,15 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Iterate over all active node IDs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 2, 1.0)]).unwrap();
+    /// let ids: Vec<usize> = g.node_ids().collect();
+    /// assert_eq!(ids, vec![0, 1, 2]);
+    /// ```
     pub fn node_ids(&self) -> impl Iterator<Item = usize> + '_ {
         self.active
             .iter()
@@ -233,6 +398,15 @@ impl<T: Float> DiGraph<T> {
     }
 
     /// Iterate over all directed edges as `(from, to, weight)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64), (1, 0, 2.0)]).unwrap();
+    /// let edges: Vec<_> = g.edges().collect();
+    /// assert_eq!(edges.len(), 2);
+    /// ```
     pub fn edges(&self) -> impl Iterator<Item = (usize, usize, T)> + '_ {
         self.adj
             .iter()
@@ -244,6 +418,15 @@ impl<T: Float> DiGraph<T> {
     /// Convert to an undirected graph. For each directed edge `(u, v, w)`,
     /// an undirected edge is added. If both `(u, v)` and `(v, u)` exist, the
     /// weight from the edge with the smaller source ID is used.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_graph::DiGraph;
+    /// let g = DiGraph::from_edges(&[(0, 1, 1.0_f64)]).unwrap();
+    /// let ug = g.to_undirected().unwrap();
+    /// assert!(ug.has_edge(1, 0).unwrap()); // now bidirectional
+    /// ```
     pub fn to_undirected(&self) -> Result<Graph<T>> {
         let n = self.adj.len();
         let mut g = Graph::new();

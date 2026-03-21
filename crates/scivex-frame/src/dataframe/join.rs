@@ -25,11 +25,46 @@ pub enum JoinType {
 
 impl DataFrame {
     /// Join two data frames on columns with the same name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::DataFrame;
+    /// # use scivex_frame::series::Series;
+    /// # use scivex_frame::dataframe::join::JoinType;
+    /// let left = DataFrame::new(vec![
+    ///     Box::new(Series::new("id", vec![1, 2, 3])),
+    ///     Box::new(Series::new("val", vec![10, 20, 30])),
+    /// ]).unwrap();
+    /// let right = DataFrame::new(vec![
+    ///     Box::new(Series::new("id", vec![2, 3, 4])),
+    ///     Box::new(Series::new("score", vec![0.5, 0.8, 0.9])),
+    /// ]).unwrap();
+    /// let joined = left.join(&right, &["id"], JoinType::Inner).unwrap();
+    /// assert_eq!(joined.nrows(), 2); // ids 2 and 3
+    /// ```
     pub fn join(&self, other: &DataFrame, on: &[&str], how: JoinType) -> Result<DataFrame> {
         self.join_on(other, on, on, how)
     }
 
     /// Join two data frames on columns that may have different names.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::{DataFrame, Series};
+    /// # use scivex_frame::dataframe::join::JoinType;
+    /// let left = DataFrame::new(vec![
+    ///     Box::new(Series::new("id", vec![1_i32, 2])),
+    ///     Box::new(Series::new("val", vec![10_i32, 20])),
+    /// ]).unwrap();
+    /// let right = DataFrame::new(vec![
+    ///     Box::new(Series::new("key", vec![2_i32, 3])),
+    ///     Box::new(Series::new("score", vec![0.5_f64, 0.8])),
+    /// ]).unwrap();
+    /// let joined = left.join_on(&right, &["id"], &["key"], JoinType::Inner).unwrap();
+    /// assert_eq!(joined.nrows(), 1); // only id=2 matches key=2
+    /// ```
     pub fn join_on(
         &self,
         other: &DataFrame,

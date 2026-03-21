@@ -46,6 +46,18 @@ impl DataFrame {
     }
 
     /// Contiguous row slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![10_i32, 20, 30, 40])
+    ///     .build()
+    ///     .unwrap();
+    /// let middle = df.slice(1, 2);
+    /// assert_eq!(middle.nrows(), 2);
+    /// ```
     pub fn slice(&self, offset: usize, length: usize) -> DataFrame {
         let cols = self
             .columns
@@ -56,6 +68,18 @@ impl DataFrame {
     }
 
     /// Keep rows where `mask[i]` is true.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![10_i32, 20, 30])
+    ///     .build()
+    ///     .unwrap();
+    /// let filtered = df.filter(&[true, false, true]).unwrap();
+    /// assert_eq!(filtered.nrows(), 2);
+    /// ```
     pub fn filter(&self, mask: &[bool]) -> Result<DataFrame> {
         if mask.len() != self.nrows() {
             return Err(FrameError::RowCountMismatch {
@@ -68,6 +92,18 @@ impl DataFrame {
     }
 
     /// Sort all rows by a single column.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_frame::prelude::*;
+    /// let df = DataFrame::builder()
+    ///     .add_column("x", vec![3_i32, 1, 2])
+    ///     .build()
+    ///     .unwrap();
+    /// let sorted = df.sort_by("x", true).unwrap();
+    /// assert_eq!(sorted.column_typed::<i32>("x").unwrap().as_slice(), &[1, 2, 3]);
+    /// ```
     pub fn sort_by(&self, column: &str, ascending: bool) -> Result<DataFrame> {
         let col = self.column(column)?;
         // Build sort indices via display_value comparison (simple MVP approach).

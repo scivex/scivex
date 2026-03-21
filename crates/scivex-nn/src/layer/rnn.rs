@@ -60,6 +60,20 @@ pub struct SimpleRNN<T: Float> {
 
 impl<T: Float> SimpleRNN<T> {
     /// Create a new RNN layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{SimpleRNN, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let rnn = SimpleRNN::<f64>::new(4, 8, 3, &mut rng);
+    /// // batch=2, seq=3, inp=4 → input [2, 12]
+    /// let x = Variable::new(Tensor::ones(vec![2, 12]), false);
+    /// let y = rnn.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![2, 24]); // batch * seq * hidden
+    /// ```
     pub fn new(input_size: usize, hidden_size: usize, seq_len: usize, rng: &mut Rng) -> Self {
         let w_ih = Variable::new(
             init::xavier_uniform::<T>(&[hidden_size, input_size], rng),
@@ -323,6 +337,19 @@ pub struct LSTM<T: Float> {
 
 impl<T: Float> LSTM<T> {
     /// Create a new LSTM layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{LSTM, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let lstm = LSTM::<f64>::new(4, 8, 3, &mut rng);
+    /// let x = Variable::new(Tensor::ones(vec![2, 12]), false);
+    /// let y = lstm.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![2, 24]);
+    /// ```
     pub fn new(input_size: usize, hidden_size: usize, seq_len: usize, rng: &mut Rng) -> Self {
         let gate_size = 4 * hidden_size;
         let w_ih = Variable::new(
@@ -635,6 +662,19 @@ pub struct GRU<T: Float> {
 
 impl<T: Float> GRU<T> {
     /// Create a new GRU layer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_nn::layer::{GRU, Layer};
+    /// # use scivex_nn::variable::Variable;
+    /// # use scivex_core::{Tensor, random::Rng};
+    /// let mut rng = Rng::new(42);
+    /// let gru = GRU::<f64>::new(4, 8, 3, &mut rng);
+    /// let x = Variable::new(Tensor::ones(vec![2, 12]), false);
+    /// let y = gru.forward(&x).unwrap();
+    /// assert_eq!(y.shape(), vec![2, 24]);
+    /// ```
     pub fn new(input_size: usize, hidden_size: usize, seq_len: usize, rng: &mut Rng) -> Self {
         let gate_size = 3 * hidden_size;
         let w_ih = Variable::new(

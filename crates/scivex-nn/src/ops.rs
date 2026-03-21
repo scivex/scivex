@@ -12,6 +12,18 @@ use crate::variable::Variable;
 // ── Element-wise binary ops ─────────────────────────────────────────
 
 /// Element-wise addition of two variables.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::add;
+/// let a = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0], vec![2]).unwrap(), false);
+/// let b = Variable::new(Tensor::from_vec(vec![3.0_f64, 4.0], vec![2]).unwrap(), false);
+/// let c = add(&a, &b);
+/// assert_eq!(c.data().as_slice(), &[4.0, 6.0]);
+/// ```
 pub fn add<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
     let data = &a.data() + &b.data();
     Variable::from_op(
@@ -22,6 +34,18 @@ pub fn add<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
 }
 
 /// Element-wise subtraction.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::sub;
+/// let a = Variable::new(Tensor::from_vec(vec![5.0_f64, 3.0], vec![2]).unwrap(), false);
+/// let b = Variable::new(Tensor::from_vec(vec![1.0_f64, 1.0], vec![2]).unwrap(), false);
+/// let c = sub(&a, &b);
+/// assert_eq!(c.data().as_slice(), &[4.0, 2.0]);
+/// ```
 pub fn sub<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
     let data = &a.data() - &b.data();
     Variable::from_op(
@@ -32,6 +56,18 @@ pub fn sub<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
 }
 
 /// Element-wise multiplication (Hadamard product).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::mul;
+/// let a = Variable::new(Tensor::from_vec(vec![2.0_f64, 3.0], vec![2]).unwrap(), true);
+/// let b = Variable::new(Tensor::from_vec(vec![4.0_f64, 5.0], vec![2]).unwrap(), true);
+/// let c = mul(&a, &b);
+/// assert_eq!(c.data().as_slice(), &[8.0, 15.0]);
+/// ```
 pub fn mul<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
     let a_data = a.data();
     let b_data = b.data();
@@ -52,6 +88,17 @@ pub fn mul<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
 }
 
 /// Negation.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::neg;
+/// let a = Variable::new(Tensor::from_vec(vec![1.0_f64, -2.0], vec![2]).unwrap(), false);
+/// let b = neg(&a);
+/// assert_eq!(b.data().as_slice(), &[-1.0, 2.0]);
+/// ```
 pub fn neg<T: Float>(a: &Variable<T>) -> Variable<T> {
     let data = -&a.data();
     Variable::from_op(data, vec![a.clone()], Box::new(|g: &Tensor<T>| vec![-g]))
@@ -62,6 +109,18 @@ pub fn neg<T: Float>(a: &Variable<T>) -> Variable<T> {
 /// Matrix multiplication: `a @ b`.
 ///
 /// `a` has shape `[m, k]`, `b` has shape `[k, n]`, result is `[m, n]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::matmul;
+/// let a = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![2, 2]).unwrap(), false);
+/// let b = Variable::new(Tensor::from_vec(vec![1.0_f64, 0.0, 0.0, 1.0], vec![2, 2]).unwrap(), false);
+/// let c = matmul(&a, &b); // identity matmul
+/// assert_eq!(c.data().as_slice(), &[1.0, 2.0, 3.0, 4.0]);
+/// ```
 pub fn matmul<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
     let a_data = a.data();
     let b_data = b.data();
@@ -86,6 +145,17 @@ pub fn matmul<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
 // ── Reductions ──────────────────────────────────────────────────────
 
 /// Sum all elements to a scalar variable.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::sum;
+/// let a = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0, 3.0], vec![3]).unwrap(), false);
+/// let s = sum(&a);
+/// assert_eq!(s.data().as_slice(), &[6.0]);
+/// ```
 pub fn sum<T: Float>(a: &Variable<T>) -> Variable<T> {
     let s = a.data().sum();
     let shape = a.shape();
@@ -102,6 +172,17 @@ pub fn sum<T: Float>(a: &Variable<T>) -> Variable<T> {
 }
 
 /// Mean of all elements to a scalar variable.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::mean;
+/// let a = Variable::new(Tensor::from_vec(vec![2.0_f64, 4.0], vec![2]).unwrap(), false);
+/// let m = mean(&a);
+/// assert_eq!(m.data().as_slice(), &[3.0]);
+/// ```
 pub fn mean<T: Float>(a: &Variable<T>) -> Variable<T> {
     let n = a.data().numel();
     let m = a.data().mean();
@@ -119,6 +200,17 @@ pub fn mean<T: Float>(a: &Variable<T>) -> Variable<T> {
 }
 
 /// Element-wise power: `a^exponent`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::pow;
+/// let a = Variable::new(Tensor::from_vec(vec![2.0_f64, 3.0], vec![2]).unwrap(), false);
+/// let b = pow(&a, 2.0);
+/// assert_eq!(b.data().as_slice(), &[4.0, 9.0]);
+/// ```
 pub fn pow<T: Float>(a: &Variable<T>, exponent: T) -> Variable<T> {
     let a_data = a.data();
     let data = a_data.powf(exponent);
@@ -138,6 +230,17 @@ pub fn pow<T: Float>(a: &Variable<T>, exponent: T) -> Variable<T> {
 }
 
 /// Scalar multiplication: `variable * scalar_value`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::scalar_mul;
+/// let a = Variable::new(Tensor::from_vec(vec![2.0_f64, 3.0], vec![2]).unwrap(), false);
+/// let b = scalar_mul(&a, 5.0);
+/// assert_eq!(b.data().as_slice(), &[10.0, 15.0]);
+/// ```
 pub fn scalar_mul<T: Float>(a: &Variable<T>, scalar: T) -> Variable<T> {
     let data = &a.data() * scalar;
     Variable::from_op(
@@ -148,6 +251,17 @@ pub fn scalar_mul<T: Float>(a: &Variable<T>, scalar: T) -> Variable<T> {
 }
 
 /// Scalar division: `variable / scalar_value`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::scalar_div;
+/// let a = Variable::new(Tensor::from_vec(vec![10.0_f64, 6.0], vec![2]).unwrap(), false);
+/// let b = scalar_div(&a, 2.0);
+/// assert_eq!(b.data().as_slice(), &[5.0, 3.0]);
+/// ```
 pub fn scalar_div<T: Float>(a: &Variable<T>, scalar: T) -> Variable<T> {
     scalar_mul(a, T::one() / scalar)
 }
@@ -155,6 +269,18 @@ pub fn scalar_div<T: Float>(a: &Variable<T>, scalar: T) -> Variable<T> {
 // ── Bias-add helper (manual broadcasting) ───────────────────────────
 
 /// Add a 1-D bias `[out]` to a 2-D input `[batch, out]` (row-wise broadcast).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_nn::variable::Variable;
+/// # use scivex_nn::ops::add_bias;
+/// let x = Variable::new(Tensor::from_vec(vec![1.0_f64, 2.0, 3.0, 4.0], vec![2, 2]).unwrap(), false);
+/// let b = Variable::new(Tensor::from_vec(vec![0.1_f64, 0.2], vec![2]).unwrap(), false);
+/// let y = add_bias(&x, &b);
+/// assert!((y.data().as_slice()[0] - 1.1).abs() < 1e-10);
+/// ```
 pub fn add_bias<T: Float>(input: &Variable<T>, bias: &Variable<T>) -> Variable<T> {
     let x = input.data();
     let b = bias.data();

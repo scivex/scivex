@@ -13,6 +13,14 @@ use crate::error::{ImageError, Result};
 use crate::image::Image;
 
 /// Supported image file formats.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::io::Format;
+/// let fmt = Format::Ppm;
+/// assert_eq!(fmt, Format::Ppm);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -54,6 +62,15 @@ fn detect_format(path: &Path) -> Result<Format> {
 }
 
 /// Load an image from a file, detecting the format from the extension.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_image::io;
+/// // Requires a real file on disk; shown for documentation only.
+/// let img = io::load("/tmp/image.ppm").unwrap();
+/// assert!(img.width() > 0);
+/// ```
 pub fn load<P: AsRef<Path>>(path: P) -> Result<Image<u8>> {
     let path = path.as_ref();
     let format = detect_format(path)?;
@@ -79,6 +96,14 @@ pub fn load<P: AsRef<Path>>(path: P) -> Result<Image<u8>> {
 }
 
 /// Save an image to a file, detecting the format from the extension.
+///
+/// # Examples
+///
+/// ```ignore
+/// # use scivex_image::{Image, PixelFormat, io};
+/// let img = Image::<u8>::new(4, 4, PixelFormat::Rgb).unwrap();
+/// io::save(&img, "/tmp/out.ppm").unwrap();
+/// ```
 pub fn save<P: AsRef<Path>>(img: &Image<u8>, path: P) -> Result<()> {
     let path = path.as_ref();
     let format = detect_format(path)?;

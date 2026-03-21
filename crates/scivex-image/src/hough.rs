@@ -7,6 +7,14 @@ use crate::error::{ImageError, Result};
 use crate::image::{Image, PixelFormat};
 
 /// A line detected by the Hough line transform, represented in polar form.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::hough::HoughLine;
+/// let line = HoughLine { rho: 25.0, theta: std::f64::consts::FRAC_PI_2, votes: 50 };
+/// assert_eq!(line.votes, 50);
+/// ```
 #[derive(Debug, Clone)]
 pub struct HoughLine {
     /// Perpendicular distance from the origin to the line.
@@ -18,6 +26,14 @@ pub struct HoughLine {
 }
 
 /// A circle detected by the Hough circle transform.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::hough::HoughCircle;
+/// let c = HoughCircle { center_row: 25, center_col: 25, radius: 10, votes: 30 };
+/// assert_eq!(c.radius, 10);
+/// ```
 #[derive(Debug, Clone)]
 pub struct HoughCircle {
     /// Row coordinate of the center.
@@ -43,6 +59,16 @@ pub struct HoughCircle {
 /// 3. Extract all cells whose vote count meets or exceeds `threshold`.
 ///
 /// The input image must be single-channel grayscale.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::hough::hough_lines;
+/// let img = Image::<u8>::new(20, 20, PixelFormat::Gray).unwrap(); // empty
+/// let lines = hough_lines(&img, 1.0, std::f64::consts::PI / 180.0, 1).unwrap();
+/// assert!(lines.is_empty());
+/// ```
 #[allow(clippy::cast_possible_truncation)]
 #[allow(clippy::cast_sign_loss)]
 #[allow(clippy::cast_possible_wrap)]
@@ -138,6 +164,16 @@ pub fn hough_lines(
 /// 3. Extract all cells whose vote count meets or exceeds `threshold`.
 ///
 /// The input image must be single-channel grayscale.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_image::{Image, PixelFormat};
+/// # use scivex_image::hough::hough_circles;
+/// let img = Image::<u8>::new(20, 20, PixelFormat::Gray).unwrap();
+/// let circles = hough_circles(&img, 3, 10, 1).unwrap();
+/// assert!(circles.is_empty()); // no edges → no circles
+/// ```
 #[allow(clippy::cast_possible_truncation)]
 #[allow(clippy::cast_sign_loss)]
 #[allow(clippy::cast_possible_wrap)]

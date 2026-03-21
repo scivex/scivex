@@ -9,6 +9,16 @@ use crate::error::{Result, StatsError};
 ///
 /// Maintains a state estimate `x` and covariance `P` that are updated via
 /// `predict` (time update) and `update` (measurement update) steps.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::Tensor;
+/// # use scivex_stats::kalman::KalmanFilter;
+/// let cov = Tensor::from_vec(vec![100.0_f64], vec![1, 1]).unwrap();
+/// let kf = KalmanFilter::new(1, &[0.0], &cov).unwrap();
+/// assert!((kf.state()[0] - 0.0).abs() < 1e-10);
+/// ```
 #[cfg_attr(
     feature = "serde-support",
     derive(serde::Serialize, serde::Deserialize)
@@ -29,6 +39,16 @@ impl<T: Float> KalmanFilter<T> {
     /// - `state_dim`: dimension of the state vector.
     /// - `initial_state`: initial state estimate of length `state_dim`.
     /// - `initial_cov`: initial covariance matrix `[state_dim x state_dim]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_stats::kalman::KalmanFilter;
+    /// let cov = Tensor::from_vec(vec![1.0_f64], vec![1, 1]).unwrap();
+    /// let kf = KalmanFilter::new(1, &[0.0], &cov).unwrap();
+    /// assert_eq!(kf.state().len(), 1);
+    /// ```
     pub fn new(state_dim: usize, initial_state: &[T], initial_cov: &Tensor<T>) -> Result<Self> {
         if initial_state.len() != state_dim {
             return Err(StatsError::LengthMismatch {
@@ -58,6 +78,18 @@ impl<T: Float> KalmanFilter<T> {
     /// - `process_noise`: process noise covariance `Q` `[dim x dim]`.
     ///
     /// Updates: `x = F * x`, `P = F * P * F^T + Q`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_stats::kalman::KalmanFilter;
+    /// let cov = Tensor::from_vec(vec![1.0_f64], vec![1, 1]).unwrap();
+    /// let mut kf = KalmanFilter::new(1, &[0.0], &cov).unwrap();
+    /// let f = Tensor::from_vec(vec![1.0_f64], vec![1, 1]).unwrap();
+    /// let q = Tensor::from_vec(vec![0.01_f64], vec![1, 1]).unwrap();
+    /// kf.predict(&f, &q).unwrap();
+    /// ```
     pub fn predict(&mut self, transition: &Tensor<T>, process_noise: &Tensor<T>) -> Result<()> {
         self.check_square(transition, "transition")?;
         self.check_square(process_noise, "process_noise")?;
@@ -87,6 +119,19 @@ impl<T: Float> KalmanFilter<T> {
     /// - `observation`: observed measurement vector of length `m`.
     /// - `obs_matrix`: observation matrix `H` `[m x dim]`.
     /// - `obs_noise`: observation noise covariance `R` `[m x m]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_stats::kalman::KalmanFilter;
+    /// let cov = Tensor::from_vec(vec![100.0_f64], vec![1, 1]).unwrap();
+    /// let mut kf = KalmanFilter::new(1, &[0.0], &cov).unwrap();
+    /// let h = Tensor::from_vec(vec![1.0_f64], vec![1, 1]).unwrap();
+    /// let r = Tensor::from_vec(vec![1.0_f64], vec![1, 1]).unwrap();
+    /// kf.update(&[5.0], &h, &r).unwrap();
+    /// assert!(kf.state()[0] > 0.0); // moved toward observation
+    /// ```
     #[allow(clippy::similar_names)]
     pub fn update(
         &mut self,
@@ -166,11 +211,31 @@ impl<T: Float> KalmanFilter<T> {
     }
 
     /// Return the current state estimate.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_stats::kalman::KalmanFilter;
+    /// let cov = Tensor::from_vec(vec![1.0_f64], vec![1, 1]).unwrap();
+    /// let kf = KalmanFilter::new(1, &[5.0], &cov).unwrap();
+    /// assert!((kf.state()[0] - 5.0).abs() < 1e-10);
+    /// ```
     pub fn state(&self) -> &[T] {
         &self.state
     }
 
     /// Return the current covariance matrix.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use scivex_core::Tensor;
+    /// # use scivex_stats::kalman::KalmanFilter;
+    /// let cov = Tensor::from_vec(vec![1.0_f64], vec![1, 1]).unwrap();
+    /// let kf = KalmanFilter::new(1, &[0.0], &cov).unwrap();
+    /// assert_eq!(kf.covariance().shape(), &[1, 1]);
+    /// ```
     pub fn covariance(&self) -> &Tensor<T> {
         &self.cov
     }

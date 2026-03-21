@@ -398,6 +398,16 @@ fn pack_complex<T: Float>(re: &[T], im: &[T], n: usize) -> Result<Tensor<T>> {
 ///
 /// Input shape: `[N, 2]` (interleaved real/imaginary).
 /// Output shape: `[N, 2]`. Supports arbitrary `N` (not just powers of two).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::fft;
+/// let input = Tensor::from_vec(vec![1.0, 0.0, 0.0, 0.0], vec![2, 2]).unwrap();
+/// let spectrum = fft::fft(&input).unwrap();
+/// assert_eq!(spectrum.shape(), &[2, 2]);
+/// ```
 pub fn fft<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
     if input.ndim() != 2 || input.shape()[1] != 2 {
         return Err(CoreError::InvalidArgument {
@@ -413,6 +423,16 @@ pub fn fft<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
 /// Complex-to-complex inverse FFT.
 ///
 /// Input shape: `[N, 2]`. Output shape: `[N, 2]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::fft;
+/// let input = Tensor::from_vec(vec![2.0, 0.0, 0.0, 0.0], vec![2, 2]).unwrap();
+/// let result = fft::ifft(&input).unwrap();
+/// assert_eq!(result.shape(), &[2, 2]);
+/// ```
 pub fn ifft<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
     if input.ndim() != 2 || input.shape()[1] != 2 {
         return Err(CoreError::InvalidArgument {
@@ -430,6 +450,16 @@ pub fn ifft<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
 /// Input shape: `[N]` (real-valued signal).
 /// Output shape: `[N/2 + 1, 2]` (complex spectrum, only non-negative
 /// frequencies due to Hermitian symmetry).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::fft;
+/// let signal = Tensor::from_vec(vec![1.0, 0.0, -1.0, 0.0], vec![4]).unwrap();
+/// let spectrum = fft::rfft(&signal).unwrap();
+/// assert_eq!(spectrum.shape(), &[3, 2]); // N/2+1 complex bins
+/// ```
 pub fn rfft<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
     if input.ndim() != 1 {
         return Err(CoreError::InvalidArgument {
@@ -455,6 +485,16 @@ pub fn rfft<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
 /// Output shape: `[n]` where `n` is the desired output length.
 ///
 /// `input.shape()[0]` must equal `n/2 + 1`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::fft;
+/// let spectrum = Tensor::from_vec(vec![10.0, 0.0, -2.0, 0.0, 2.0, 0.0], vec![3, 2]).unwrap();
+/// let signal = fft::irfft(&spectrum, 4).unwrap();
+/// assert_eq!(signal.shape(), &[4]);
+/// ```
 pub fn irfft<T: Float>(input: &Tensor<T>, n: usize) -> Result<Tensor<T>> {
     if input.ndim() != 2 || input.shape()[1] != 2 {
         return Err(CoreError::InvalidArgument {
@@ -495,6 +535,16 @@ pub fn irfft<T: Float>(input: &Tensor<T>, n: usize) -> Result<Tensor<T>> {
 /// 2-D complex-to-complex forward FFT.
 ///
 /// Input shape: `[M, N, 2]`. Output shape: `[M, N, 2]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::fft;
+/// let input = Tensor::from_vec(vec![1.0, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0], vec![2, 2, 2]).unwrap();
+/// let spectrum = fft::fft2(&input).unwrap();
+/// assert_eq!(spectrum.shape(), &[2, 2, 2]);
+/// ```
 pub fn fft2<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
     if input.ndim() != 3 || input.shape()[2] != 2 {
         return Err(CoreError::InvalidArgument {
@@ -551,6 +601,16 @@ pub fn fft2<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
 /// 2-D complex-to-complex inverse FFT.
 ///
 /// Input shape: `[M, N, 2]`. Output shape: `[M, N, 2]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::fft;
+/// let input = Tensor::from_vec(vec![10.0, 0.0, -2.0, 0.0, 2.0, 0.0, 0.0, 0.0], vec![2, 2, 2]).unwrap();
+/// let result = fft::ifft2(&input).unwrap();
+/// assert_eq!(result.shape(), &[2, 2, 2]);
+/// ```
 pub fn ifft2<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
     if input.ndim() != 3 || input.shape()[2] != 2 {
         return Err(CoreError::InvalidArgument {
@@ -608,6 +668,16 @@ pub fn ifft2<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
 ///
 /// Input shape: `[M, N]` (real matrix).
 /// Output shape: `[M, N/2 + 1, 2]`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::tensor::Tensor;
+/// # use scivex_core::fft;
+/// let input = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+/// let spectrum = fft::rfft2(&input).unwrap();
+/// assert_eq!(spectrum.shape(), &[2, 2, 2]); // [M, N/2+1, 2]
+/// ```
 pub fn rfft2<T: Float>(input: &Tensor<T>) -> Result<Tensor<T>> {
     if input.ndim() != 2 {
         return Err(CoreError::InvalidArgument {

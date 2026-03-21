@@ -1,6 +1,14 @@
 use core::fmt;
 
 /// All errors returned by `scivex-viz`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_viz::error::VizError;
+/// let e = VizError::EmptyData;
+/// assert!(!e.to_string().is_empty());
+/// ```
 #[derive(Debug)]
 pub enum VizError {
     /// The input data is empty.

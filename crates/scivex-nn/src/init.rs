@@ -7,6 +7,16 @@ use scivex_core::{Float, Tensor};
 ///
 /// Samples from `Uniform[-a, a]` where `a = sqrt(6 / (fan_in + fan_out))`.
 /// `shape` should be `[fan_out, fan_in]` (weight matrix convention).
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, random::Rng};
+/// # use scivex_nn::init::xavier_uniform;
+/// let mut rng = Rng::new(42);
+/// let w: Tensor<f64> = xavier_uniform(&[10, 5], &mut rng);
+/// assert_eq!(w.shape(), &[10, 5]);
+/// ```
 pub fn xavier_uniform<T: Float>(shape: &[usize], rng: &mut Rng) -> Tensor<T> {
     let (fan_in, fan_out) = compute_fans(shape);
     let a = T::from_f64((6.0 / (fan_in + fan_out) as f64).sqrt());
@@ -19,6 +29,16 @@ pub fn xavier_uniform<T: Float>(shape: &[usize], rng: &mut Rng) -> Tensor<T> {
 /// Xavier (Glorot) normal initialization.
 ///
 /// Samples from `Normal(0, std)` where `std = sqrt(2 / (fan_in + fan_out))`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, random::Rng};
+/// # use scivex_nn::init::xavier_normal;
+/// let mut rng = Rng::new(42);
+/// let w: Tensor<f64> = xavier_normal(&[10, 5], &mut rng);
+/// assert_eq!(w.shape(), &[10, 5]);
+/// ```
 pub fn xavier_normal<T: Float>(shape: &[usize], rng: &mut Rng) -> Tensor<T> {
     let (fan_in, fan_out) = compute_fans(shape);
     let std = (2.0 / (fan_in + fan_out) as f64).sqrt();
@@ -28,6 +48,16 @@ pub fn xavier_normal<T: Float>(shape: &[usize], rng: &mut Rng) -> Tensor<T> {
 /// Kaiming (He) uniform initialization.
 ///
 /// Samples from `Uniform[-a, a]` where `a = sqrt(6 / fan_in)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, random::Rng};
+/// # use scivex_nn::init::kaiming_uniform;
+/// let mut rng = Rng::new(42);
+/// let w: Tensor<f64> = kaiming_uniform(&[10, 5], &mut rng);
+/// assert_eq!(w.shape(), &[10, 5]);
+/// ```
 pub fn kaiming_uniform<T: Float>(shape: &[usize], rng: &mut Rng) -> Tensor<T> {
     let (fan_in, _) = compute_fans(shape);
     let a = T::from_f64((6.0 / fan_in as f64).sqrt());
@@ -39,6 +69,16 @@ pub fn kaiming_uniform<T: Float>(shape: &[usize], rng: &mut Rng) -> Tensor<T> {
 /// Kaiming (He) normal initialization.
 ///
 /// Samples from `Normal(0, std)` where `std = sqrt(2 / fan_in)`.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_core::{Tensor, random::Rng};
+/// # use scivex_nn::init::kaiming_normal;
+/// let mut rng = Rng::new(42);
+/// let w: Tensor<f64> = kaiming_normal(&[20, 10], &mut rng);
+/// assert_eq!(w.shape(), &[20, 10]);
+/// ```
 pub fn kaiming_normal<T: Float>(shape: &[usize], rng: &mut Rng) -> Tensor<T> {
     let (fan_in, _) = compute_fans(shape);
     let std = (2.0 / fan_in as f64).sqrt();
