@@ -1,7 +1,8 @@
 //! Neural network layers.
 
 mod activation;
-mod attention;
+pub(crate) mod attention;
+mod attention_variants;
 mod batchnorm;
 mod batchnorm2d;
 mod conv;
@@ -9,6 +10,7 @@ mod conv3d;
 mod dropout;
 mod embedding;
 mod flatten;
+pub mod gnn;
 pub(crate) mod layernorm;
 pub(crate) mod linear;
 mod pool;
@@ -19,6 +21,7 @@ mod transformer_decoder;
 
 pub use activation::{ReLU, Sigmoid, Tanh};
 pub use attention::{MultiHeadAttention, TransformerEncoderLayer};
+pub use attention_variants::{FlashAttention, GroupedQueryAttention, MultiQueryAttention};
 pub use batchnorm::BatchNorm1d;
 pub use batchnorm2d::BatchNorm2d;
 pub use conv::{Conv1d, Conv2d};
@@ -26,6 +29,7 @@ pub use conv3d::Conv3d;
 pub use dropout::Dropout;
 pub use embedding::Embedding;
 pub use flatten::Flatten;
+pub use gnn::{GATConv, GCNConv, SAGEConv};
 pub use layernorm::LayerNorm;
 pub use linear::Linear;
 pub use pool::{AvgPool1d, AvgPool2d, MaxPool1d, MaxPool2d};

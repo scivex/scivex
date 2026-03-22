@@ -41,6 +41,8 @@ pub mod lanczos;
 pub mod matching;
 /// Morphological operations (erosion, dilation, opening, closing, gradient).
 pub mod morphology;
+/// Optical flow estimation (Lucas-Kanade, Farneback).
+pub mod optical_flow;
 /// ORB (Oriented FAST and Rotated BRIEF) feature descriptor.
 pub mod orb;
 /// Image segmentation (connected components, region growing, watershed).

@@ -10,7 +10,11 @@ mod ops;
 mod reshape;
 mod sort;
 
+pub mod einsum;
+pub mod einsum_path;
 pub mod indexing;
+pub mod named;
+pub mod sparse;
 
 pub use indexing::SliceRange;
 

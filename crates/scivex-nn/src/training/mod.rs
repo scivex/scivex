@@ -3,6 +3,7 @@
 /// Automatic mixed-precision (AMP) casting utilities.
 pub mod amp;
 mod callbacks;
+mod grad_accumulator;
 mod grad_clip;
 /// Dynamic gradient scaling for mixed-precision training.
 pub mod grad_scaler;
@@ -12,6 +13,7 @@ mod trainer;
 
 pub use amp::{AmpConfig, cast_params, cast_variable};
 pub use callbacks::{Callback, CallbackAction, EarlyStopping, LossLogger, ModelCheckpoint};
+pub use grad_accumulator::GradAccumulator;
 pub use grad_clip::{clip_grad_norm, clip_grad_value};
 pub use grad_scaler::GradScaler;
 pub use lr_finder::{LrFinder, LrFinderResult};

@@ -114,6 +114,50 @@ fn bench_groupby(c: &mut Criterion) {
 }
 
 // ---------------------------------------------------------------------------
+// GroupBy + mean aggregation (larger sizes)
+// ---------------------------------------------------------------------------
+
+fn bench_groupby_mean(c: &mut Criterion) {
+    let mut group = c.benchmark_group("dataframe_groupby_mean");
+    for &n in &[1_000usize, 10_000, 100_000] {
+        let groups: Vec<f64> = (0..n).map(|i| (i % 20) as f64).collect();
+        let vals: Vec<f64> = (0..n).map(|i| (i as f64) * 1.1).collect();
+        let df = DataFrame::builder()
+            .add_column("grp", groups)
+            .add_column("val", vals)
+            .build()
+            .unwrap();
+        group.bench_with_input(BenchmarkId::new("mean_20groups", n), &n, |b, _| {
+            b.iter(|| df.groupby(black_box(&["grp"])).unwrap().mean().unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// DataFrame creation at larger sizes
+// ---------------------------------------------------------------------------
+
+fn bench_dataframe_creation_large(c: &mut Criterion) {
+    let mut group = c.benchmark_group("dataframe_creation_large");
+    for &n in &[1_000usize, 10_000, 100_000] {
+        let col_a: Vec<f64> = (0..n).map(|i| i as f64 * 0.5).collect();
+        #[allow(clippy::cast_possible_wrap)]
+        let col_b: Vec<i32> = (0..n).map(|i| (i % 100) as i32).collect();
+        group.bench_with_input(BenchmarkId::new("two_cols", n), &n, |b, _| {
+            b.iter(|| {
+                DataFrame::builder()
+                    .add_column("a", black_box(col_a.clone()))
+                    .add_column("b", black_box(col_b.clone()))
+                    .build()
+                    .unwrap()
+            });
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
 // Series operations
 // ---------------------------------------------------------------------------
 
@@ -131,10 +175,12 @@ fn bench_series_create(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_dataframe_build,
+    bench_dataframe_creation_large,
     bench_sort,
     bench_filter,
     bench_join,
     bench_groupby,
+    bench_groupby_mean,
     bench_series_create,
 );
 criterion_main!(benches);

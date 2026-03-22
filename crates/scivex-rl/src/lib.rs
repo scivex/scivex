@@ -23,17 +23,30 @@ pub mod error;
 pub mod logger;
 /// Experience replay buffer.
 pub mod replay;
+/// Experience replay buffer for continuous-action algorithms.
+pub mod replay_continuous;
 
-pub use algorithms::{A2cAgent, A2cConfig, DqnAgent, DqnConfig, PpoAgent, PpoConfig};
-pub use env::{CartPole, Environment, GridWorld, MountainCar, StepResult};
+pub use algorithms::{
+    A2cAgent, A2cConfig, DqnAgent, DqnConfig, PpoAgent, PpoConfig, SacAgent, SacConfig, Td3Agent,
+    Td3Config,
+};
+pub use env::{
+    CartPole, CooperativeNavigation, Environment, GridWorld, MountainCar, MultiAgentEnv, StepResult,
+};
 pub use error::{Result, RlError};
 pub use logger::EpisodeLogger;
 pub use replay::ReplayBuffer;
 
 /// Convenience re-exports.
 pub mod prelude {
-    pub use crate::algorithms::{A2cAgent, A2cConfig, DqnAgent, DqnConfig, PpoAgent, PpoConfig};
-    pub use crate::env::{CartPole, Environment, GridWorld, MountainCar, StepResult};
+    pub use crate::algorithms::{
+        A2cAgent, A2cConfig, DqnAgent, DqnConfig, PpoAgent, PpoConfig, SacAgent, SacConfig,
+        Td3Agent, Td3Config,
+    };
+    pub use crate::env::{
+        CartPole, CooperativeNavigation, Environment, GridWorld, MountainCar, MultiAgentEnv,
+        StepResult,
+    };
     pub use crate::error::{Result, RlError};
     pub use crate::logger::EpisodeLogger;
     pub use crate::replay::ReplayBuffer;

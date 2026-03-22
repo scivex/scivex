@@ -4,7 +4,7 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use scivex_core::Tensor;
 use scivex_core::random::Rng;
 use scivex_nn::Variable;
-use scivex_nn::layer::{Layer, Linear, ReLU, Sequential};
+use scivex_nn::layer::{Conv2d, Layer, Linear, MultiHeadAttention, ReLU, Sequential};
 use scivex_nn::loss::mse_loss;
 
 // ---------------------------------------------------------------------------
@@ -94,10 +94,83 @@ fn bench_backward(c: &mut Criterion) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Dense (Linear) forward at specific input dims
+// ---------------------------------------------------------------------------
+
+fn bench_dense_forward(c: &mut Criterion) {
+    let mut group = c.benchmark_group("nn_dense_forward");
+    for &in_dim in &[128usize, 512, 1024] {
+        let batch = 32;
+        let out_dim = 64;
+        let mut rng = Rng::new(42);
+        let layer = Linear::<f64>::new(in_dim, out_dim, true, &mut rng);
+        let data: Vec<f64> = (0..batch * in_dim).map(|i| (i as f64) * 0.001).collect();
+        let input = Variable::new(Tensor::from_vec(data, vec![batch, in_dim]).unwrap(), false);
+        group.bench_with_input(BenchmarkId::new("32batch", in_dim), &in_dim, |b, _| {
+            b.iter(|| layer.forward(black_box(&input)).unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// Conv2D forward pass
+// ---------------------------------------------------------------------------
+
+fn bench_conv2d_forward(c: &mut Criterion) {
+    let mut group = c.benchmark_group("nn_conv2d_forward");
+    // (batch, in_channels, height, width, out_channels, kernel_size)
+    for &(ic, h, w, oc) in &[(3usize, 8, 8, 8), (3, 16, 16, 16), (3, 32, 32, 16)] {
+        let batch = 1;
+        let mut rng = Rng::new(42);
+        let conv = Conv2d::<f64>::new(ic, oc, (3, 3), true, &mut rng);
+        let n_elems = batch * ic * h * w;
+        let data: Vec<f64> = (0..n_elems).map(|i| (i as f64) * 0.01).collect();
+        let input = Variable::new(
+            Tensor::from_vec(data, vec![batch, ic, h, w]).unwrap(),
+            false,
+        );
+        let label = format!("{ic}ch_{h}x{w}_to_{oc}ch");
+        group.bench_function(&label, |b| {
+            b.iter(|| conv.forward(black_box(&input)).unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// MultiHeadAttention forward pass
+// ---------------------------------------------------------------------------
+
+fn bench_attention_forward(c: &mut Criterion) {
+    let mut group = c.benchmark_group("nn_attention_forward");
+    // (d_model, num_heads, seq_len)
+    for &(d_model, n_heads, seq_len) in &[(32usize, 4, 8), (64, 4, 8), (64, 8, 16)] {
+        let batch = 2;
+        let mut rng = Rng::new(42);
+        let attn = MultiHeadAttention::<f64>::new(d_model, n_heads, seq_len, &mut rng);
+        let n_elems = batch * seq_len * d_model;
+        let data: Vec<f64> = (0..n_elems).map(|i| (i as f64) * 0.001).collect();
+        let input = Variable::new(
+            Tensor::from_vec(data, vec![batch, seq_len * d_model]).unwrap(),
+            false,
+        );
+        let label = format!("d{d_model}_h{n_heads}_s{seq_len}");
+        group.bench_function(&label, |b| {
+            b.iter(|| attn.forward(black_box(&input)).unwrap());
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_linear_forward,
+    bench_dense_forward,
     bench_sequential_forward,
+    bench_conv2d_forward,
+    bench_attention_forward,
     bench_mse_loss,
     bench_backward,
 );

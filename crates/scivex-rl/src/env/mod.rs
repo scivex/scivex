@@ -3,10 +3,12 @@
 pub mod cartpole;
 pub mod grid_world;
 pub mod mountain_car;
+pub mod multi_agent;
 
 pub use cartpole::CartPole;
 pub use grid_world::GridWorld;
 pub use mountain_car::MountainCar;
+pub use multi_agent::{CooperativeNavigation, MultiAgentEnv};
 
 /// The result of taking a step in an environment.
 pub struct StepResult<O> {

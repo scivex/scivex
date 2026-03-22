@@ -7,6 +7,7 @@ use scivex_stats::correlation::{self, CorrelationMethod};
 use scivex_stats::descriptive;
 use scivex_stats::distributions::{Distribution, Normal, Uniform};
 use scivex_stats::hypothesis;
+use scivex_stats::timeseries::Arima;
 
 // ---------------------------------------------------------------------------
 // Descriptive statistics
@@ -141,12 +142,73 @@ fn bench_corr_matrix(c: &mut Criterion) {
     group.finish();
 }
 
+// ---------------------------------------------------------------------------
+// Descriptive stats at large sizes (including 1M)
+// ---------------------------------------------------------------------------
+
+fn bench_descriptive_stats_large(c: &mut Criterion) {
+    let mut group = c.benchmark_group("descriptive_stats_large");
+    for &n in &[10_000, 100_000, 1_000_000] {
+        let data: Vec<f64> = (0..n).map(|i| (i as f64) * 0.001).collect();
+        group.bench_with_input(BenchmarkId::new("mean", n), &data, |b, data| {
+            b.iter(|| descriptive::mean(black_box(data)));
+        });
+        group.bench_with_input(BenchmarkId::new("variance", n), &data, |b, data| {
+            b.iter(|| descriptive::variance(black_box(data)));
+        });
+        group.bench_with_input(BenchmarkId::new("median", n), &data, |b, data| {
+            b.iter(|| descriptive::median(black_box(data)).unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// Correlation matrix at larger sizes
+// ---------------------------------------------------------------------------
+
+fn bench_corr_matrix_large(c: &mut Criterion) {
+    let mut group = c.benchmark_group("correlation_matrix_large");
+    for &(rows, cols) in &[(100usize, 10usize), (1_000, 10)] {
+        let data: Vec<f64> = (0..rows * cols)
+            .map(|i| ((i * 7 + 3) % 97) as f64)
+            .collect();
+        let t = Tensor::from_vec(data, vec![rows, cols]).unwrap();
+        let label = format!("{rows}x{cols}");
+        group.bench_function(&label, |b| {
+            b.iter(|| correlation::corr_matrix(black_box(&t), CorrelationMethod::Pearson).unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// ARIMA fit
+// ---------------------------------------------------------------------------
+
+fn bench_arima_fit(c: &mut Criterion) {
+    let mut group = c.benchmark_group("arima_fit");
+    for &n in &[200, 500, 1_000] {
+        let data: Vec<f64> = (0..n)
+            .map(|i| (i as f64 * 0.1).sin() + (i as f64) * 0.01)
+            .collect();
+        group.bench_with_input(BenchmarkId::new("arima_1_1_1", n), &data, |b, data| {
+            b.iter(|| {
+                let mut model = Arima::<f64>::new(1, 1, 1).unwrap();
+                model.fit(black_box(data)).unwrap();
+            });
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_mean,
     bench_variance,
     bench_median,
     bench_describe,
+    bench_descriptive_stats_large,
     bench_normal_pdf,
     bench_normal_cdf,
     bench_normal_sample,
@@ -154,5 +216,7 @@ criterion_group!(
     bench_t_test,
     bench_pearson,
     bench_corr_matrix,
+    bench_corr_matrix_large,
+    bench_arima_fit,
 );
 criterion_main!(benches);

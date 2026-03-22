@@ -220,6 +220,56 @@ fn bench_transpose(c: &mut Criterion) {
     group.finish();
 }
 
+// ---------------------------------------------------------------------------
+// SVD at larger sizes
+// ---------------------------------------------------------------------------
+
+fn bench_svd_large(c: &mut Criterion) {
+    let mut group = c.benchmark_group("decomp_svd_large");
+    for &n in &[32usize, 64, 128] {
+        let data: Vec<f64> = (0..n * n).map(|i| ((i * 13 + 7) % 97) as f64).collect();
+        let a = Tensor::from_vec(data, vec![n, n]).unwrap();
+        group.bench_with_input(BenchmarkId::new("f64", n), &n, |bench, _| {
+            bench.iter(|| SvdDecomposition::decompose(black_box(&a)).unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// FFT 1-D at larger sizes
+// ---------------------------------------------------------------------------
+
+fn bench_fft_1d_large(c: &mut Criterion) {
+    let mut group = c.benchmark_group("fft_1d_large");
+    for &n in &[256usize, 1024, 4096, 16384] {
+        let data: Vec<f64> = (0..2 * n).map(|i| (i as f64).sin()).collect();
+        let t = Tensor::from_vec(data, vec![n, 2]).unwrap();
+        group.bench_with_input(BenchmarkId::new("complex_f64", n), &n, |bench, _| {
+            bench.iter(|| fft::fft(black_box(&t)).unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// Einsum: matrix multiplication via "ij,jk->ik"
+// ---------------------------------------------------------------------------
+
+fn bench_einsum(c: &mut Criterion) {
+    use scivex_core::tensor::einsum::einsum;
+
+    let mut group = c.benchmark_group("einsum_matmul");
+    for &n in &[32usize, 64] {
+        let a = Tensor::<f64>::ones(vec![n, n]);
+        let b = Tensor::<f64>::ones(vec![n, n]);
+        group.bench_with_input(BenchmarkId::new("ij_jk_ik", n), &n, |bench, _| {
+            bench.iter(|| einsum("ij,jk->ik", &[black_box(&a), black_box(&b)]).unwrap());
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_tensor_zeros,
@@ -233,9 +283,12 @@ criterion_group!(
     bench_lu,
     bench_qr,
     bench_svd,
+    bench_svd_large,
     bench_cholesky,
     bench_fft,
     bench_rfft,
+    bench_fft_1d_large,
     bench_transpose,
+    bench_einsum,
 );
 criterion_main!(benches);
