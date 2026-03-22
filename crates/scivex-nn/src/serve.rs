@@ -1,7 +1,7 @@
 //! Lightweight in-process model inference server with batching support.
 //!
-//! This module provides an [`InferenceServer`] that wraps any model implementing
-//! [`InferenceModel`] and adds batched inference, latency tracking, and request
+//! This module provides an `InferenceServer` that wraps any model implementing
+//! `InferenceModel` and adds batched inference, latency tracking, and request
 //! statistics. No external HTTP or async dependencies are required — everything
 //! runs in-process.
 
