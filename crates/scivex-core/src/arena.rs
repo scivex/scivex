@@ -1,7 +1,7 @@
 //! Arena and slab allocators for temporary tensor buffers.
 //!
-//! Provides [`Arena`] for bump-style allocation of temporary numeric slices,
-//! and [`SlabPool`] for recycling fixed-size buffers. Both are designed to
+//! Provides `Arena` for bump-style allocation of temporary numeric slices,
+//! and `SlabPool` for recycling fixed-size buffers. Both are designed to
 //! eliminate per-allocation heap overhead in hot computation loops.
 
 use std::cell::RefCell;

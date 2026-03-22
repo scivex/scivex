@@ -142,6 +142,7 @@ fn bench_dataframe_creation_large(c: &mut Criterion) {
     let mut group = c.benchmark_group("dataframe_creation_large");
     for &n in &[1_000usize, 10_000, 100_000] {
         let col_a: Vec<f64> = (0..n).map(|i| i as f64 * 0.5).collect();
+        #[allow(clippy::cast_possible_wrap)]
         let col_b: Vec<i32> = (0..n).map(|i| (i % 100) as i32).collect();
         group.bench_with_input(BenchmarkId::new("two_cols", n), &n, |b, _| {
             b.iter(|| {
