@@ -34,6 +34,8 @@ pub mod pde;
 pub mod quadprog;
 /// Scalar root-finding (bisection, Newton, Brent).
 pub mod roots;
+/// Sparse linear system solvers (CG, BiCGSTAB, preconditioned CG).
+pub mod sparse_solve;
 
 pub use curve_fit::{LeastSquaresResult, curve_fit, levenberg_marquardt};
 pub use error::{OptimError, Result};
@@ -52,6 +54,9 @@ pub use ode::{OdeMethod, OdeOptions, OdeResult, bdf2, euler, rk45, solve_ivp};
 pub use pde::{BoundaryCondition, PdeResult, heat_equation_1d, laplace_2d, wave_equation_1d};
 pub use quadprog::{QpResult, quadprog};
 pub use roots::{RootOptions, RootResult, bisection, brent_root, newton};
+pub use sparse_solve::{
+    JacobiPreconditioner, SparseSolveResult, bicgstab, conjugate_gradient, preconditioned_cg,
+};
 
 /// Items intended for glob-import: `use scivex_optim::prelude::*;`
 pub mod prelude {
@@ -74,4 +79,7 @@ pub mod prelude {
     };
     pub use crate::quadprog::{QpResult, quadprog};
     pub use crate::roots::{RootOptions, RootResult, bisection, brent_root, newton};
+    pub use crate::sparse_solve::{
+        JacobiPreconditioner, SparseSolveResult, bicgstab, conjugate_gradient, preconditioned_cg,
+    };
 }

@@ -11,6 +11,8 @@
 //! - `unsafe` is confined to this crate; all higher-level crates use only safe
 //!   abstractions.
 
+/// Arena and slab allocators for temporary tensor buffers.
+pub mod arena;
 /// Native complex number type.
 pub mod complex;
 /// Numeric type traits: [`Scalar`], [`Float`], [`Real`], [`Integer`].
@@ -19,6 +21,8 @@ pub mod dtype;
 pub mod error;
 /// Fast Fourier Transform (FFT / IFFT / RFFT).
 pub mod fft;
+/// Expression JIT for fusing element-wise tensor operations.
+pub mod jit;
 /// Linear algebra: decompositions, solvers, and matrix operations.
 pub mod linalg;
 /// Elementary mathematical functions.
@@ -33,6 +37,8 @@ pub mod random;
 /// SIMD-accelerated kernels for core numerical operations.
 #[cfg(feature = "simd")]
 pub(crate) mod simd;
+/// Spatial data structures: KD-tree, ball tree.
+pub mod spatial;
 /// N-dimensional tensor type and operations.
 pub mod tensor;
 
@@ -42,6 +48,8 @@ pub use dtype::{Float, Integer, Real, Scalar};
 pub use error::{CoreError, Result};
 pub use promote::{CastFrom, DType, DTypeOf, promote};
 pub use tensor::Tensor;
+pub use tensor::named::NamedTensor;
+pub use tensor::sparse::SparseTensor;
 
 // Re-export half-precision types when enabled.
 #[cfg(feature = "mixed-precision")]
@@ -53,4 +61,6 @@ pub mod prelude {
     pub use crate::dtype::{Float, Integer, Real, Scalar};
     pub use crate::error::{CoreError, Result};
     pub use crate::tensor::Tensor;
+    pub use crate::tensor::named::NamedTensor;
+    pub use crate::tensor::sparse::SparseTensor;
 }

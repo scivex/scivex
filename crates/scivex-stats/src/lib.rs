@@ -22,6 +22,8 @@
 
 /// Bayesian inference: MCMC samplers and convergence diagnostics.
 pub mod bayesian;
+/// Bayesian optimization with Gaussian process surrogates.
+pub mod bayesian_optim;
 /// Confidence interval construction (mean, proportion).
 pub mod confidence;
 /// Multiple comparison corrections (Bonferroni, Benjamini-Hochberg).
@@ -44,6 +46,10 @@ pub mod glm;
 pub mod hypothesis;
 /// Kalman filter for linear state estimation.
 pub mod kalman;
+/// Linear Mixed-Effects Models (LMM).
+pub mod mixed_effects;
+/// Prophet-style additive decomposable time series forecasting.
+pub mod prophet;
 /// Ordinary least-squares regression.
 pub mod regression;
 pub(crate) mod special;
@@ -51,9 +57,16 @@ pub(crate) mod special;
 pub mod survival;
 /// Time series analysis (ACF, PACF, ARIMA, exponential smoothing, seasonal decomposition).
 pub mod timeseries;
+/// Time series anomaly detection (z-score, seasonal, isolation forest, EWMA).
+pub mod ts_anomaly;
+/// Automated time series feature extraction for ML feature engineering.
+pub mod ts_features;
 /// Vector Autoregression (VAR) models for multivariate time series.
 pub mod var;
 
+pub use bayesian_optim::{
+    AcquisitionFunction, BayesOptConfig, BayesOptResult, BayesianOptimizer, Kernel,
+};
 pub use confidence::{ConfidenceInterval, ci_mean, ci_mean_z, ci_proportion};
 pub use correction::{benjamini_hochberg, bonferroni};
 pub use correlation::{CorrelationMethod, corr_matrix, kendall, pearson, spearman};
@@ -74,6 +87,8 @@ pub use hypothesis::{
     t_test_one_sample, t_test_two_sample,
 };
 pub use kalman::KalmanFilter;
+pub use mixed_effects::{LmmResult, lmm};
+pub use prophet::{Prophet, ProphetConfig, ProphetForecast};
 pub use regression::{OlsResult, ols};
 pub use survival::{
     CoxPHResult, KaplanMeierEstimate, LogRankResult, SurvivalRecord, cox_ph, kaplan_meier,
@@ -83,13 +98,20 @@ pub use timeseries::{
     AdfResult, Arima, DecomposeResult, ExponentialSmoothing, Sarimax, SmoothingMethod, acf,
     adf_test, pacf, seasonal_decompose,
 };
+pub use ts_anomaly::{
+    AnomalyResult, ewma_anomaly, isolation_forest_anomaly, seasonal_anomaly, zscore_anomaly,
+};
+pub use ts_features::{TsFeature, TsFeatureResult, extract_default_features, extract_features};
 pub use var::{GrangerResult, VarModel};
 
 /// Items intended for glob-import: `use scivex_stats::prelude::*;`
 pub mod prelude {
     pub use crate::bayesian::{
-        HamiltonianMC, McmcConfig, McmcResult, MetropolisHastings, TraceSummary,
+        HamiltonianMC, McmcConfig, McmcResult, MetropolisHastings, Nuts, TraceSummary,
         effective_sample_size, rhat, trace_summary,
+    };
+    pub use crate::bayesian_optim::{
+        AcquisitionFunction, BayesOptConfig, BayesOptResult, BayesianOptimizer, Kernel,
     };
     pub use crate::confidence::{ConfidenceInterval, ci_mean, ci_mean_z, ci_proportion};
     pub use crate::correction::{benjamini_hochberg, bonferroni};
@@ -114,10 +136,18 @@ pub mod prelude {
         t_test_one_sample, t_test_two_sample,
     };
     pub use crate::kalman::KalmanFilter;
+    pub use crate::mixed_effects::{LmmResult, lmm};
+    pub use crate::prophet::{Prophet, ProphetConfig, ProphetForecast};
     pub use crate::regression::{OlsResult, ols};
     pub use crate::survival::{
         CoxPHResult, KaplanMeierEstimate, LogRankResult, SurvivalRecord, cox_ph, kaplan_meier,
         log_rank_test, median_survival_time,
+    };
+    pub use crate::ts_anomaly::{
+        AnomalyResult, ewma_anomaly, isolation_forest_anomaly, seasonal_anomaly, zscore_anomaly,
+    };
+    pub use crate::ts_features::{
+        TsFeature, TsFeatureResult, extract_default_features, extract_features,
     };
     pub use crate::var::{GrangerResult, VarModel};
 }

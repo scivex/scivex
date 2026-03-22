@@ -21,6 +21,8 @@
 pub mod data;
 /// Neural network error types.
 pub mod error;
+/// Model interpretability: Integrated Gradients, SmoothGrad.
+pub mod explain;
 /// Activation functions (ReLU, sigmoid, tanh, softmax).
 pub mod functional;
 /// Weight initialization strategies (Xavier, Kaiming).
@@ -39,6 +41,8 @@ pub mod optim;
 pub mod persist;
 /// Model serialization formats (SafeTensors, GGUF).
 pub mod serialize;
+/// In-process model inference server with batching support.
+pub mod serve;
 /// Training utilities (Trainer, callbacks, gradient clipping).
 pub mod training;
 /// Autograd computation graph node.
@@ -55,12 +59,17 @@ pub use variable::Variable;
 pub mod prelude {
     pub use crate::data::{DataLoader, Dataset, TensorDataset};
     pub use crate::error::{NnError, Result};
+    pub use crate::explain::{
+        IntegratedGradientsResult, integrated_gradients, integrated_gradients_zero_baseline,
+        smooth_gradients,
+    };
     pub use crate::functional::{log_softmax, relu, sigmoid, softmax, tanh_fn};
     pub use crate::init::{kaiming_normal, kaiming_uniform, xavier_normal, xavier_uniform};
     pub use crate::layer::{
         AvgPool1d, AvgPool2d, BatchNorm1d, BatchNorm2d, Conv1d, Conv2d, Conv3d, Dropout, Embedding,
-        Flatten, GRU, LSTM, Layer, LayerNorm, Linear, MaxPool1d, MaxPool2d, MultiHeadAttention,
-        ReLU, RotaryPositionalEncoding, Sequential, Sigmoid, SimpleRNN,
+        FlashAttention, Flatten, GATConv, GCNConv, GRU, GroupedQueryAttention, LSTM, Layer,
+        LayerNorm, Linear, MaxPool1d, MaxPool2d, MultiHeadAttention, MultiQueryAttention, ReLU,
+        RotaryPositionalEncoding, SAGEConv, Sequential, Sigmoid, SimpleRNN,
         SinusoidalPositionalEncoding, Tanh, TransformerDecoderLayer, TransformerEncoderLayer,
         causal_mask,
     };
@@ -81,10 +90,14 @@ pub mod prelude {
     pub use crate::serialize::{
         GgufFile, GgufValue, load_gguf, load_safetensors, save_gguf, save_safetensors,
     };
+    pub use crate::serve::{
+        FnModel, InferenceConfig, InferenceModel, InferenceRequest, InferenceResponse,
+        InferenceServer, InferenceStats,
+    };
     pub use crate::training::{
-        AmpConfig, Callback, CallbackAction, EarlyStopping, GradScaler, LossLogger, LrFinder,
-        LrFinderResult, ModelCheckpoint, Trainer, TrainingHistory, cast_params, cast_variable,
-        clip_grad_norm, clip_grad_value,
+        AmpConfig, Callback, CallbackAction, EarlyStopping, GradAccumulator, GradScaler,
+        LossLogger, LrFinder, LrFinderResult, ModelCheckpoint, Trainer, TrainingHistory,
+        cast_params, cast_variable, clip_grad_norm, clip_grad_value,
     };
     pub use crate::variable::Variable;
 

@@ -69,3 +69,13 @@ pub trait Classifier<T: Float>: Predictor<T> {
     /// Return class probabilities, shape `[n_samples, n_classes]`.
     fn predict_proba(&self, x: &Tensor<T>) -> Result<Tensor<T>>;
 }
+
+/// An estimator that can report per-feature importance scores.
+///
+/// Used by [`crate::feature_selection::RFE`] to decide which features to
+/// eliminate.
+pub trait HasFeatureImportances<T: Float> {
+    /// Return a vector of length `n_features` with non-negative importance
+    /// scores.
+    fn feature_importances(&self) -> Result<Vec<T>>;
+}

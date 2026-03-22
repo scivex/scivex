@@ -16,6 +16,7 @@
 pub mod blas;
 pub mod decomp;
 pub mod sparse;
+pub mod tensor_decomp;
 
 pub use blas::{asum, axpy, dot, gemm, gemv, iamax, nrm2, scal};
 pub use decomp::CholeskyDecomposition;
@@ -25,6 +26,7 @@ pub use decomp::QrDecomposition;
 pub use decomp::SvdDecomposition;
 pub use decomp::lstsq;
 pub use sparse::{CooMatrix, CscMatrix, CsrMatrix};
+pub use tensor_decomp::{CpDecomposition, NtfDecomposition, TuckerDecomposition};
 
 use crate::Float;
 use crate::error::Result;

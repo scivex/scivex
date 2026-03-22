@@ -37,6 +37,7 @@ pub mod device;
 pub mod error;
 pub mod ops;
 pub mod optim;
+pub mod shader_opt;
 pub mod tensor;
 
 #[cfg(feature = "cuda")]

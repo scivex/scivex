@@ -1,6 +1,7 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use scivex_core::Tensor;
 use scivex_ml::cluster::KMeans;
+use scivex_ml::ensemble::{RandomForestClassifier, RandomForestRegressor};
 use scivex_ml::linear::LinearRegression;
 use scivex_ml::preprocessing::StandardScaler;
 use scivex_ml::svm::{Kernel, SVC};
@@ -162,13 +163,109 @@ fn bench_standard_scaler(c: &mut Criterion) {
     group.finish();
 }
 
+// ---------------------------------------------------------------------------
+// Random Forest Classifier
+// ---------------------------------------------------------------------------
+
+fn bench_random_forest_fit(c: &mut Criterion) {
+    let mut group = c.benchmark_group("random_forest_classifier_fit");
+    for &n in &[500usize, 1_000] {
+        let (x, y) = make_classification(n, 10);
+        group.bench_with_input(BenchmarkId::new("10feat", n), &n, |b, _| {
+            b.iter(|| {
+                let mut rf = RandomForestClassifier::<f64>::new(10, Some(5), None, 42).unwrap();
+                rf.fit(black_box(&x), black_box(&y)).unwrap();
+            });
+        });
+    }
+    group.finish();
+}
+
+fn bench_random_forest_predict(c: &mut Criterion) {
+    let (x_train, y_train) = make_classification(1_000, 10);
+    let mut rf = RandomForestClassifier::<f64>::new(10, Some(5), None, 42).unwrap();
+    rf.fit(&x_train, &y_train).unwrap();
+
+    let mut group = c.benchmark_group("random_forest_classifier_predict");
+    for &n in &[500usize, 1_000] {
+        let (x_test, _) = make_classification(n, 10);
+        group.bench_with_input(BenchmarkId::new("10feat", n), &n, |b, _| {
+            b.iter(|| rf.predict(black_box(&x_test)).unwrap());
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// Random Forest Regressor
+// ---------------------------------------------------------------------------
+
+fn bench_random_forest_regressor_fit(c: &mut Criterion) {
+    let mut group = c.benchmark_group("random_forest_regressor_fit");
+    for &n in &[500usize, 1_000] {
+        let (x, y) = make_regression(n, 10);
+        group.bench_with_input(BenchmarkId::new("10feat", n), &n, |b, _| {
+            b.iter(|| {
+                let mut rf = RandomForestRegressor::<f64>::new(10, Some(5), None, 42).unwrap();
+                rf.fit(black_box(&x), black_box(&y)).unwrap();
+            });
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// KMeans on 2-D data (larger)
+// ---------------------------------------------------------------------------
+
+fn bench_kmeans_2d(c: &mut Criterion) {
+    let mut group = c.benchmark_group("kmeans_2d");
+    for &n in &[500usize, 1_000] {
+        let xdata: Vec<f64> = (0..n * 2)
+            .map(|i| ((i * 13 + 7) % 97) as f64 / 97.0)
+            .collect();
+        let x = Tensor::from_vec(xdata, vec![n, 2]).unwrap();
+        group.bench_with_input(BenchmarkId::new("k5", n), &n, |b, _| {
+            b.iter(|| {
+                let mut km = KMeans::<f64>::new(5, 30, 1e-4, 1, 42).unwrap();
+                km.fit(black_box(&x)).unwrap();
+            });
+        });
+    }
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
+// Linear regression at various sizes
+// ---------------------------------------------------------------------------
+
+fn bench_linear_regression_fit_sizes(c: &mut Criterion) {
+    let mut group = c.benchmark_group("linear_regression_fit_sizes");
+    for &(n, feat) in &[(200usize, 5), (500, 10), (1_000, 10)] {
+        let (x, y) = make_regression(n, feat);
+        let label = format!("{n}x{feat}");
+        group.bench_function(&label, |b| {
+            b.iter(|| {
+                let mut model = LinearRegression::<f64>::new();
+                model.fit(black_box(&x), black_box(&y)).unwrap();
+            });
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_linear_regression_fit,
     bench_linear_regression_predict,
+    bench_linear_regression_fit_sizes,
     bench_decision_tree_fit,
     bench_decision_tree_regressor_fit,
     bench_kmeans_fit,
+    bench_kmeans_2d,
+    bench_random_forest_fit,
+    bench_random_forest_predict,
+    bench_random_forest_regressor_fit,
     bench_svc_fit,
     bench_standard_scaler,
 );

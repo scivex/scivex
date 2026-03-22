@@ -37,6 +37,10 @@ pub mod ensemble;
 pub mod error;
 /// Model explainability: feature importance, SHAP, partial dependence.
 pub mod explain;
+/// Automated feature engineering: polynomial features and nonlinear transforms.
+pub mod feature_engineering;
+/// Feature selection: scoring functions and selection methods.
+pub mod feature_selection;
 /// Linear models (regression, ridge, logistic).
 pub mod linear;
 /// Evaluation metrics for classification and regression.
@@ -66,24 +70,34 @@ pub mod tree;
 
 pub use error::{MlError, Result};
 pub use online::IncrementalPredictor;
-pub use traits::{Classifier, Predictor, Transformer};
+pub use traits::{Classifier, HasFeatureImportances, Predictor, Transformer};
 
 /// Convenience re-exports.
 pub mod prelude {
     pub use crate::error::{MlError, Result};
-    pub use crate::traits::{Classifier, Predictor, Transformer};
+    pub use crate::traits::{Classifier, HasFeatureImportances, Predictor, Transformer};
+
+    // Feature engineering
+    pub use crate::feature_engineering::{FeatureGenerator, FeatureTransform, PolynomialFeatures};
+
+    // Feature selection
+    pub use crate::feature_selection::{RFE, ScoringFunction, SelectKBest, chi2, f_classif};
 
     // Preprocessing
-    pub use crate::preprocessing::{LabelEncoder, MinMaxScaler, OneHotEncoder, StandardScaler};
+    pub use crate::preprocessing::{
+        BinaryEncoder, LabelEncoder, MinMaxScaler, OneHotEncoder, OrdinalEncoder, StandardScaler,
+        TargetEncoder,
+    };
 
     // Linear models
     pub use crate::linear::{LinearRegression, LogisticRegression, Ridge};
 
     // Trees & ensembles
     pub use crate::ensemble::{
+        CatBoostClassifier, CatBoostRegressor, EbmClassifier, EbmRegressor, EstimatorFactory,
         GBLoss, GradientBoostingClassifier, GradientBoostingRegressor,
         HistGradientBoostingClassifier, HistGradientBoostingRegressor, ImportanceType,
-        RandomForestClassifier, RandomForestRegressor,
+        RandomForestClassifier, RandomForestRegressor, StackingClassifier, StackingRegressor,
     };
     pub use crate::tree::{DecisionTreeClassifier, DecisionTreeRegressor};
 

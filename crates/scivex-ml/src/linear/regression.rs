@@ -1,7 +1,7 @@
 use scivex_core::{Float, Tensor, linalg};
 
 use crate::error::{MlError, Result};
-use crate::traits::Predictor;
+use crate::traits::{HasFeatureImportances, Predictor};
 
 /// Ordinary least-squares linear regression.
 ///
@@ -91,6 +91,13 @@ impl<T: Float> Predictor<T> for LinearRegression<T> {
             out[i] = val;
         }
         Ok(Tensor::from_vec(out, vec![n])?)
+    }
+}
+
+impl<T: Float> HasFeatureImportances<T> for LinearRegression<T> {
+    fn feature_importances(&self) -> Result<Vec<T>> {
+        let w = self.weights.as_ref().ok_or(MlError::NotFitted)?;
+        Ok(w.iter().map(|&v| v.abs()).collect())
     }
 }
 
