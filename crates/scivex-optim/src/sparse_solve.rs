@@ -119,9 +119,7 @@ pub fn conjugate_gradient<T: Float>(
             reason: "length must match matrix dimension",
         });
     }
-    if let Some(x0v) = x0
-        && x0v.len() != n
-    {
+    if x0.is_some_and(|x0v| x0v.len() != n) {
         return Err(OptimError::InvalidParameter {
             name: "x0",
             reason: "length must match matrix dimension",
@@ -232,9 +230,7 @@ pub fn bicgstab<T: Float>(
             reason: "length must match matrix dimension",
         });
     }
-    if let Some(x0v) = x0
-        && x0v.len() != n
-    {
+    if x0.is_some_and(|x0v| x0v.len() != n) {
         return Err(OptimError::InvalidParameter {
             name: "x0",
             reason: "length must match matrix dimension",
@@ -439,9 +435,7 @@ pub fn preconditioned_cg<T: Float>(
             reason: "length must match matrix dimension",
         });
     }
-    if let Some(x0v) = x0
-        && x0v.len() != n
-    {
+    if x0.is_some_and(|x0v| x0v.len() != n) {
         return Err(OptimError::InvalidParameter {
             name: "x0",
             reason: "length must match matrix dimension",

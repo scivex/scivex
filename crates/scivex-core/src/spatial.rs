@@ -377,7 +377,10 @@ impl<T: Float> KdTree<T> {
                             sq_dist,
                             index: idx,
                         });
-                    } else if heap.peek().is_some_and(|worst| sq_dist.to_f64() < worst.sq_dist.to_f64()) {
+                    } else if heap
+                        .peek()
+                        .is_some_and(|worst| sq_dist.to_f64() < worst.sq_dist.to_f64())
+                    {
                         heap.pop();
                         heap.push(HeapEntry {
                             sq_dist,

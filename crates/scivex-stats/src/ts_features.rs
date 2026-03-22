@@ -36,7 +36,7 @@ pub enum TsFeature {
     Sum,
     /// Sum of squared elements.
     AbsEnergy,
-    /// Mean of |x[i+1] − x[i]|.
+    /// Mean of |x\[i+1\] − x\[i\]|.
     MeanAbsChange,
     /// Longest consecutive run of values above the window mean.
     LongestStrikeAboveMean,

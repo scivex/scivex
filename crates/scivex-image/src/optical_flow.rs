@@ -123,7 +123,8 @@ pub fn lucas_kanade(
             reason: "dimensions must match previous frame",
         });
     }
-    if window_size < 3 || window_size.is_multiple_of(2) {
+    #[allow(clippy::manual_is_multiple_of)]
+    if window_size < 3 || window_size % 2 == 0 {
         return Err(ImageError::InvalidParameter {
             name: "window_size",
             reason: "must be odd and >= 3",
@@ -330,7 +331,8 @@ pub fn farneback(
             reason: "must be at least 1",
         });
     }
-    if win_size < 3 || win_size.is_multiple_of(2) {
+    #[allow(clippy::manual_is_multiple_of)]
+    if win_size < 3 || win_size % 2 == 0 {
         return Err(ImageError::InvalidParameter {
             name: "win_size",
             reason: "must be odd and >= 3",
@@ -620,7 +622,7 @@ mod tests {
             }
         }
         assert!(
-            nonzero_count as f64 / total as f64 > 0.2,
+            f64::from(nonzero_count) / f64::from(total) > 0.2,
             "Only {nonzero_count}/{total} pixels detected nonzero flow"
         );
     }

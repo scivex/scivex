@@ -48,7 +48,7 @@ impl OptimizedShaders {
     /// - `@group(0) @binding(1)` — `b: array<f32>` (read)
     /// - `@group(0) @binding(2)` — `c: array<f32>` (read_write)
     /// - `@group(0) @binding(3)` — `params: Params` (uniform)
-    pub const TILED_MATMUL: &'static str = r#"
+    pub const TILED_MATMUL: &'static str = r"
 struct Params {
     M: u32,
     N: u32,
@@ -111,7 +111,7 @@ fn tiled_matmul(
         c[row * params.N + col] = acc;
     }
 }
-"#;
+";
 
     /// Fused add + ReLU shader.
     ///
@@ -122,7 +122,7 @@ fn tiled_matmul(
     /// - `@group(0) @binding(0)` — `a: array<f32>` (read)
     /// - `@group(0) @binding(1)` — `b: array<f32>` (read)
     /// - `@group(0) @binding(2)` — `result: array<f32>` (read_write)
-    pub const FUSED_ADD_RELU: &'static str = r#"
+    pub const FUSED_ADD_RELU: &'static str = r"
 @group(0) @binding(0) var<storage, read> a: array<f32>;
 @group(0) @binding(1) var<storage, read> b: array<f32>;
 @group(0) @binding(2) var<storage, read_write> result: array<f32>;
@@ -134,7 +134,7 @@ fn fused_add_relu(@builtin(global_invocation_id) gid: vec3<u32>) {
         result[idx] = max(0.0, a[idx] + b[idx]);
     }
 }
-"#;
+";
 
     /// Fused multiply-add (FMA) shader.
     ///
@@ -145,7 +145,7 @@ fn fused_add_relu(@builtin(global_invocation_id) gid: vec3<u32>) {
     /// - `@group(0) @binding(1)` — `b: array<f32>` (read)
     /// - `@group(0) @binding(2)` — `c: array<f32>` (read)
     /// - `@group(0) @binding(3)` — `result: array<f32>` (read_write)
-    pub const FUSED_MUL_ADD: &'static str = r#"
+    pub const FUSED_MUL_ADD: &'static str = r"
 @group(0) @binding(0) var<storage, read> a: array<f32>;
 @group(0) @binding(1) var<storage, read> b: array<f32>;
 @group(0) @binding(2) var<storage, read> c: array<f32>;
@@ -158,7 +158,7 @@ fn fused_mul_add(@builtin(global_invocation_id) gid: vec3<u32>) {
         result[idx] = fma(a[idx], b[idx], c[idx]);
     }
 }
-"#;
+";
 
     /// Numerically stable softmax shader (three-pass).
     ///
@@ -174,7 +174,7 @@ fn fused_mul_add(@builtin(global_invocation_id) gid: vec3<u32>) {
     /// - `@group(0) @binding(0)` — `input: array<f32>` (read)
     /// - `@group(0) @binding(1)` — `output: array<f32>` (read_write)
     /// - `@group(0) @binding(2)` — `params: SoftmaxParams` (uniform)
-    pub const SOFTMAX: &'static str = r#"
+    pub const SOFTMAX: &'static str = r"
 struct SoftmaxParams {
     rows: u32,
     cols: u32,
@@ -259,7 +259,7 @@ fn softmax(
         i = i + WG_SIZE;
     }
 }
-"#;
+";
 
     /// Workgroup-level tree reduction (sum) shader.
     ///
@@ -270,7 +270,7 @@ fn softmax(
     /// Bindings:
     /// - `@group(0) @binding(0)` — `input: array<f32>` (read)
     /// - `@group(0) @binding(1)` — `output: array<f32>` (read_write)
-    pub const TREE_REDUCE_SUM: &'static str = r#"
+    pub const TREE_REDUCE_SUM: &'static str = r"
 @group(0) @binding(0) var<storage, read> input: array<f32>;
 @group(0) @binding(1) var<storage, read_write> output: array<f32>;
 
@@ -310,7 +310,7 @@ fn tree_reduce_sum(
         output[wid.x] = shared[0];
     }
 }
-"#;
+";
 }
 
 // ---------------------------------------------------------------------------
@@ -413,7 +413,7 @@ impl WorkgroupConfig {
     /// ```
     pub fn num_workgroups(total: usize, workgroup_size: u32) -> u32 {
         let ws = workgroup_size as usize;
-        ((total + ws - 1) / ws) as u32
+        total.div_ceil(ws) as u32
     }
 }
 

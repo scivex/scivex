@@ -5,13 +5,13 @@
 //!
 //! ## Scoring Functions
 //!
-//! - [`chi2`] — Chi-squared statistic between each feature and the target.
-//! - [`f_classif`] — One-way ANOVA F-value between each feature and the target.
+//! - `chi2` — Chi-squared statistic between each feature and the target.
+//! - `f_classif` — One-way ANOVA F-value between each feature and the target.
 //!
 //! ## Selection Methods
 //!
-//! - [`SelectKBest`] — Keep the *k* highest-scoring features.
-//! - [`RFE`] — Recursive Feature Elimination using an estimator's importances.
+//! - `SelectKBest` — Keep the *k* highest-scoring features.
+//! - `RFE` — Recursive Feature Elimination using an estimator's importances.
 
 mod rfe;
 mod scoring;
