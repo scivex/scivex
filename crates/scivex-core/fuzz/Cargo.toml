@@ -1,0 +1,30 @@
+[package]
+name = "scivex-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+scivex-core = { path = ".." }
+
+[[bin]]
+name = "fuzz_tensor_index"
+path = "fuzz_targets/fuzz_tensor_index.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_einsum_parse"
+path = "fuzz_targets/fuzz_einsum_parse.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_reshape"
+path = "fuzz_targets/fuzz_reshape.rs"
+test = false
+doc = false

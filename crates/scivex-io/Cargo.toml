@@ -5,13 +5,17 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — CSV, JSON, SQL, Parquet, and Arrow I/O for DataFrames"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["csv", "parquet", "arrow", "data-loading", "scientific-computing"]
+categories = ["science", "parser-implementations"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
-scivex-frame = { path = "../scivex-frame" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
 serde_json = { version = "1", optional = true }
 
 # SQL backends

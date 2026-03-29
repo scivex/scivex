@@ -10,6 +10,7 @@ use core::fmt;
 /// assert!(e.to_string().contains("invalid dimensions"));
 /// ```
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum ImageError {
     /// Image dimensions are invalid (e.g. zero width or height).
     InvalidDimensions { width: usize, height: usize },

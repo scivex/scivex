@@ -1,35 +1,29 @@
 # scivex-image
 
-Image processing for Scivex. Tensor-backed images with geometric transforms,
-spatial filters, and drawing primitives.
+Image processing for Scivex. Load, transform, and analyze images with
+efficient Rust implementations.
 
 ## Highlights
 
-- **Image<T>** — 2D image backed by `Tensor<T>` with `[height, width, channels]` layout
-- **Pixel formats** — Gray, GrayAlpha, RGB, RGBA
-- **Transforms** — Resize (nearest/bilinear), crop, flip, rotate (90/180/270), pad
-- **Filters** — Gaussian blur, box blur, Sobel edge detection, 2D convolution
-- **Color** — RGB/HSV conversion, grayscale conversion
-- **Histogram** — Compute histograms, histogram equalization
-- **Drawing** — Lines (Bresenham), rectangles, circles
-- **I/O** — PPM, PGM, BMP file formats
-- **Type conversion** — `Image<u8>` to/from `Image<f32>` with [0,255] / [0,1] scaling
+- **Image types** — Grayscale, RGB, RGBA with generic pixel types
+- **I/O** — PNG, JPEG, BMP, PPM reading and writing
+- **Transforms** — Resize (bilinear, nearest), crop, rotate, flip, pad
+- **Filters** — Gaussian blur, sharpen, edge detection (Sobel, Canny)
+- **Morphology** — Erosion, dilation, opening, closing
+- **Color** — RGB/HSV/HSL/grayscale conversions, histogram equalization
+- **Drawing** — Lines, rectangles, circles, text rendering
+- **Convolution** — Custom kernel convolution and separable filters
 
 ## Usage
 
 ```rust
 use scivex_image::prelude::*;
 
-// Load and process
-let img = Image::<u8>::load("input.bmp").unwrap();
-let gray = img.to_grayscale();
-let edges = gray.to_f32().sobel_magnitude();
-let blurred = img.to_f32().gaussian_blur(1.5);
-
-// Geometric transforms
-let resized = img.resize(640, 480, ResizeMethod::Bilinear);
-let cropped = img.crop(10, 10, 200, 200).unwrap();
-let flipped = img.flip_horizontal();
+let img = Image::read_png("photo.png").unwrap();
+let resized = img.resize(224, 224, Interpolation::Bilinear);
+let gray = resized.to_grayscale();
+let edges = gray.sobel();
+edges.write_png("edges.png").unwrap();
 ```
 
 ## License

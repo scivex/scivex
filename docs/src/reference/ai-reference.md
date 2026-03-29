@@ -8,7 +8,7 @@ This document is designed for AI coding assistants (Claude, Copilot, etc.) to ge
 
 - **Edition:** Rust 2024 (MSRV 1.85)
 - **License:** MIT
-- **Architecture:** Workspace of 15+ crates with `scivex` as the umbrella
+- **Architecture:** Workspace of 19 crates with `scivex` as the umbrella
 
 ## Import Patterns
 
@@ -324,4 +324,170 @@ let x = var("x");
 let f = sin(x.clone()) * exp(x.clone()); // f(x) = sin(x) * e^x
 let df = diff(&f, "x");                   // f'(x) = cos(x)*e^x + sin(x)*e^x
 let simplified = simplify(&df);
+```
+
+## Advanced APIs (Phases 26-30)
+
+### Einstein Summation
+
+```rust
+use scivex_core::einsum::einsum;
+
+let c = einsum("ij,jk->ik", &[&a, &b])?;   // matmul
+let trace = einsum("ii->", &[&a])?;          // trace
+let outer = einsum("i,j->ij", &[&u, &v])?;  // outer product
+let batch = einsum("bij,bjk->bik", &[&a, &b])?; // batched matmul
+```
+
+### Named Tensors (xarray-style)
+
+```rust
+use scivex_core::named_tensor::NamedTensor;
+
+let nt = NamedTensor::new(tensor, vec!["batch", "height", "width"])?;
+let summed = nt.sum_dim("batch")?;
+let renamed = nt.rename("height", "rows")?;
+let aligned = nt.align_to(&["width", "height", "batch"])?;
+let selected = nt.select("batch", 0)?;
+```
+
+### Tensor Decompositions
+
+```rust
+use scivex_core::linalg;
+
+let (u, s, vt) = linalg::svd(&a)?;
+let (u, s, vt) = linalg::truncated_svd(&a, k)?;
+let (u, s, vt) = linalg::randomized_svd(&a, k, &mut rng)?;
+let (q, r) = linalg::qr(&a)?;
+let l = linalg::cholesky(&a)?;
+let (eigenvalues, eigenvectors) = linalg::eig(&a)?;
+```
+
+### KD-Tree (Spatial)
+
+```rust
+use scivex_core::spatial::KdTree;
+
+let tree = KdTree::build(&points)?;
+let neighbors = tree.query(&point, k)?;        // k-NN
+let in_range = tree.query_radius(&point, r)?;   // radius search
+```
+
+### CatBoost / Ensemble
+
+```rust
+use scivex_ml::ensemble::{CatBoostClassifier, StackingClassifier, EBMClassifier};
+
+let mut cat = CatBoostClassifier::new().iterations(100).cat_features(vec![0, 2]);
+cat.fit(&x, &y)?;
+
+let mut stack = StackingClassifier::new(base_estimators, meta_estimator);
+stack.fit(&x, &y)?;
+
+let mut ebm = EBMClassifier::new().n_bins(256).max_rounds(5000);
+ebm.fit(&x, &y)?;
+```
+
+### Feature Selection
+
+```rust
+use scivex_ml::feature_selection::{SelectKBest, ScoringFunction, RFE};
+
+let mut skb = SelectKBest::new(ScoringFunction::Chi2, 10);
+skb.fit(&x, &y)?;
+let x_new = skb.transform(&x)?;
+
+let mut rfe = RFE::new(Box::new(estimator), 5);
+rfe.fit(&x, &y)?;
+```
+
+### GNN Layers
+
+```rust
+use scivex_nn::gnn::{GCNConv, GATConv, SAGEConv};
+
+let gcn = GCNConv::new(in_features, out_features);
+let output = gcn.forward(&node_features, &adjacency)?;
+
+let gat = GATConv::new(in_features, out_features, n_heads);
+let output = gat.forward(&node_features, &edge_index)?;
+```
+
+### Bayesian Inference (NUTS)
+
+```rust
+use scivex_stats::bayesian::{nuts, hmc};
+
+let samples = nuts(log_posterior, grad_log_posterior, &initial, n_samples, warmup, target_accept)?;
+let samples = hmc(log_posterior, grad_log_posterior, &initial, n_samples, step_size, n_leapfrog)?;
+```
+
+### Prophet-style Forecasting
+
+```rust
+use scivex_stats::prophet::Prophet;
+
+let mut prophet = Prophet::new()
+    .changepoint_prior_scale(0.05)
+    .n_changepoints(25);
+prophet.fit(&timestamps, &values)?;
+let forecast = prophet.predict(&future_timestamps)?;
+let trend = prophet.trend(&future_timestamps)?;
+```
+
+### Time Series Feature Extraction
+
+```rust
+use scivex_stats::ts_features::{extract_features, extract_default_features, TsFeature};
+
+let features = vec![TsFeature::Mean, TsFeature::StdDev, TsFeature::AutoCorrelation(7)];
+let result = extract_features(&data, window_size, step_size, &features)?;
+// result.feature_names: Vec<String>
+// result.features: Vec<Vec<T>> (windows x features)
+
+let defaults = extract_default_features(&data, window_size)?; // 13 standard features
+```
+
+### NumExpr JIT
+
+```rust
+use scivex_core::numexpr::NumExpr;
+
+let mut ctx = NumExpr::new();
+ctx.bind("a", &tensor_a);
+ctx.bind("b", &tensor_b);
+let result = ctx.eval("a * b + sin(a)")?;
+```
+
+### Curve Fitting (Levenberg-Marquardt)
+
+```rust
+use scivex_optim::curve_fit::curve_fit;
+
+let model = |x: f64, params: &[f64]| params[0] * (-params[1] * x).exp() + params[2];
+let result = curve_fit(model, &x_data, &y_data, &initial_params)?;
+// result.params, result.cost, result.converged
+```
+
+### Linear Programming
+
+```rust
+use scivex_optim::linprog::linprog;
+
+// minimize c^T x  subject to  A_ub x <= b_ub,  x >= 0
+let result = linprog(&c, &a_ub, &b_ub)?;
+// result.x, result.fun, result.slack
+```
+
+### Anomaly Detection
+
+```rust
+use scivex_stats::anomaly::{ZScoreDetector, SeasonalDetector};
+
+let mut detector = ZScoreDetector::new(3.0); // threshold = 3 sigma
+let anomalies = detector.detect(&data)?;
+
+let mut seasonal = SeasonalDetector::new(7); // period = 7
+let anomalies = seasonal.detect(&data)?;
 ```

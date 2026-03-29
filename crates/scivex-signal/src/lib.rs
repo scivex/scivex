@@ -1,4 +1,18 @@
-#![allow(clippy::manual_is_multiple_of)]
+#![allow(
+    clippy::manual_is_multiple_of,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::must_use_candidate,
+    clippy::return_self_not_must_use,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_lossless,
+    clippy::many_single_char_names,
+    clippy::similar_names,
+    clippy::doc_markdown,
+    clippy::module_name_repetitions
+)]
 //! `scivex-signal` — Signal processing, FFT, wavelets, and audio.
 //!
 //! Provides a from-scratch signal processing library with support for:

@@ -5,12 +5,16 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — Image loading, transforms, and filters"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["image-processing", "computer-vision", "filters", "transforms", "scientific-computing"]
+categories = ["science", "multimedia::images"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
 png = { version = "0.17", optional = true }
 jpeg-decoder = { version = "0.3", optional = true }
 jpeg-encoder = { version = "0.6", optional = true }

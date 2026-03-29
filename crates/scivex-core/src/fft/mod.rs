@@ -116,12 +116,20 @@ fn fft_radix2<T: Float>(re: &mut [T], im: &mut [T], inverse: bool) {
     while len <= n {
         let half = len / 2;
         let angle_step = sign * T::pi() / T::from_usize(half);
+
+        // Precompute twiddle factors for this stage to avoid redundant trig calls.
+        let twiddles_re: Vec<T> = (0..half)
+            .map(|k| (angle_step * T::from_usize(k)).cos())
+            .collect();
+        let twiddles_im: Vec<T> = (0..half)
+            .map(|k| (angle_step * T::from_usize(k)).sin())
+            .collect();
+
         let mut start = 0;
         while start < n {
             for k in 0..half {
-                let angle = angle_step * T::from_usize(k);
-                let wr = angle.cos();
-                let wi = angle.sin();
+                let wr = twiddles_re[k];
+                let wi = twiddles_im[k];
 
                 let even = start + k;
                 let odd = start + k + half;

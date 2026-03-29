@@ -6,6 +6,7 @@ use core::fmt;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum SignalError {
     /// A parameter has an invalid value.
     InvalidParameter {

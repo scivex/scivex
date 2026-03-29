@@ -84,6 +84,57 @@ scivex-wasm = { path = "crates/scivex-wasm" }
 
 Scivex requires **Rust edition 2024** (stable Rust 1.85+).
 
+```bash
+# Check your Rust version
+rustc --version
+# Minimum: rustc 1.85.0
+
+# Update if needed
+rustup update stable
+```
+
+## Platform Notes
+
+### Linux (Ubuntu/Debian)
+
+```bash
+# GPU feature requires Vulkan drivers
+sudo apt install libvulkan-dev
+
+# Image features require system libraries
+sudo apt install pkg-config libssl-dev
+```
+
+### macOS
+
+GPU support uses Metal automatically via wgpu — no extra dependencies needed.
+
+```bash
+# If using Homebrew Rust instead of rustup, ensure edition 2024 support
+brew upgrade rust
+```
+
+### Windows
+
+GPU support uses DirectX 12 automatically via wgpu. Ensure you have:
+- Visual Studio Build Tools 2019+ (for MSVC linker)
+- Windows 10 SDK
+
+```powershell
+# Install Rust via rustup (recommended)
+winget install Rustlang.Rustup
+```
+
+### WebAssembly
+
+```bash
+# Install wasm-pack for WASM builds
+cargo install wasm-pack
+
+# Build the WASM crate
+wasm-pack build crates/scivex-wasm --target web
+```
+
 ## Building from Source
 
 ```bash
@@ -116,3 +167,15 @@ Each crate has its own prelude:
 use scivex_core::prelude::*;
 use scivex_frame::prelude::*;
 ```
+
+## Troubleshooting
+
+**"edition 2024 is not supported"** — Update Rust: `rustup update stable`. MSRV is 1.85.
+
+**GPU features fail to compile** — Ensure your system has Vulkan (Linux), Metal (macOS), or DirectX 12 (Windows) drivers installed. The `gpu` feature requires `wgpu`.
+
+**Slow compile times** — Use `features = ["core"]` during development, only enable `full` for CI/release. Consider `cargo build -p scivex-core` to build just what you need.
+
+**Linking errors with `image-png` or `image-jpeg`** — These features pull in C dependencies. On Linux, install `libpng-dev` / `libjpeg-dev`.
+
+**WASM build fails** — Ensure `wasm-pack` is installed and you're targeting the correct platform: `--target web` for browsers, `--target nodejs` for Node.js.

@@ -6,6 +6,7 @@ use core::fmt;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum OptimError {
     /// An iterative algorithm did not converge within the iteration budget.
     ConvergenceFailure { iterations: usize },

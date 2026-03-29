@@ -14,6 +14,7 @@ use std::fmt;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum NlpError {
     /// The input text or document list is empty.
     EmptyInput,

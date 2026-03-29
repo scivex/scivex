@@ -1,0 +1,48 @@
+name: Python Tests (pyscivex)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "crates/pyscivex/**"
+      - "crates/scivex-*/src/**"
+  pull_request:
+    paths:
+      - "crates/pyscivex/**"
+      - "crates/scivex-*/src/**"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+        python: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Create virtualenv and install tools
+        run: |
+          python -m venv crates/pyscivex/.venv
+          source crates/pyscivex/.venv/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/activate
+          pip install maturin pytest
+        shell: bash
+      - name: Build pyscivex
+        run: |
+          source crates/pyscivex/.venv/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/activate
+          cd crates/pyscivex && maturin develop --release
+        shell: bash
+      - name: Run tests
+        run: |
+          source crates/pyscivex/.venv/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/activate
+          cd crates/pyscivex && pytest tests/ -v --ignore=tests/test_gpu.py
+        shell: bash

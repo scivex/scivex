@@ -1,41 +1,37 @@
 # scivex-nn
 
-Neural networks and automatic differentiation for Scivex. Build and train
-feedforward networks with a PyTorch-inspired API.
+Neural networks for Scivex. Autograd engine, layers, optimizers, and loss
+functions for building and training deep learning models.
 
 ## Highlights
 
-- **Reverse-mode autograd** — `Variable<T>` with computation graph and `backward()`
-- **Differentiable ops** — add, sub, mul, matmul, pow, sum, mean with gradient tracking
-- **Activations** — ReLU, sigmoid, tanh, softmax, log-softmax
-- **Layers** — Linear, ReLU, Sigmoid, Tanh, Sequential, Dropout, BatchNorm1d
-- **Loss functions** — MSE, Cross-Entropy, Binary Cross-Entropy
-- **Optimizers** — SGD (with momentum), Adam
-- **Initialization** — Xavier (Glorot) and Kaiming (He), uniform and normal
-- **Data** — Dataset trait, TensorDataset, DataLoader with batching and shuffle
+- **Autograd** — Automatic differentiation with dynamic computation graph
+- **Layers** — Linear, Conv1d/2d/3d, RNN, LSTM, GRU, BatchNorm, LayerNorm, Dropout
+- **Attention** — MultiHeadAttention, MultiQuery, GroupedQuery, Flash, Rotary/Sinusoidal positional encoding
+- **Transformer** — TransformerEncoderLayer, TransformerDecoderLayer
+- **Pooling** — MaxPool1d/2d, AvgPool1d/2d, AdaptiveAvgPool, GlobalAvgPool
+- **Activations** — ReLU, GELU, SiLU, Sigmoid, Tanh, Softmax, LeakyReLU, ELU
+- **Optimizers** — SGD (with momentum), Adam, AdamW, RMSprop, Adagrad
+- **Losses** — MSE, CrossEntropy, BinaryCrossEntropy, Huber, L1
+- **Schedulers** — StepLR, CosineAnnealing, ReduceOnPlateau, WarmupCosine
+- **Mixed precision** — FP16/BF16 support via scivex-core half types
+- **GPU support** — Optional GPU acceleration via scivex-gpu
 
 ## Usage
 
 ```rust
 use scivex_nn::prelude::*;
 
-// Build a model
 let mut model = Sequential::new(vec![
     Box::new(Linear::new(784, 256, &mut rng)),
     Box::new(ReLU),
-    Box::new(Dropout::new(0.3)),
     Box::new(Linear::new(256, 10, &mut rng)),
 ]);
 
-// Training loop
-let mut optimizer = Adam::new(model.parameters(), 1e-3);
-for batch in data_loader {
-    let logits = model.forward(&batch.input);
-    let loss = cross_entropy_loss(&logits, &batch.target);
-    optimizer.zero_grad();
-    loss.backward(None);
-    optimizer.step();
-}
+let mut optimizer = Adam::new(model.parameters(), 0.001);
+let loss = cross_entropy_loss(&logits, &targets);
+loss.backward(None);
+optimizer.step();
 ```
 
 ## License

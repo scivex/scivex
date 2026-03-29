@@ -261,6 +261,9 @@ impl<T: Float> Layer<T> for Conv2d<T> {
 }
 
 /// Forward computation: col @ W^T + bias, reshaped to NCHW.
+///
+/// Uses scivex-core's optimized GEMM (with SIMD micro-kernel) instead of a
+/// naive triple loop.
 #[allow(clippy::too_many_arguments)]
 fn compute_forward<T: Float>(
     col: &[T],
@@ -273,26 +276,30 @@ fn compute_forward<T: Float>(
     col_rows: usize,
     col_cols: usize,
 ) -> Tensor<T> {
-    let mut out = vec![T::zero(); col_rows * out_ch];
-    for i in 0..col_rows {
-        for o in 0..out_ch {
-            let mut sum = T::zero();
-            for k in 0..col_cols {
-                sum += col[i * col_cols + k] * w[o * col_cols + k];
-            }
-            out[i * out_ch + o] = sum;
-        }
-    }
+    // col is [col_rows, col_cols], W is [out_ch, col_cols].
+    // We need col @ W^T = [col_rows, out_ch].
+    // Construct tensors and call gemm for SIMD-accelerated matmul.
+    let col_tensor =
+        Tensor::from_vec(col.to_vec(), vec![col_rows, col_cols]).expect("valid col shape");
+    // Transpose W: [out_ch, col_cols] → [col_cols, out_ch]
+    let w_tensor = Tensor::from_vec(w.to_vec(), vec![out_ch, col_cols]).expect("valid w shape");
+    let wt = w_tensor.transpose().expect("transpose 2d");
+    let mut out_tensor = Tensor::<T>::zeros(vec![col_rows, out_ch]);
+    scivex_core::linalg::gemm(T::one(), &col_tensor, &wt, T::zero(), &mut out_tensor)
+        .expect("gemm shapes valid");
 
     if let Some(b) = bias {
         let b_data = b.data();
         let b_s = b_data.as_slice();
+        let out_mut = out_tensor.as_mut_slice();
         for i in 0..col_rows {
             for o in 0..out_ch {
-                out[i * out_ch + o] += b_s[o];
+                out_mut[i * out_ch + o] += b_s[o];
             }
         }
     }
+
+    let out = out_tensor.as_slice();
 
     // Reorder [col_rows, out_ch] → [N, C_out, h_out, w_out]
     let mut nchw = vec![T::zero(); n * out_ch * h_out * w_out];
@@ -347,29 +354,30 @@ fn conv2d_backward<T: Float>(
     }
 
     // grad_weight = g_mat^T @ col → [out_ch, col_cols]
-    let mut gw = vec![T::zero(); out_ch * col_cols];
-    for o in 0..out_ch {
-        for k in 0..col_cols {
-            let mut sum = T::zero();
-            for i in 0..col_rows {
-                sum += g_mat[i * out_ch + o] * col[i * col_cols + k];
-            }
-            gw[o * col_cols + k] = sum;
-        }
-    }
-    let gw_t = Tensor::from_vec(gw, vec![out_ch, in_ch, kh, kw]).expect("valid grad_w");
+    // Use optimized GEMM for the matrix multiplications.
+    let g_mat_tensor =
+        Tensor::from_vec(g_mat.clone(), vec![col_rows, out_ch]).expect("valid g_mat shape");
+    let col_tensor =
+        Tensor::from_vec(col.to_vec(), vec![col_rows, col_cols]).expect("valid col shape");
+    let g_mat_t = g_mat_tensor.transpose().expect("transpose 2d");
+    let mut gw_tensor = Tensor::<T>::zeros(vec![out_ch, col_cols]);
+    scivex_core::linalg::gemm(T::one(), &g_mat_t, &col_tensor, T::zero(), &mut gw_tensor)
+        .expect("gemm shapes valid");
+    let gw_t =
+        Tensor::from_vec(gw_tensor.into_vec(), vec![out_ch, in_ch, kh, kw]).expect("valid grad_w");
 
     // grad_col = g_mat @ W → [col_rows, col_cols]
-    let mut g_col = vec![T::zero(); col_rows * col_cols];
-    for i in 0..col_rows {
-        for k in 0..col_cols {
-            let mut sum = T::zero();
-            for o in 0..out_ch {
-                sum += g_mat[i * out_ch + o] * w[o * col_cols + k];
-            }
-            g_col[i * col_cols + k] = sum;
-        }
-    }
+    let w_tensor = Tensor::from_vec(w.to_vec(), vec![out_ch, col_cols]).expect("valid w shape");
+    let mut g_col_tensor = Tensor::<T>::zeros(vec![col_rows, col_cols]);
+    scivex_core::linalg::gemm(
+        T::one(),
+        &g_mat_tensor,
+        &w_tensor,
+        T::zero(),
+        &mut g_col_tensor,
+    )
+    .expect("gemm shapes valid");
+    let g_col = g_col_tensor.into_vec();
 
     let gx_data = col2im(&g_col, cs);
     let gx = Tensor::from_vec(gx_data, vec![n, in_ch, cs.h, cs.w]).expect("valid grad_x");

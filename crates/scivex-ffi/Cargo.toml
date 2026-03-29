@@ -4,16 +4,22 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Scivex — C FFI bindings for Python, Julia, R, and other languages"
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["ffi", "c-bindings", "python", "interop", "scientific-computing"]
+categories = ["science", "api-bindings"]
+publish = false
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
-scivex-frame = { path = "../scivex-frame" }
-scivex-stats = { path = "../scivex-stats" }
-scivex-ml = { path = "../scivex-ml" }
-scivex-viz = { path = "../scivex-viz" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
+scivex-stats = { version = "0.1.0", path = "../scivex-stats" }
+scivex-ml = { version = "0.1.0", path = "../scivex-ml" }
+scivex-viz = { version = "0.1.0", path = "../scivex-viz" }
 
 [lints]
 workspace = true

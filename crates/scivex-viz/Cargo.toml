@@ -5,12 +5,16 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — Visualization, plotting, and chart rendering"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["visualization", "plotting", "charts", "svg", "scientific-computing"]
+categories = ["science", "visualization"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
 serde = { version = "1", features = ["derive"], optional = true }
 
 [features]

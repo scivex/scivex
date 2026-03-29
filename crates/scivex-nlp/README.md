@@ -1,39 +1,35 @@
 # scivex-nlp
 
-Natural language processing for Scivex. Tokenization, stemming, vectorization,
-word embeddings, and sentiment analysis.
+Natural language processing for Scivex. Tokenization, text processing,
+embeddings, and text analysis tools.
 
 ## Highlights
 
-- **Tokenizers** — Whitespace, word, character, n-gram (trait-based, extensible)
-- **Porter stemmer** — Full 5-step Porter stemming algorithm
-- **Text utilities** — Stopwords, n-grams, edit distance, normalization
-- **Vectorization** — CountVectorizer, TfidfVectorizer (returns Tensor<T>)
-- **Word embeddings** — Vector storage, similarity search, analogy solving
-- **Sentiment** — Lexicon-based sentiment analysis with modifier support
-- **Similarity** — Cosine, Jaccard, normalized edit distance
+- **Tokenizers** — BPE, WordPiece, Unigram, whitespace, regex-based
+- **Stemming** — Porter stemmer for English
+- **TF-IDF** — Term frequency-inverse document frequency vectorization
+- **Word embeddings** — Word2Vec (Skip-gram, CBOW) training and lookup
+- **Sentiment** — Lexicon-based sentiment analysis (VADER-style)
+- **Text preprocessing** — Lowercasing, stopword removal, n-grams
+- **Vocabulary** — Vocabulary building with frequency thresholds
+- **Similarity** — Cosine similarity, Jaccard index for text comparison
 
 ## Usage
 
 ```rust
 use scivex_nlp::prelude::*;
 
-// Tokenize and vectorize
-let tokenizer = WordTokenizer::new(true); // lowercase
-let tokens = tokenizer.tokenize("Hello world");
+// Tokenization
+let tokenizer = BpeTokenizer::train(&corpus, 8000);
+let tokens = tokenizer.encode("Hello, world!");
 
-let mut tfidf = TfidfVectorizer::new(tokenizer);
-let matrix = tfidf.fit_transform(&documents).unwrap();
-
-// Sentiment analysis
-let analyzer = SentimentAnalyzer::new();
-let result = analyzer.analyze("This library is amazing!");
-println!("{:?}", result.sentiment()); // Positive
+// TF-IDF
+let tfidf = TfIdf::fit(&documents);
+let vector = tfidf.transform(&document);
 
 // Word embeddings
-let embeddings = WordEmbeddings::from_pairs(word_vec_pairs);
-let similar = embeddings.most_similar("king", 5);
-let analogy = embeddings.analogy("king", "queen", "man"); // → "woman"
+let w2v = Word2Vec::train(&sentences, 100, 5);
+let embedding = w2v.get_vector("science");
 ```
 
 ## License

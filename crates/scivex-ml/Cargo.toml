@@ -5,13 +5,17 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — Classical machine learning: trees, ensembles, clustering, pipelines"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["machine-learning", "random-forest", "svm", "clustering", "scientific-computing"]
+categories = ["science", "algorithms"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
-scivex-stats = { path = "../scivex-stats" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-stats = { version = "0.1.0", path = "../scivex-stats" }
 rayon = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 

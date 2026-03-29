@@ -553,3 +553,15 @@ These features are available in Scivex but have no direct SciPy counterpart
 | `scivex_signal::features::mel_spectrogram(...)` | Mel spectrogram |
 | `scivex_signal::features::chroma_stft(...)` | Chroma features |
 | `scivex_signal::features::pitch_yin(...)` | Pitch detection (YIN) |
+| `scivex_core::einsum::einsum(...)` | Einstein summation notation |
+| `scivex_core::named_tensor::NamedTensor` | Named/labeled tensor dimensions (xarray-style) |
+| `scivex_core::spatial::KdTree` | KD-tree for nearest neighbor queries |
+| `scivex_core::numexpr::NumExpr` | NumExpr-style expression JIT |
+| `scivex_stats::bayesian::nuts(...)` | No-U-Turn Sampler (NUTS) |
+| `scivex_stats::prophet::Prophet` | Prophet-style time series forecasting |
+| `scivex_stats::ts_features::extract_features(...)` | Automated time series feature extraction |
+| `scivex_stats::anomaly::ZScoreDetector` | Time series anomaly detection |
+| `scivex_stats::lmm::LinearMixedModel` | Linear mixed-effects models (REML) |
+| `scivex_optim::linprog::linprog(...)` | Linear programming (simplex method) |
+| `scivex_optim::minimize::nelder_mead(...)` | Nelder-Mead derivative-free optimization |
+| `scivex_optim::minimize::lbfgsb(...)` | L-BFGS-B with box constraints |

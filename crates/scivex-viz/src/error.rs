@@ -10,6 +10,7 @@ use core::fmt;
 /// assert!(!e.to_string().is_empty());
 /// ```
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum VizError {
     /// The input data is empty.
     EmptyData,

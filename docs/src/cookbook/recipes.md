@@ -433,3 +433,271 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+## 11. Binary Classification with Hist-Boosting + SHAP
+
+Train a histogram gradient boosting classifier, explain predictions with SHAP values,
+and visualize feature importance.
+
+```rust
+use scivex::prelude::*;
+
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // Generate synthetic data: 500 samples, 8 features
+    let mut rng = Rng::new(42);
+    let n = 500;
+    let n_features = 8;
+    let x = Tensor::from_vec(
+        (0..n * n_features).map(|i| (i as f64 * 0.01).sin()).collect(),
+        vec![n, n_features],
+    )?;
+    let y = Tensor::from_vec(
+        (0..n).map(|i| if i % 3 == 0 { 1.0 } else { 0.0 }).collect(),
+        vec![n],
+    )?;
+
+    // Train/test split
+    let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, Some(42));
+
+    // Histogram gradient boosting (LightGBM-style)
+    let mut model = HistGradientBoostingClassifier::new()
+        .n_estimators(100)
+        .learning_rate(0.1)
+        .max_depth(5)
+        .max_bins(255);
+    model.fit(&x_train, &y_train)?;
+
+    // Evaluate
+    let preds = model.predict(&x_test)?;
+    let acc = accuracy(&y_test.as_slice().to_vec(), &preds.as_slice().to_vec());
+    println!("Accuracy: {:.2}%", acc * 100.0);
+
+    // SHAP values for explainability
+    let shap_values = tree_shap(&model, &x_test)?;
+    println!("SHAP values shape: {:?}", shap_values.shape());
+
+    // Feature importance (mean |SHAP|)
+    let importances = permutation_importance(&model, &x_test, &y_test, 10)?;
+    println!("Feature importances: {:?}", importances);
+
+    Ok(())
+}
+```
+
+## 12. Time Series Forecasting (Prophet-style)
+
+Decompose a time series into trend + seasonality and forecast future values.
+
+```rust
+use scivex::prelude::*;
+
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // Generate daily data with trend + weekly seasonality
+    let n = 365;
+    let t: Vec<f64> = (0..n).map(|i| i as f64).collect();
+    let y: Vec<f64> = t.iter().map(|&ti| {
+        // Linear trend + weekly seasonality + noise
+        0.05 * ti
+            + 3.0 * (2.0 * std::f64::consts::PI * ti / 7.0).sin()
+            + (ti * 0.1).sin() * 0.5
+    }).collect();
+
+    // Prophet-style forecasting
+    let mut prophet = Prophet::new()
+        .changepoint_prior_scale(0.05)
+        .seasonality_prior_scale(10.0)
+        .n_changepoints(25);
+    prophet.fit(&t, &y)?;
+
+    // Forecast 30 days ahead
+    let future_t: Vec<f64> = (n..n + 30).map(|i| i as f64).collect();
+    let forecast = prophet.predict(&future_t)?;
+    println!("Forecast (next 7 days): {:?}", &forecast[..7]);
+
+    // Access decomposition
+    let trend = prophet.trend(&future_t)?;
+    let seasonal = prophet.seasonality(&future_t)?;
+    println!("Trend component: {:?}", &trend[..7]);
+
+    // Time series feature extraction
+    use scivex_stats::ts_features::{extract_features, TsFeature};
+    let features = vec![
+        TsFeature::Mean,
+        TsFeature::StdDev,
+        TsFeature::LinearTrendSlope,
+        TsFeature::AutoCorrelation(7), // weekly lag
+    ];
+    let result = extract_features(&y, 30, 7, &features)?;
+    println!("Rolling features: {} windows x {} features",
+        result.features.len(), result.feature_names.len());
+
+    Ok(())
+}
+```
+
+## 13. Bayesian Inference with NUTS
+
+Use the No-U-Turn Sampler (NUTS) for Bayesian parameter estimation.
+
+```rust
+use scivex::prelude::*;
+
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // Log-posterior for a normal model: y ~ Normal(mu, sigma)
+    // Priors: mu ~ Normal(0, 10), sigma ~ HalfCauchy(5)
+    let data = vec![2.1, 3.4, 2.8, 3.1, 2.5, 3.8, 2.9, 3.3, 2.7, 3.0];
+
+    let log_posterior = |params: &[f64]| -> f64 {
+        let mu = params[0];
+        let log_sigma = params[1];
+        let sigma = log_sigma.exp();
+
+        // Log-likelihood
+        let ll: f64 = data.iter()
+            .map(|&y| -0.5 * ((y - mu) / sigma).powi(2) - log_sigma)
+            .sum();
+
+        // Log-priors
+        let prior_mu = -0.5 * (mu / 10.0).powi(2);    // Normal(0, 10)
+        let prior_sigma = -(1.0 + (sigma / 5.0).powi(2)).ln();  // HalfCauchy(5)
+
+        ll + prior_mu + prior_sigma
+    };
+
+    let grad_log_posterior = |params: &[f64]| -> Vec<f64> {
+        // Numerical gradient
+        let eps = 1e-5;
+        let mut grad = vec![0.0; params.len()];
+        let f0 = log_posterior(params);
+        for i in 0..params.len() {
+            let mut p = params.to_vec();
+            p[i] += eps;
+            grad[i] = (log_posterior(&p) - f0) / eps;
+        }
+        grad
+    };
+
+    // Run NUTS sampler
+    let initial = vec![0.0, 0.0]; // [mu, log_sigma]
+    let samples = nuts(
+        log_posterior,
+        grad_log_posterior,
+        &initial,
+        2000,   // n_samples
+        500,    // warmup
+        0.8,    // target_accept
+    )?;
+
+    // Posterior summaries
+    let mu_samples: Vec<f64> = samples.iter().map(|s| s[0]).collect();
+    let sigma_samples: Vec<f64> = samples.iter().map(|s| s[1].exp()).collect();
+
+    let mu_mean = descriptive::mean(&mu_samples)?;
+    let sigma_mean = descriptive::mean(&sigma_samples)?;
+    println!("Posterior mean mu: {:.3}", mu_mean);
+    println!("Posterior mean sigma: {:.3}", sigma_mean);
+
+    Ok(())
+}
+```
+
+## 14. CatBoost Regression with Categorical Features
+
+Train a CatBoost-style model on mixed numeric + categorical data.
+
+```rust
+use scivex::prelude::*;
+
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // Simulate housing data: [sqft, bedrooms, neighborhood_encoded, year_built]
+    let n = 300;
+    let x = Tensor::from_vec(
+        (0..n * 4).map(|i| {
+            let row = i / 4;
+            let col = i % 4;
+            match col {
+                0 => 800.0 + (row as f64) * 5.0,       // sqft
+                1 => ((row % 4) + 1) as f64,             // bedrooms
+                2 => (row % 5) as f64,                    // neighborhood (categorical)
+                3 => 1960.0 + (row as f64) * 0.2,        // year_built
+                _ => 0.0,
+            }
+        }).collect(),
+        vec![n, 4],
+    )?;
+    let y = Tensor::from_vec(
+        (0..n).map(|i| 100_000.0 + (i as f64) * 500.0 + ((i % 5) as f64) * 10_000.0).collect(),
+        vec![n],
+    )?;
+
+    // CatBoost with categorical feature indices
+    let mut model = CatBoostRegressor::new()
+        .iterations(200)
+        .learning_rate(0.05)
+        .depth(6)
+        .cat_features(vec![2]); // column 2 is categorical
+    model.fit(&x, &y)?;
+
+    // Feature importance
+    let importances = model.feature_importances();
+    println!("Feature importances: {:?}", importances);
+
+    // Predict
+    let preds = model.predict(&x)?;
+    let r2 = r2_score(y.as_slice(), preds.as_slice());
+    println!("R2 score: {:.4}", r2);
+
+    Ok(())
+}
+```
+
+## 15. Data Wrangling: Lazy Eval + Joins + GroupBy
+
+Demonstrate DataFrame lazy evaluation chains and complex transformations.
+
+```rust
+use scivex::prelude::*;
+
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // Create orders DataFrame
+    let orders = DataFrame::new(vec![
+        Series::new("order_id", vec![1i64, 2, 3, 4, 5, 6]),
+        Series::new("customer_id", vec![101i64, 102, 101, 103, 102, 101]),
+        Series::new("product", vec!["Widget", "Gadget", "Widget", "Doohickey", "Widget", "Gadget"]),
+        Series::new("amount", vec![25.50, 45.00, 30.00, 15.75, 45.00, 52.00]),
+    ])?;
+
+    // Create customers DataFrame
+    let customers = DataFrame::new(vec![
+        Series::new("customer_id", vec![101i64, 102, 103]),
+        Series::new("name", vec!["Alice", "Bob", "Carol"]),
+        Series::new("region", vec!["North", "South", "North"]),
+    ])?;
+
+    // Join orders with customers
+    let joined = orders.inner_join(&customers, "customer_id", "customer_id")?;
+    println!("Joined shape: {:?}", joined.shape());
+
+    // GroupBy: total spend per customer per region
+    let summary = joined
+        .groupby(&["name", "region"])?
+        .agg(&[("amount", "sum"), ("order_id", "count")])?;
+    println!("Summary:\n{}", summary);
+
+    // Filter: orders over $30
+    let big_orders = orders.filter("amount", |v: &f64| *v > 30.0)?;
+    println!("Orders > $30: {} rows", big_orders.shape().0);
+
+    // Sort by amount descending
+    let sorted = orders.sort_by("amount", false)?;
+    println!("Top order: ${}", sorted.column("amount")?.get::<f64>(0)?);
+
+    // Pivot table style: product x region totals
+    let pivot = joined
+        .groupby(&["product", "region"])?
+        .agg(&[("amount", "sum")])?;
+    println!("Pivot:\n{}", pivot);
+
+    Ok(())
+}
+```

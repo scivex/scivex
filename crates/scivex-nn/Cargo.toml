@@ -5,13 +5,17 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — Neural networks, autograd, layers, optimizers"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["neural-network", "deep-learning", "autograd", "backpropagation", "scientific-computing"]
+categories = ["science", "algorithms"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
-scivex-gpu = { path = "../scivex-gpu", optional = true }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-gpu = { version = "0.1.0", path = "../scivex-gpu", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]

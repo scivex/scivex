@@ -1,3 +1,17 @@
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::must_use_candidate,
+    clippy::return_self_not_must_use,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_lossless,
+    clippy::many_single_char_names,
+    clippy::similar_names,
+    clippy::doc_markdown,
+    clippy::module_name_repetitions
+)]
 //! `scivex-core` — Foundation crate for the Scivex ecosystem.
 //!
 //! Provides tensors, numeric type traits, linear algebra, FFT, and math
@@ -36,6 +50,7 @@ pub mod promote;
 pub mod random;
 /// SIMD-accelerated kernels for core numerical operations.
 #[cfg(feature = "simd")]
+#[allow(dead_code, unsafe_op_in_unsafe_fn)]
 pub(crate) mod simd;
 /// Spatial data structures: KD-tree, ball tree.
 pub mod spatial;

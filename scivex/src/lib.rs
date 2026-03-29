@@ -71,6 +71,11 @@ pub use scivex_gpu as gpu;
 pub use scivex_rl as rl;
 
 /// Glob-import convenience: `use scivex::prelude::*;`
+///
+/// Note: When multiple features are enabled, some names may conflict
+/// (e.g. `Result`, `Kernel`, `mean`). In such cases, use qualified paths
+/// like `scivex::stats::prelude::mean` or `scivex::nn::prelude::mean`.
+#[allow(ambiguous_glob_reexports)]
 pub mod prelude {
     pub use scivex_core::prelude::*;
 

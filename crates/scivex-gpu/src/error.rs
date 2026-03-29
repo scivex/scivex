@@ -2,6 +2,7 @@ use std::fmt;
 
 /// GPU-specific errors.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum GpuError {
     /// No suitable GPU adapter found.
     NoAdapter,
