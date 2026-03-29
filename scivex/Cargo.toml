@@ -1,12 +1,13 @@
 [package]
 name = "scivex"
 description = "A comprehensive Rust library replacing the Python data science ecosystem"
-version.workspace = true
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 rust-version.workspace = true
+readme = "../README.md"
 keywords = ["scientific-computing", "data-science", "machine-learning", "tensor", "linear-algebra"]
 categories = ["science", "mathematics"]
 
@@ -69,3 +70,6 @@ serde-support = [
     "scivex-sym?/serde-support",
 ]
 full = ["core", "frame", "stats", "io", "optim", "viz", "ml", "nn", "image", "image-png", "image-jpeg", "signal", "graph", "nlp", "sym", "rl"]
+
+[package.metadata.docs.rs]
+all-features = true
