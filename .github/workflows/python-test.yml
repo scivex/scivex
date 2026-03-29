@@ -33,28 +33,16 @@ jobs:
       - name: Create virtualenv and install tools
         run: |
           python -m venv crates/pyscivex/.venv
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            crates/pyscivex/.venv/Scripts/activate
-          else
-            source crates/pyscivex/.venv/bin/activate
-          fi
+          source crates/pyscivex/.venv/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/activate
           pip install maturin pytest
         shell: bash
       - name: Build pyscivex
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            crates/pyscivex/.venv/Scripts/activate
-          else
-            source crates/pyscivex/.venv/bin/activate
-          fi
+          source crates/pyscivex/.venv/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/activate
           cd crates/pyscivex && maturin develop --release
         shell: bash
       - name: Run tests
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            crates/pyscivex/.venv/Scripts/activate
-          else
-            source crates/pyscivex/.venv/bin/activate
-          fi
+          source crates/pyscivex/.venv/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/activate
           cd crates/pyscivex && pytest tests/ -v --ignore=tests/test_gpu.py
         shell: bash
