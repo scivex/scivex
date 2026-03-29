@@ -70,3 +70,6 @@ serde-support = [
     "scivex-sym?/serde-support",
 ]
 full = ["core", "frame", "stats", "io", "optim", "viz", "ml", "nn", "image", "image-png", "image-jpeg", "signal", "graph", "nlp", "sym", "rl"]
+
+[package.metadata.docs.rs]
+all-features = true
