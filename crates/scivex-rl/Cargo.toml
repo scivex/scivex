@@ -7,7 +7,7 @@ repository.workspace = true
 description = "Scivex — Reinforcement learning: environments, DQN, PPO, A2C"
 homepage.workspace = true
 rust-version.workspace = true
-keywords = ["reinforcement-learning", "dqn", "ppo", "gym", "scientific-computing"]
+keywords = ["reinforcement", "dqn", "ppo", "gym", "scientific"]
 categories = ["science", "algorithms"]
 
 [lints]

@@ -35,7 +35,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --manifest-path crates/pyscivex/Cargo.toml
+          args: --release --out dist --manifest-path crates/pyscivex/Cargo.toml -i python3.12
           manylinux: auto
 
       - name: Upload wheels
@@ -52,7 +52,7 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: macos-13
+          - runner: macos-14
             target: x86_64
           - runner: macos-14
             target: aarch64
