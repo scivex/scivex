@@ -302,9 +302,6 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-See [CLAUDE.md](CLAUDE.md) for architecture details, naming conventions, and
-development guidelines.
-
 ## License
 
 Licensed under the [MIT License](LICENSE).
