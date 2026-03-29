@@ -50,6 +50,7 @@ pub mod promote;
 pub mod random;
 /// SIMD-accelerated kernels for core numerical operations.
 #[cfg(feature = "simd")]
+#[allow(dead_code)]
 pub(crate) mod simd;
 /// Spatial data structures: KD-tree, ball tree.
 pub mod spatial;

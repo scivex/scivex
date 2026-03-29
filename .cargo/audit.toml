@@ -8,6 +8,3 @@ ignore = [
     "RUSTSEC-2025-0134",  # rustls-pemfile — unmaintained (transitive from tiberius)
     "RUSTSEC-2026-0002",  # lru — unsound IterMut (transitive from duckdb)
 ]
-
-[yanked]
-ignore = true

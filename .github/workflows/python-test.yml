@@ -38,7 +38,7 @@ jobs:
           else
             source crates/pyscivex/.venv/bin/activate
           fi
-          pip install maturin[patchelf] pytest
+          pip install maturin pytest
         shell: bash
       - name: Build pyscivex
         run: |

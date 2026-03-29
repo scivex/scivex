@@ -1,6 +1,6 @@
 //! AutoML pipeline optimization.
 //!
-//! Provides [`PipelineOptimizer`]-style functionality that searches over
+//! Provides `PipelineOptimizer`-style functionality that searches over
 //! combinations of preprocessing transformers and models, evaluating each
 //! via k-fold cross-validation.
 //!
