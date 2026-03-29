@@ -6,6 +6,7 @@ use std::fmt;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum NnError {
     /// Shape mismatch between expected and actual.
     ShapeMismatch {

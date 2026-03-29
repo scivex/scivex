@@ -9,6 +9,10 @@ use crate::error::{GpuError, Result};
 ///
 /// GPU tensors are always `f32` because most GPUs lack native f64 support.
 /// Use [`GpuTensor::from_tensor`] to upload and [`GpuTensor::to_tensor`] to download.
+///
+/// Clone is cheap — only the `Arc<Buffer>` reference count is incremented.
+/// Both the original and clone share the same underlying GPU buffer.
+#[derive(Clone)]
 pub struct GpuTensor {
     pub(crate) buffer: Arc<wgpu::Buffer>,
     pub(crate) shape: Vec<usize>,

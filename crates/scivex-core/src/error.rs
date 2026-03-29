@@ -14,6 +14,7 @@ use core::fmt;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CoreError {
     /// Operand shapes do not match the required layout.
     DimensionMismatch {

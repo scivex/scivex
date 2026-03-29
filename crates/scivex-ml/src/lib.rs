@@ -1,3 +1,17 @@
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::must_use_candidate,
+    clippy::return_self_not_must_use,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_lossless,
+    clippy::many_single_char_names,
+    clippy::similar_names,
+    clippy::doc_markdown,
+    clippy::module_name_repetitions
+)]
 //! # scivex-ml
 //!
 //! Classical machine learning algorithms for the Scivex ecosystem.
@@ -27,6 +41,10 @@
 //! | [`persist`] | Persistable trait, binary save/load for all models |
 //! | [`model_selection`] | `train_test_split`, `KFold`, `cross_val_score` |
 
+/// Approximate nearest neighbor search via random projection trees.
+pub mod ann;
+/// AutoML pipeline optimization: search over (scaler, model) combinations.
+pub mod automl;
 /// K-Means clustering.
 pub mod cluster;
 /// Dimensionality reduction: PCA, TruncatedSVD, t-SNE.
@@ -136,6 +154,12 @@ pub mod prelude {
         LimeExplanation, PartialDependence, PermutationImportanceResult, kernel_shap, lime,
         partial_dependence, permutation_importance, tree_shap,
     };
+
+    // Approximate nearest neighbors
+    pub use crate::ann::AnnoyIndex;
+
+    // AutoML
+    pub use crate::automl::{AutoMlResult, SearchSpace, pipeline_optimize};
 
     // Online / streaming
     pub use crate::online::{

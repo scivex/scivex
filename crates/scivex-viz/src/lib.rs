@@ -1,3 +1,17 @@
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::must_use_candidate,
+    clippy::return_self_not_must_use,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_lossless,
+    clippy::many_single_char_names,
+    clippy::similar_names,
+    clippy::doc_markdown,
+    clippy::module_name_repetitions
+)]
 //! `scivex-viz` — Visualization, plotting, and chart rendering.
 //!
 //! A from-scratch visualization library built on [`scivex_core`]. Produces SVG
@@ -35,6 +49,8 @@ pub mod area;
 pub mod axes;
 /// Rendering backends (SVG, terminal braille, HTML, bitmap).
 pub mod backend;
+/// Declarative grammar-of-graphics API (Vega-Lite-inspired).
+pub mod chart;
 /// Color types, colormaps, and palettes.
 pub mod color;
 /// Contour plot builder (marching squares).
@@ -81,6 +97,7 @@ pub use annotation::{Annotation, LegendPosition};
 pub use area::AreaPlot;
 pub use axes::{Axes, AxesOverrides};
 pub use backend::{BitmapBackend, HtmlBackend, Renderer, SvgBackend, TerminalBackend};
+pub use chart::{Chart, Encoding, Mark, ScaleType};
 pub use color::{Color, ColorMap};
 pub use contour::ContourPlot;
 pub use element::{Element, TextAnchor};
@@ -111,6 +128,7 @@ pub mod prelude {
     pub use crate::area::AreaPlot;
     pub use crate::axes::Axes;
     pub use crate::backend::{BitmapBackend, HtmlBackend, Renderer, SvgBackend, TerminalBackend};
+    pub use crate::chart::{Chart, Encoding, Mark, ScaleType};
     pub use crate::color::{Color, ColorMap};
     pub use crate::contour::ContourPlot;
     pub use crate::element::{Element, TextAnchor};

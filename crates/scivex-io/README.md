@@ -1,44 +1,38 @@
 # scivex-io
 
-Data I/O for the Scivex ecosystem. Read and write DataFrames from CSV and JSON
-with automatic type inference, configurable parsing, and null handling.
+Data I/O for Scivex. Read and write DataFrames in CSV, JSON, Parquet, Arrow,
+Excel, SQL databases, and more.
 
 ## Highlights
 
-- **CSV** — Custom parser with delimiter, quoting, header, null, comment support
-- **JSON** — Records and Split orientations
-- **Auto type inference** — Detects Int32, Float64, String, Categorical from data
-- **Builder pattern** — Fluent configuration for readers and writers
-- **Pluggable** — Works with any `impl Read` / `impl Write`
+- **CSV** — High-performance reader/writer with type inference
+- **JSON** — Row-oriented and column-oriented JSON support
+- **Parquet** — Apache Parquet columnar format (Snappy, Zstd, LZ4)
+- **Arrow** — Apache Arrow IPC format for zero-copy interop
+- **Excel** — Read `.xlsx`/`.xls` via calamine, write `.xlsx` via rust_xlsxwriter
+- **SQL** — SQLite, PostgreSQL, MySQL, MSSQL, DuckDB backends
+- **NPY/NPZ** — NumPy binary array format
+- **HDF5** — Hierarchical Data Format 5 datasets
+- **ORC** — Apache ORC columnar format
+- **Avro** — Apache Avro serialization format
+- **Memory-mapped I/O** — Large file support via mmap
+- **Cloud storage** — S3/GCS/Azure support (planned)
 
 ## Usage
 
 ```rust
 use scivex_io::prelude::*;
 
-// Read CSV from file
-let df = read_csv_path("data.csv").unwrap();
+// CSV
+let df = read_csv("data.csv", &CsvOptions::default()).unwrap();
+write_csv(&df, "output.csv", &CsvOptions::default()).unwrap();
 
-// Read with options
-let df = CsvReaderBuilder::new()
-    .delimiter(b';')
-    .has_header(true)
-    .null_values(vec!["NA".into(), "".into()])
-    .skip_rows(1)
-    .read(reader)
-    .unwrap();
+// Parquet
+let df = read_parquet("data.parquet").unwrap();
 
-// Write JSON
-write_json(&df, &mut writer, JsonOrientation::Records).unwrap();
+// SQLite
+let df = read_sql("SELECT * FROM users", &SqlBackend::Sqlite("db.sqlite")).unwrap();
 ```
-
-## Feature Flags
-
-| Flag | Enables |
-|------|---------|
-| `csv` *(default)* | CSV reading and writing |
-| `json` | JSON reading and writing |
-| `full` | All formats |
 
 ## License
 

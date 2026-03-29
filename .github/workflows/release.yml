@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Verify tag matches Cargo version
+        run: |
+          CARGO_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "scivex-core") | .version')
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match Cargo version ($CARGO_VERSION)"
+            exit 1
+          fi
+
+      # Publish in dependency order.
+      # Each crate waits for its dependencies to be indexed on crates.io.
+      - name: Publish scivex-core
+        run: cargo publish -p scivex-core --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish scivex-frame
+        run: cargo publish -p scivex-frame --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-io
+        run: cargo publish -p scivex-io --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish scivex-stats
+        run: cargo publish -p scivex-stats --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish scivex-optim
+        run: cargo publish -p scivex-optim --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-viz
+        run: cargo publish -p scivex-viz --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish scivex-graph
+        run: cargo publish -p scivex-graph --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-image
+        run: cargo publish -p scivex-image --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-signal
+        run: cargo publish -p scivex-signal --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-nlp
+        run: cargo publish -p scivex-nlp --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-sym
+        run: cargo publish -p scivex-sym --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish scivex-ml
+        run: cargo publish -p scivex-ml --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-nn
+        run: cargo publish -p scivex-nn --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-gpu
+        run: cargo publish -p scivex-gpu --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish scivex-rl
+        run: cargo publish -p scivex-rl --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish scivex (umbrella)
+        run: cargo publish -p scivex --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  github-release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@git-cliff
+
+      - name: Generate changelog
+        run: git-cliff --latest --strip header -o RELEASE_NOTES.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: RELEASE_NOTES.md
+          generate_release_notes: true

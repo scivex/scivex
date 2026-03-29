@@ -344,3 +344,123 @@ proptest! {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Shape invariant: numel == product of shape dims
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn numel_equals_shape_product(rows in 1usize..50, cols in 1usize..50) {
+        let t = Tensor::<f64>::zeros(vec![rows, cols]);
+        let product: usize = t.shape().iter().product();
+        prop_assert_eq!(t.numel(), product);
+    }
+
+    #[test]
+    fn flatten_preserves_numel(rows in 1usize..30, cols in 1usize..30) {
+        let t = Tensor::<f64>::ones(vec![rows, cols]);
+        let expected_numel = t.numel();
+        let flat = t.flatten();
+        prop_assert_eq!(flat.numel(), expected_numel);
+        prop_assert_eq!(flat.shape(), &[rows * cols]);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Arithmetic distributes: a * (b + c) == a*b + a*c
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn mul_distributes_over_add(
+        data_a in arb_vec(30),
+        data_b in arb_vec(30),
+        data_c in arb_vec(30),
+    ) {
+        let a = Tensor::from_vec(data_a, vec![30]).unwrap();
+        let b = Tensor::from_vec(data_b, vec![30]).unwrap();
+        let c = Tensor::from_vec(data_c, vec![30]).unwrap();
+        let lhs = &a * &(&b + &c);
+        let rhs_ab = &a * &b;
+        let rhs_ac = &a * &c;
+        let rhs = &rhs_ab + &rhs_ac;
+        for (x, y) in lhs.as_slice().iter().zip(rhs.as_slice().iter()) {
+            prop_assert!((x - y).abs() < 1e-6, "distributive law violated");
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Sub identity: a - a == zeros
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn sub_self_is_zero(data in arb_vec(50)) {
+        let a = Tensor::from_vec(data, vec![50]).unwrap();
+        let result = &a - &a;
+        for &v in result.as_slice() {
+            prop_assert!(v.abs() < 1e-10, "a - a should be zero");
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Matmul with identity: I * A == A
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn matmul_identity(n in 2usize..10) {
+        let data: Vec<f64> = (0..n * n).map(|i| ((i * 3 + 1) % 11) as f64).collect();
+        let a = Tensor::from_vec(data, vec![n, n]).unwrap();
+        let eye = Tensor::<f64>::eye(n);
+        let result = eye.matmul(&a).unwrap();
+        for (x, y) in result.as_slice().iter().zip(a.as_slice().iter()) {
+            prop_assert!((x - y).abs() < 1e-6, "I * A should equal A");
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Sum properties
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn sum_of_ones_equals_numel(n in 1usize..500) {
+        let t = Tensor::<f64>::ones(vec![n]);
+        prop_assert!((t.sum() - n as f64).abs() < 1e-10);
+    }
+
+    #[test]
+    fn sum_additive(data_a in arb_vec(50), data_b in arb_vec(50)) {
+        let a = Tensor::from_vec(data_a, vec![50]).unwrap();
+        let b = Tensor::from_vec(data_b, vec![50]).unwrap();
+        let sum_ab = (&a + &b).sum();
+        let sum_a = a.sum();
+        let sum_b = b.sum();
+        prop_assert!((sum_ab - sum_a - sum_b).abs() < 1e-4,
+            "sum(a+b) should equal sum(a) + sum(b)");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Eye properties
+// ---------------------------------------------------------------------------
+
+proptest! {
+    #[test]
+    fn eye_is_identity(n in 2usize..15) {
+        let eye = Tensor::<f64>::eye(n);
+        prop_assert_eq!(eye.shape(), &[n, n]);
+        for i in 0..n {
+            for j in 0..n {
+                let val = *eye.get(&[i, j]).unwrap();
+                let expected = if i == j { 1.0 } else { 0.0 };
+                prop_assert!((val - expected).abs() < f64::EPSILON);
+            }
+        }
+    }
+}

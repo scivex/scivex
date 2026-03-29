@@ -14,6 +14,7 @@ use core::fmt;
 /// assert!(err2.to_string().contains("JSON"));
 /// ```
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum IoError {
     /// Wraps a [`std::io::Error`].
     Io(std::io::Error),

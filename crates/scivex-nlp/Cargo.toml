@@ -5,12 +5,16 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — Tokenization, embeddings, and text processing"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["nlp", "tokenization", "text-processing", "embeddings", "scientific-computing"]
+categories = ["science", "text-processing"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
 serde = { version = "1", features = ["derive"], optional = true }
 
 [features]

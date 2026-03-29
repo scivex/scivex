@@ -6,6 +6,7 @@ use core::fmt;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum StatsError {
     /// Input slice is empty when at least one element is required.
     EmptyInput,

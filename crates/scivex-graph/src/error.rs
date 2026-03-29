@@ -14,6 +14,7 @@ use std::fmt;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum GraphError {
     /// A referenced node does not exist or has been removed.
     NodeNotFound {

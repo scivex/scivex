@@ -5,18 +5,23 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — WebAssembly bindings for browser and Node.js"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["wasm", "webassembly", "scientific-computing", "browser", "tensor"]
+categories = ["wasm", "science"]
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
-scivex-frame = { path = "../scivex-frame" }
-scivex-stats = { path = "../scivex-stats" }
-scivex-ml = { path = "../scivex-ml" }
-scivex-sym = { path = "../scivex-sym" }
-scivex-signal = { path = "../scivex-signal" }
-scivex-graph = { path = "../scivex-graph" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
+scivex-stats = { version = "0.1.0", path = "../scivex-stats" }
+scivex-ml = { version = "0.1.0", path = "../scivex-ml" }
+scivex-sym = { version = "0.1.0", path = "../scivex-sym" }
+scivex-signal = { version = "0.1.0", path = "../scivex-signal" }
+scivex-graph = { version = "0.1.0", path = "../scivex-graph" }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }

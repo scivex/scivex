@@ -1,17 +1,17 @@
 # scivex-viz
 
-Visualization and plotting for Scivex. Create publication-quality SVG charts
-or terminal-based plots with a builder API.
+Visualization and plotting for Scivex. Create publication-quality charts
+rendered to SVG or terminal output.
 
 ## Highlights
 
-- **Plot types** — Line, scatter, bar, histogram, heatmap, box plot
-- **Figure/Axes model** — Multi-plot layouts with rows, columns, grids
-- **SVG backend** — Clean SVG output for web and publication
-- **Terminal backend** — Braille/Unicode art for CLI workflows
-- **Styling** — Colors, markers, strokes, themes (default + dark)
-- **Scales** — Linear and logarithmic axes
-- **Colormaps** — Viridis, Plasma, Inferno, Cividis, Greys, and more
+- **Figure/Axes API** — Matplotlib-style composable figure building
+- **Plot types** — Line, scatter, bar, histogram, heatmap, boxplot, pie, area
+- **Styling** — Colors, line styles, markers, legends, titles, axis labels
+- **SVG backend** — Scalable vector graphics output
+- **Terminal backend** — ASCII/Unicode charts for terminal display
+- **Subplots** — Multiple axes in a single figure
+- **Color maps** — Viridis, plasma, inferno, magma, and custom gradients
 
 ## Usage
 
@@ -20,18 +20,16 @@ use scivex_viz::prelude::*;
 
 let fig = Figure::new()
     .size(800.0, 600.0)
-    .theme(Theme::dark())
     .add_axes(
         Axes::new()
-            .title("Scatter Plot")
-            .x_label("X")
-            .y_label("Y")
-            .add_plot(ScatterPlot::new(&x, &y).color(Color::RED).size(4.0))
-            .add_plot(LinePlot::new(&x, &trend).color(Color::BLUE).label("Trend"))
+            .title("Sales by Month")
+            .x_label("Month")
+            .y_label("Revenue ($)")
+            .add_plot(BarPlot::new(&months, &revenue).color(Color::BLUE))
     );
 
 let svg = fig.render(&SvgBackend).unwrap();
-std::fs::write("plot.svg", svg).unwrap();
+std::fs::write("chart.svg", svg).unwrap();
 ```
 
 ## License

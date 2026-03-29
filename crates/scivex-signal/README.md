@@ -1,36 +1,34 @@
 # scivex-signal
 
-Signal processing for Scivex. Digital filtering, spectral analysis, wavelets,
-peak detection, and resampling.
+Signal processing for Scivex. Digital filters, spectral analysis, wavelets,
+and audio processing tools.
 
 ## Highlights
 
-- **Window functions** — Hann, Hamming, Blackman, Bartlett
-- **Digital filters** — FIR design (low/high/band-pass), IIR via `lfilter`/`filtfilt`
-- **Convolution** — 1D convolution and correlation (Full/Same/Valid modes)
-- **Spectral analysis** — STFT, inverse STFT, spectrogram, Welch, periodogram
-- **Peak detection** — Local maxima with prominence and width estimation
-- **Resampling** — FFT-based resample, decimate, interpolate
-- **Wavelets** — Discrete wavelet transform (Haar) with inverse
+- **FIR filters** — Window-based design (Hamming, Hanning, Blackman, Kaiser)
+- **IIR filters** — Butterworth, Chebyshev Type I/II filter design
+- **Spectral analysis** — STFT, spectrogram, power spectral density, periodogram
+- **Wavelets** — CWT, DWT, Haar, Daubechies, Morlet wavelets
+- **Peak detection** — Find peaks with prominence, width, and distance constraints
+- **Resampling** — Upsample, downsample, polyphase resampling
+- **Windows** — Hamming, Hanning, Blackman, Kaiser, Gaussian
+- **Convolution** — Linear and circular convolution, correlation
+- **Audio** — WAV read/write, MFCC feature extraction
 
 ## Usage
 
 ```rust
 use scivex_signal::prelude::*;
 
-// Apply a window and compute spectrogram
-let window = hann::<f64>(1024);
-let spec = spectrogram(&signal, 1024, 512).unwrap();
+// Design a low-pass filter
+let coeffs = fir_lowpass(0.2, 64, Window::Hamming);
+let filtered = convolve(&signal, &coeffs);
 
-// Design and apply a low-pass FIR filter
-let fir = FirFilter::low_pass(64, 0.1);
-let filtered = lfilter(fir.coeffs(), &[1.0], &signal).unwrap();
+// Spectrogram
+let spec = stft(&signal, 1024, 256, Window::Hanning);
 
-// Zero-phase filtering
-let smooth = filtfilt(&b_coeffs, &a_coeffs, &signal).unwrap();
-
-// Peak detection
-let peaks = find_peaks(&signal, Some(0.5), Some(0.1));
+// Wavelet transform
+let (approx, detail) = dwt(&signal, Wavelet::Haar);
 ```
 
 ## License

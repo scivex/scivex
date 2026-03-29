@@ -2,6 +2,7 @@ use core::fmt;
 
 /// All errors returned by `scivex-frame`.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum FrameError {
     /// A requested column was not found.
     ColumnNotFound { name: String },

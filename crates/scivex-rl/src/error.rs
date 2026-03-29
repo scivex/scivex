@@ -4,6 +4,7 @@ use std::fmt;
 
 /// Errors produced by the RL crate.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum RlError {
     /// A configuration parameter is invalid.
     InvalidParameter(String),

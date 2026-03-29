@@ -5,12 +5,16 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Scivex — DataFrames, Series, GroupBy"
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["dataframe", "data-analysis", "series", "tabular", "scientific-computing"]
+categories = ["science", "data-structures"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
 rayon = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }

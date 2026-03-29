@@ -9,6 +9,18 @@ debug/
 # Cargo mutants
 **/mutants.out*/
 
+# Python artifacts
+*.so
+*.pyd
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
 # OS files
 .DS_Store
 Thumbs.db

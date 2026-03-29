@@ -1,0 +1,37 @@
+name: Python Tests (pyscivex)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "crates/pyscivex/**"
+      - "crates/scivex-*/src/**"
+  pull_request:
+    paths:
+      - "crates/pyscivex/**"
+      - "crates/scivex-*/src/**"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+        python: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pip install maturin[patchelf] pytest
+      - name: Build pyscivex
+        run: cd crates/pyscivex && maturin develop --release
+      - name: Run tests
+        run: cd crates/pyscivex && pytest tests/ -v

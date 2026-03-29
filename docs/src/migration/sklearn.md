@@ -731,3 +731,125 @@ Or, through the umbrella crate:
 ```rust
 use scivex::prelude::*;
 ```
+
+---
+
+## Advanced Algorithms (Phases 26-30)
+
+### CatBoost-style Gradient Boosting
+
+```python
+# Python (CatBoost)
+from catboost import CatBoostClassifier
+model = CatBoostClassifier(iterations=100, learning_rate=0.1, depth=6)
+model.fit(X_train, y_train, cat_features=[0, 2])
+preds = model.predict(X_test)
+```
+
+```rust
+// Scivex
+use scivex_ml::ensemble::CatBoostClassifier;
+
+let mut model = CatBoostClassifier::new()
+    .iterations(100)
+    .learning_rate(0.1)
+    .depth(6)
+    .cat_features(vec![0, 2]);
+model.fit(&x_train, &y_train)?;
+let preds = model.predict(&x_test)?;
+```
+
+### Stacking Ensemble
+
+```python
+# scikit-learn
+from sklearn.ensemble import StackingClassifier
+from sklearn.linear_model import LogisticRegression
+stack = StackingClassifier(
+    estimators=[('rf', RandomForestClassifier()), ('svm', SVC())],
+    final_estimator=LogisticRegression()
+)
+stack.fit(X_train, y_train)
+```
+
+```rust
+// Scivex
+use scivex_ml::ensemble::StackingClassifier;
+
+let mut stack = StackingClassifier::new(vec![
+    Box::new(RandomForest::new(100)),
+    Box::new(Svm::new()),
+], Box::new(LogisticRegression::new()));
+stack.fit(&x_train, &y_train)?;
+let preds = stack.predict(&x_test)?;
+```
+
+### Feature Selection (RFE & SelectKBest)
+
+```python
+# scikit-learn
+from sklearn.feature_selection import SelectKBest, chi2, RFE
+selector = SelectKBest(chi2, k=10)
+X_new = selector.fit_transform(X, y)
+
+rfe = RFE(estimator=rf, n_features_to_select=5)
+rfe.fit(X, y)
+```
+
+```rust
+// Scivex
+use scivex_ml::feature_selection::{SelectKBest, ScoringFunction, RFE};
+
+let mut selector = SelectKBest::new(ScoringFunction::Chi2, 10);
+selector.fit(&x, &y)?;
+let x_new = selector.transform(&x)?;
+
+let mut rfe = RFE::new(Box::new(RandomForest::new(50)), 5);
+rfe.fit(&x, &y)?;
+let x_selected = rfe.transform(&x)?;
+let ranking = rfe.ranking();
+```
+
+### Target & Ordinal Encoding
+
+```python
+# category_encoders
+from category_encoders import TargetEncoder, OrdinalEncoder
+te = TargetEncoder(cols=['category']).fit_transform(X, y)
+oe = OrdinalEncoder(cols=['grade']).fit_transform(X)
+```
+
+```rust
+// Scivex
+use scivex_ml::preprocessing::{TargetEncoder, OrdinalEncoder};
+
+let mut te = TargetEncoder::new();
+te.fit(&x, &y)?;
+let x_encoded = te.transform(&x)?;
+
+let mut oe = OrdinalEncoder::new();
+oe.fit(&x)?;
+let x_ordinal = oe.transform(&x)?;
+```
+
+### Explainable Boosting Machine (EBM)
+
+```python
+# InterpretML
+from interpret.glassbox import ExplainableBoostingClassifier
+ebm = ExplainableBoostingClassifier()
+ebm.fit(X_train, y_train)
+```
+
+```rust
+// Scivex
+use scivex_ml::ensemble::EBMClassifier;
+
+let mut ebm = EBMClassifier::new()
+    .n_bins(256)
+    .learning_rate(0.01)
+    .max_rounds(5000);
+ebm.fit(&x_train, &y_train)?;
+let preds = ebm.predict(&x_test)?;
+let importances = ebm.feature_importances();
+```

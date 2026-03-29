@@ -22,6 +22,9 @@
 - [Machine Learning](./guide/ml.md)
 - [Deep Learning](./guide/deep-learning.md)
 - [Visualization](./guide/visualization.md)
+- [GPU Computing & Deployment](./guide/gpu-deployment.md)
+- [Signal Processing & Image Analysis](./guide/signal-image.md)
+- [Internals & Contributing](./guide/internals.md)
 
 # Cookbook
 

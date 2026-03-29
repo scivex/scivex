@@ -6,36 +6,33 @@ with a scikit-learn-inspired trait-based API.
 ## Highlights
 
 - **Trait-based design** — `Transformer`, `Predictor`, `Classifier` traits
-- **Linear models** — LinearRegression, Ridge, LogisticRegression
+- **Linear models** — LinearRegression, Ridge, Lasso, ElasticNet, LogisticRegression
 - **Trees** — DecisionTreeClassifier, DecisionTreeRegressor (CART)
-- **Ensembles** — RandomForestClassifier, RandomForestRegressor
-- **Neighbors** — KNNClassifier, KNNRegressor
-- **Clustering** — KMeans (Lloyd's algorithm)
-- **Naive Bayes** — GaussianNB
-- **Preprocessing** — StandardScaler, MinMaxScaler, LabelEncoder
-- **Metrics** — accuracy, precision, recall, F1, confusion matrix, MSE, RMSE, MAE, R²
-- **Model selection** — train_test_split, KFold, cross_val_score
+- **Ensembles** — RandomForest, GradientBoosting, HistGradientBoosting, AdaBoost, Stacking, CatBoost, EBM
+- **SVM** — SVC, SVR with RBF, linear, and polynomial kernels
+- **Neighbors** — KNNClassifier, KNNRegressor, HNSW approximate search
+- **Clustering** — KMeans, DBSCAN, Agglomerative, Spectral, GMM
+- **Naive Bayes** — GaussianNB, MultinomialNB
+- **Preprocessing** — StandardScaler, MinMaxScaler, LabelEncoder, OneHotEncoder, OrdinalEncoder, PolynomialFeatures
+- **Pipelines** — Pipeline builder with fit/predict/transform chaining
+- **Model selection** — train_test_split, KFold, cross_val_score, GridSearchCV, RandomSearchCV
+- **Metrics** — accuracy, precision, recall, F1, confusion matrix, MSE, RMSE, MAE, R², AUC-ROC
+- **Explainability** — TreeSHAP for feature importance
 
 ## Usage
 
 ```rust
 use scivex_ml::prelude::*;
 
-// Preprocessing
 let mut scaler = StandardScaler::new();
 let x_scaled = scaler.fit_transform(&x).unwrap();
 
-// Train a model
 let mut model = RandomForestClassifier::new(100, 5);
 model.fit(&x_train, &y_train).unwrap();
 let preds = model.predict(&x_test).unwrap();
 
-// Evaluate
 println!("Accuracy: {}", accuracy(&y_test, &preds));
 println!("F1 Score: {}", f1_score(&y_test, &preds));
-
-// Cross-validation
-let scores = cross_val_score(&model, &x, &y, 5);
 ```
 
 ## License

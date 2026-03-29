@@ -5,26 +5,30 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["scientific-computing", "data-science", "machine-learning", "tensor", "linear-algebra"]
+categories = ["science", "mathematics"]
 
 [lints]
 workspace = true
 
 [dependencies]
-scivex-core = { path = "../crates/scivex-core" }
-scivex-frame = { path = "../crates/scivex-frame", optional = true }
-scivex-stats = { path = "../crates/scivex-stats", optional = true }
-scivex-io = { path = "../crates/scivex-io", optional = true }
-scivex-optim = { path = "../crates/scivex-optim", optional = true }
-scivex-viz = { path = "../crates/scivex-viz", optional = true }
-scivex-ml = { path = "../crates/scivex-ml", optional = true }
-scivex-nn = { path = "../crates/scivex-nn", optional = true }
-scivex-image = { path = "../crates/scivex-image", optional = true }
-scivex-signal = { path = "../crates/scivex-signal", optional = true }
-scivex-graph = { path = "../crates/scivex-graph", optional = true }
-scivex-nlp = { path = "../crates/scivex-nlp", optional = true }
-scivex-sym = { path = "../crates/scivex-sym", optional = true }
-scivex-gpu = { path = "../crates/scivex-gpu", optional = true }
-scivex-rl = { path = "../crates/scivex-rl", optional = true }
+scivex-core = { version = "0.1.0", path = "../crates/scivex-core" }
+scivex-frame = { version = "0.1.0", path = "../crates/scivex-frame", optional = true }
+scivex-stats = { version = "0.1.0", path = "../crates/scivex-stats", optional = true }
+scivex-io = { version = "0.1.0", path = "../crates/scivex-io", optional = true }
+scivex-optim = { version = "0.1.0", path = "../crates/scivex-optim", optional = true }
+scivex-viz = { version = "0.1.0", path = "../crates/scivex-viz", optional = true }
+scivex-ml = { version = "0.1.0", path = "../crates/scivex-ml", optional = true }
+scivex-nn = { version = "0.1.0", path = "../crates/scivex-nn", optional = true }
+scivex-image = { version = "0.1.0", path = "../crates/scivex-image", optional = true }
+scivex-signal = { version = "0.1.0", path = "../crates/scivex-signal", optional = true }
+scivex-graph = { version = "0.1.0", path = "../crates/scivex-graph", optional = true }
+scivex-nlp = { version = "0.1.0", path = "../crates/scivex-nlp", optional = true }
+scivex-sym = { version = "0.1.0", path = "../crates/scivex-sym", optional = true }
+scivex-gpu = { version = "0.1.0", path = "../crates/scivex-gpu", optional = true }
+scivex-rl = { version = "0.1.0", path = "../crates/scivex-rl", optional = true }
 
 [features]
 default = ["core"]

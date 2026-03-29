@@ -1,0 +1,58 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "pyscivex"
+version = "0.1.0"
+description = "The complete data science toolkit — powered by Rust"
+readme = "README_PY.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "Scivex Contributors" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["data-science", "machine-learning", "tensor", "dataframe", "statistics", "rust"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.4", "mypy>=1.10"]
+test = ["pytest>=7.0", "hypothesis>=6.0"]
+docs = ["sphinx>=7.0", "sphinx-rtd-theme", "myst-parser"]
+compat = ["numpy>=1.24", "pandas>=2.0"]  # optional migration helpers only
+
+[project.urls]
+Homepage = "https://github.com/scivex/scivex"
+Documentation = "https://scivex.readthedocs.io"
+Repository = "https://github.com/scivex/scivex"
+
+[tool.maturin]
+module-name = "pyscivex._native"
+python-source = "python"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true

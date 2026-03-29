@@ -16,6 +16,7 @@ use scivex_core::CoreError;
     derive(serde::Serialize, serde::Deserialize)
 )]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum SymError {
     /// The expression is malformed or unsupported.
     InvalidExpr { reason: &'static str },

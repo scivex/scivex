@@ -1,30 +1,36 @@
 # scivex-optim
 
-Optimization, root finding, and numerical integration for Scivex.
+Optimization and numerical methods for Scivex. Root finding, minimization,
+integration, ODE solvers, linear programming, and curve fitting.
 
 ## Highlights
 
-- **Root finding** — Bisection, Brent's method, Newton's method
-- **1D minimization** — Brent's method, golden section search
-- **Multi-D optimization** — Gradient descent, BFGS quasi-Newton
-- **Numerical integration** — Trapezoid, Simpson, adaptive Gauss-Kronrod quadrature
-- **Numerical gradient** — Central finite differences
+- **Root finding** — Bisection, Newton-Raphson, Brent's method, secant method
+- **Minimization** — Gradient descent, BFGS, L-BFGS-B, Nelder-Mead
+- **Linear programming** — Revised simplex method for LP problems
+- **Curve fitting** — Levenberg-Marquardt non-linear least squares
+- **Numerical integration** — Trapezoidal, Simpson's, Gauss-Legendre quadrature
+- **ODE solvers** — Euler, RK4, RK45, BDF2 for stiff systems
+- **PDE solvers** — Wave equation (1D), Laplace equation (2D)
+- **Interpolation** — 1D and 2D interpolation, B-splines
+- **Numerical differentiation** — Forward, central, and Richardson extrapolation
 
 ## Usage
 
 ```rust
 use scivex_optim::prelude::*;
 
-// Find root of f(x) = x^2 - 2
-let root = brent_root(|x| x * x - 2.0, 0.0, 2.0, &RootOptions::default()).unwrap();
+// Minimize Rosenbrock function
+let f = |x: &Tensor<f64>| { /* Rosenbrock */ };
+let grad = |x: &Tensor<f64>| { /* gradient */ };
+let x0 = Tensor::from_vec(vec![-1.0, -1.0], &[2]);
+let result = bfgs(f, grad, &x0, &MinimizeOptions::default()).unwrap();
 
-// Minimize with BFGS
-let f = |x: &[f64]| (x[0] - 1.0).powi(2) + (x[1] - 2.5).powi(2);
-let grad = |x: &[f64]| vec![2.0 * (x[0] - 1.0), 2.0 * (x[1] - 2.5)];
-let result = bfgs(f, grad, &[0.0, 0.0], &MinimizeOptions::default()).unwrap();
+// Root finding
+let root = brent(|x| x * x - 2.0, 0.0, 2.0, 1e-10).unwrap();
 
 // Numerical integration
-let area = quad(|x| x.sin(), 0.0, std::f64::consts::PI, &QuadOptions::default()).unwrap();
+let integral = simpson(|x| x.sin(), 0.0, std::f64::consts::PI, 100).unwrap();
 ```
 
 ## License

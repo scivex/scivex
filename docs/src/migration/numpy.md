@@ -674,3 +674,102 @@ let mut rng = Rng::new(42);
 let a = random::uniform::<f64>(&mut rng, vec![100]);
 // Exact same sequence every time with seed 42
 ```
+
+---
+
+## Advanced Operations (Phases 26-30)
+
+### Einstein Summation (`einsum`)
+
+```python
+# NumPy
+np.einsum('ij,jk->ik', a, b)       # matmul
+np.einsum('ij->j', a)               # column sum
+np.einsum('ii->', a)                 # trace
+np.einsum('ij,ij->', a, b)          # Frobenius inner product
+```
+
+```rust
+// Scivex
+use scivex_core::einsum::einsum;
+
+let c = einsum("ij,jk->ik", &[&a, &b])?;   // matmul
+let col_sum = einsum("ij->j", &[&a])?;      // column sum
+let trace = einsum("ii->", &[&a])?;          // trace
+let frob = einsum("ij,ij->", &[&a, &b])?;   // Frobenius inner product
+```
+
+### Named / Labeled Tensors (xarray-style)
+
+```python
+# xarray
+import xarray as xr
+da = xr.DataArray(data, dims=["time", "lat", "lon"])
+da.sum(dim="time")
+da.rename({"lat": "latitude"})
+```
+
+```rust
+// Scivex
+use scivex_core::named_tensor::NamedTensor;
+
+let nt = NamedTensor::new(tensor, vec!["time", "lat", "lon"])?;
+let summed = nt.sum_dim("time")?;
+let renamed = nt.rename("lat", "latitude")?;
+let selected = nt.select("time", 0)?;
+let aligned = nt.align_to(&["lon", "lat", "time"])?;
+```
+
+### Tensor Decompositions
+
+```python
+# NumPy / SciPy
+U, S, Vt = np.linalg.svd(a)               # Full SVD
+U, S, Vt = sklearn.decomposition.TruncatedSVD(n_components=5).fit_transform(a)
+```
+
+```rust
+// Scivex
+use scivex_core::linalg;
+
+let (u, s, vt) = linalg::svd(&a)?;                // Full SVD
+let (u, s, vt) = linalg::truncated_svd(&a, 5)?;   // Truncated SVD (top 5)
+let (u, s, vt) = linalg::randomized_svd(&a, 5, &mut rng)?; // Randomized
+```
+
+### Spatial / KD-Tree
+
+```python
+# SciPy
+from scipy.spatial import KDTree
+tree = KDTree(points)
+dists, idxs = tree.query(query_point, k=5)
+```
+
+```rust
+// Scivex
+use scivex_core::spatial::KdTree;
+
+let tree = KdTree::build(&points)?;
+let neighbors = tree.query(&query_point, 5)?;  // k=5 nearest neighbors
+// neighbors: Vec<(distance, index)>
+```
+
+### NumExpr-style Expression JIT
+
+```python
+# NumExpr
+import numexpr as ne
+result = ne.evaluate("a * b + c * 2.0")
+```
+
+```rust
+// Scivex
+use scivex_core::numexpr::NumExpr;
+
+let mut ctx = NumExpr::new();
+ctx.bind("a", &a);
+ctx.bind("b", &b);
+ctx.bind("c", &c);
+let result = ctx.eval("a * b + c * 2.0")?;
+```

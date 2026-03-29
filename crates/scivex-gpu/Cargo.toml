@@ -4,9 +4,14 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Scivex — GPU-accelerated tensor operations via wgpu"
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["gpu", "wgpu", "tensor", "compute-shader", "scientific-computing"]
+categories = ["science", "graphics"]
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
 wgpu = { version = "24", features = ["wgsl"] }
 bytemuck = { version = "1", features = ["derive"] }
 pollster = "0.4"

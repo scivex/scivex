@@ -4,18 +4,38 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Scivex — Python bindings via PyO3"
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+keywords = ["python", "pyo3", "bindings", "numpy", "scientific-computing"]
+categories = ["science", "api-bindings"]
+publish = false
 
 [lib]
 name = "pyscivex"
 crate-type = ["cdylib"]
 
 [dependencies]
-scivex-core = { path = "../scivex-core" }
-scivex-frame = { path = "../scivex-frame" }
-scivex-stats = { path = "../scivex-stats" }
-scivex-ml = { path = "../scivex-ml" }
-scivex-viz = { path = "../scivex-viz" }
+scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
+scivex-stats = { version = "0.1.0", path = "../scivex-stats" }
+scivex-ml = { version = "0.1.0", path = "../scivex-ml" }
+scivex-viz = { version = "0.1.0", path = "../scivex-viz" }
+scivex-io = { version = "0.1.0", path = "../scivex-io", features = ["csv", "json", "parquet", "excel", "sqlite", "arrow", "npy", "hdf5", "orc", "avro"] }
+scivex-optim = { version = "0.1.0", path = "../scivex-optim" }
+scivex-nn = { version = "0.1.0", path = "../scivex-nn" }
+scivex-signal = { version = "0.1.0", path = "../scivex-signal" }
+scivex-image = { version = "0.1.0", path = "../scivex-image" }
+scivex-nlp = { version = "0.1.0", path = "../scivex-nlp" }
+scivex-graph = { version = "0.1.0", path = "../scivex-graph" }
+scivex-sym = { version = "0.1.0", path = "../scivex-sym" }
+scivex-rl = { version = "0.1.0", path = "../scivex-rl" }
+scivex-gpu = { version = "0.1.0", path = "../scivex-gpu" }
 pyo3 = { version = "0.25", features = ["extension-module"] }
+
+[features]
+default = ["full"]
+full = []
 
 [lints]
 workspace = true

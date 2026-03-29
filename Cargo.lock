@@ -3118,8 +3118,18 @@ dependencies = [
  "pyo3",
  "scivex-core",
  "scivex-frame",
+ "scivex-gpu",
+ "scivex-graph",
+ "scivex-image",
+ "scivex-io",
  "scivex-ml",
+ "scivex-nlp",
+ "scivex-nn",
+ "scivex-optim",
+ "scivex-rl",
+ "scivex-signal",
  "scivex-stats",
+ "scivex-sym",
  "scivex-viz",
 ]
 
