@@ -1,3 +1,19 @@
+#![allow(
+    clippy::unnecessary_wraps,
+    clippy::needless_pass_by_value,
+    clippy::unused_self,
+    clippy::redundant_closure_for_method_calls,
+    clippy::uninlined_format_args,
+    clippy::format_push_string,
+    clippy::elidable_lifetime_names,
+    clippy::unreadable_literal,
+    clippy::too_many_lines,
+    clippy::cast_lossless,
+    clippy::match_same_arms,
+    clippy::map_unwrap_or,
+    clippy::doc_link_with_quotes,
+    clippy::bool_to_int_with_if
+)]
 //! `pyscivex` — Python bindings for the Scivex ecosystem via PyO3.
 //!
 //! Exposes tensors, data frames, statistics, ML models, visualization,

@@ -2,7 +2,7 @@
 //! sparse matrices, and Einstein summation.
 //!
 //! `PyTensor` wraps tensors of four element types (`f64`, `f32`, `i64`, `i32`)
-//! via the [`TensorData`] enum-dispatch.  The default dtype is `"f64"` for full
+//! via the `TensorData` enum-dispatch.  The default dtype is `"f64"` for full
 //! backward compatibility.
 
 use pyo3::prelude::*;

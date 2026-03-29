@@ -1,10 +1,10 @@
 //! Conversion between Scivex tensors and Apache Arrow arrays.
 //!
 //! Provides efficient conversion in both directions:
-//! - [`tensor_f64_to_arrow`] / [`arrow_f64_to_tensor`] — `Tensor<f64>` ↔ `Float64Array`
-//! - [`tensor_f32_to_arrow`] / [`arrow_f32_to_tensor`] — `Tensor<f32>` ↔ `Float32Array`
-//! - [`tensor_to_record_batch`] / [`record_batch_to_tensor`] — 2-D matrix ↔ `RecordBatch`
-//! - [`any_arrow_to_tensor_f64`] — any numeric Arrow array → `Tensor<f64>`
+//! - `tensor_f64_to_arrow` / `arrow_f64_to_tensor` — `Tensor<f64>` ↔ `Float64Array`
+//! - `tensor_f32_to_arrow` / `arrow_f32_to_tensor` — `Tensor<f32>` ↔ `Float32Array`
+//! - `tensor_to_record_batch` / `record_batch_to_tensor` — 2-D matrix ↔ `RecordBatch`
+//! - `any_arrow_to_tensor_f64` — any numeric Arrow array → `Tensor<f64>`
 
 use std::sync::Arc;
 

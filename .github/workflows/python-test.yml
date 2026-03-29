@@ -30,8 +30,31 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - uses: dtolnay/rust-toolchain@stable
-      - run: pip install maturin[patchelf] pytest
+      - name: Create virtualenv and install tools
+        run: |
+          python -m venv crates/pyscivex/.venv
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            crates/pyscivex/.venv/Scripts/activate
+          else
+            source crates/pyscivex/.venv/bin/activate
+          fi
+          pip install maturin[patchelf] pytest
+        shell: bash
       - name: Build pyscivex
-        run: cd crates/pyscivex && maturin develop --release
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            crates/pyscivex/.venv/Scripts/activate
+          else
+            source crates/pyscivex/.venv/bin/activate
+          fi
+          cd crates/pyscivex && maturin develop --release
+        shell: bash
       - name: Run tests
-        run: cd crates/pyscivex && pytest tests/ -v
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            crates/pyscivex/.venv/Scripts/activate
+          else
+            source crates/pyscivex/.venv/bin/activate
+          fi
+          cd crates/pyscivex && pytest tests/ -v
+        shell: bash
