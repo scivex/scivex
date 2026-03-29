@@ -56,5 +56,5 @@ jobs:
           else
             source crates/pyscivex/.venv/bin/activate
           fi
-          cd crates/pyscivex && pytest tests/ -v
+          cd crates/pyscivex && pytest tests/ -v --ignore=tests/test_gpu.py
         shell: bash
