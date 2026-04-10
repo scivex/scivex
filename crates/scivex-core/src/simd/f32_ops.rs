@@ -86,6 +86,41 @@ pub(crate) fn mean_f32_scalar(a: &[f32]) -> f32 {
     sum_f32_scalar(a) / a.len() as f32
 }
 
+/// Scalar broadcast add for f32: `out[i] = a[i] + s`.
+pub(crate) fn add_scalar_f32_scalar(a: &[f32], s: f32, out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = a[i] + s;
+    }
+}
+
+/// Scalar broadcast sub for f32: `out[i] = a[i] - s`.
+pub(crate) fn sub_scalar_f32_scalar(a: &[f32], s: f32, out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = a[i] - s;
+    }
+}
+
+/// Scalar broadcast mul for f32: `out[i] = a[i] * s`.
+pub(crate) fn mul_scalar_f32_scalar(a: &[f32], s: f32, out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = a[i] * s;
+    }
+}
+
+/// Scalar broadcast div for f32: `out[i] = a[i] / s`.
+pub(crate) fn div_scalar_f32_scalar(a: &[f32], s: f32, out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = a[i] / s;
+    }
+}
+
+/// Scalar negate for f32: `out[i] = -a[i]`.
+pub(crate) fn neg_f32_scalar(a: &[f32], out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = -a[i];
+    }
+}
+
 /// Scalar ReLU for f32: `out[i] = max(0, a[i])`.
 pub(crate) fn relu_f32_scalar(a: &[f32], out: &mut [f32]) {
     for i in 0..a.len() {
@@ -511,6 +546,106 @@ mod avx {
             out[tail + j] = if v > 0.0 { v } else { 0.0 };
         }
     }
+
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn add_scalar_f32_avx(a: &[f32], s: f32, out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let vs = _mm256_set1_ps(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 8;
+            _mm256_storeu_ps(
+                o_ptr.add(off),
+                _mm256_add_ps(_mm256_loadu_ps(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 8;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) + s;
+        }
+    }
+
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn sub_scalar_f32_avx(a: &[f32], s: f32, out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let vs = _mm256_set1_ps(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 8;
+            _mm256_storeu_ps(
+                o_ptr.add(off),
+                _mm256_sub_ps(_mm256_loadu_ps(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 8;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) - s;
+        }
+    }
+
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn mul_scalar_f32_avx(a: &[f32], s: f32, out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let vs = _mm256_set1_ps(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 8;
+            _mm256_storeu_ps(
+                o_ptr.add(off),
+                _mm256_mul_ps(_mm256_loadu_ps(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 8;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) * s;
+        }
+    }
+
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn div_scalar_f32_avx(a: &[f32], s: f32, out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let vs = _mm256_set1_ps(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 8;
+            _mm256_storeu_ps(
+                o_ptr.add(off),
+                _mm256_div_ps(_mm256_loadu_ps(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 8;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) / s;
+        }
+    }
+
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn neg_f32_avx(a: &[f32], out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let vneg = _mm256_set1_ps(-0.0);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 8;
+            _mm256_storeu_ps(
+                o_ptr.add(off),
+                _mm256_xor_ps(_mm256_loadu_ps(a_ptr.add(off)), vneg),
+            );
+        }
+        let tail = chunks * 8;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = -*a.get_unchecked(j);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -665,6 +800,60 @@ pub(crate) fn relu_f32(a: &[f32], out: &mut [f32]) {
         avx::relu_f32_avx,
         super::neon_f32_ops::relu_f32_neon,
         relu_f32_scalar,
+        a,
+        out
+    );
+}
+
+pub(crate) fn add_scalar_f32(a: &[f32], s: f32, out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::add_scalar_f32_avx,
+        super::neon_f32_ops::add_scalar_f32_neon,
+        add_scalar_f32_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+pub(crate) fn sub_scalar_f32(a: &[f32], s: f32, out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::sub_scalar_f32_avx,
+        super::neon_f32_ops::sub_scalar_f32_neon,
+        sub_scalar_f32_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+pub(crate) fn mul_scalar_f32(a: &[f32], s: f32, out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::mul_scalar_f32_avx,
+        super::neon_f32_ops::mul_scalar_f32_neon,
+        mul_scalar_f32_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+pub(crate) fn div_scalar_f32(a: &[f32], s: f32, out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::div_scalar_f32_avx,
+        super::neon_f32_ops::div_scalar_f32_neon,
+        div_scalar_f32_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+pub(crate) fn neg_f32(a: &[f32], out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::neg_f32_avx,
+        super::neon_f32_ops::neg_f32_neon,
+        neg_f32_scalar,
         a,
         out
     );

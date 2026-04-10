@@ -135,35 +135,40 @@ impl<'a> GroupBy<'a> {
             .collect()
     }
 
-    /// Fallback grouping via string display values.
+    /// Fallback grouping using hash-based keys (avoids string formatting for numeric types).
     fn group_by_strings(
         df: &DataFrame,
         cols: &[&str],
         nrows: usize,
     ) -> Vec<(Vec<String>, Vec<usize>)> {
-        let mut map: HashMap<Vec<String>, Vec<usize>> = HashMap::new();
-        let mut order: Vec<Vec<String>> = Vec::new();
+        // Resolve column references once.
+        let series: Vec<&dyn AnySeries> = cols
+            .iter()
+            .map(|&c| df.column(c).expect("groupby column exists"))
+            .collect();
+
+        // Use composite hash key (Vec<u64>) instead of Vec<String> for the map.
+        let mut map: HashMap<Vec<u64>, Vec<usize>> = HashMap::new();
+        let mut order: Vec<Vec<u64>> = Vec::new();
 
         for row in 0..nrows {
-            let key: Vec<String> = cols
-                .iter()
-                .map(|&c| {
-                    df.column(c)
-                        .expect("groupby column exists")
-                        .display_value(row)
-                })
-                .collect();
-            if !map.contains_key(&key) {
-                order.push(key.clone());
+            let hash_key: Vec<u64> = series.iter().map(|s| s.hash_value(row)).collect();
+            if !map.contains_key(&hash_key) {
+                order.push(hash_key.clone());
             }
-            map.entry(key).or_default().push(row);
+            map.entry(hash_key).or_default().push(row);
         }
 
+        // Convert hash keys back to display strings for the result.
         order
             .into_iter()
-            .map(|k| {
-                let indices = map.remove(&k).expect("key guaranteed by iteration order");
-                (k, indices)
+            .map(|hk| {
+                let indices = map.remove(&hk).expect("key guaranteed by iteration order");
+                // Use the first row in the group to get display values.
+                let first_row = indices[0];
+                let str_key: Vec<String> =
+                    series.iter().map(|s| s.display_value(first_row)).collect();
+                (str_key, indices)
             })
             .collect()
     }
