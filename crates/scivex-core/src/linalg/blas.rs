@@ -383,119 +383,143 @@ pub fn gemm<T: Scalar>(
         }
     }
 
-    // Blocked GEMM with cache-aware tiling.
-    // Within each tile, the IKJ loop order is used so that the innermost
-    // j-loop is a contiguous AXPY (auto-vectorized / SIMD-accelerated).
+    // Blocked GEMM with cache-aware tiling and panel packing.
+    // Packing copies A and B panels into contiguous buffers so the
+    // micro-kernel accesses sequential memory, eliminating TLB misses.
+
+    // Packing buffers (allocated once, reused across tiles).
+    #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+    let is_f64 = {
+        use std::any::TypeId;
+        TypeId::of::<T>() == TypeId::of::<f64>()
+    };
+    #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+    let mut pack_b: Vec<f64> = if is_f64 {
+        vec![0.0; KC * NC]
+    } else {
+        Vec::new()
+    };
+    #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+    let mut pack_a: Vec<f64> = if is_f64 {
+        vec![0.0; MC * KC]
+    } else {
+        Vec::new()
+    };
 
     // Loop over K-dimension blocks
     for pk in (0..k).step_by(KC) {
         let kb = KC.min(k - pk);
 
-        // Loop over row blocks of A / C
-        for pi in (0..m).step_by(MC) {
-            let mb = MC.min(m - pi);
+        // Loop over column blocks of B / C (pack B once per pk×pj)
+        for pj in (0..n).step_by(NC) {
+            let nb = NC.min(n - pj);
 
-            // Loop over column blocks of B / C
-            for pj in (0..n).step_by(NC) {
-                let nb = NC.min(n - pj);
+            // Pack B panel: B[pk..pk+kb, pj..pj+nb] → contiguous pack_b[p*nb + j]
+            #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+            if is_f64 {
+                unsafe {
+                    let b_f64 = b_data.as_ptr().cast::<f64>();
+                    for p in 0..kb {
+                        let src_row = b_f64.add((pk + p) * n + pj);
+                        let dst_row = pack_b.as_mut_ptr().add(p * nb);
+                        core::ptr::copy_nonoverlapping(src_row, dst_row, nb);
+                    }
+                }
+            }
 
-                // On aarch64 with f64, use the NEON 4x4 micro-kernel for the
-                // bulk of the tile, then clean up remainder rows/cols with axpy.
+            // Loop over row blocks of A / C
+            for pi in (0..m).step_by(MC) {
+                let mb = MC.min(m - pi);
+
                 #[cfg(all(target_arch = "aarch64", feature = "simd"))]
-                {
-                    use std::any::TypeId;
-                    if TypeId::of::<T>() == TypeId::of::<f64>() {
-                        unsafe {
-                            let a_f64 = a_data.as_ptr().cast::<f64>();
-                            let b_f64 = b_data.as_ptr().cast::<f64>();
-                            let c_f64 = c_data.as_mut_ptr().cast::<f64>();
-                            let alpha_f64 = crate::simd::t_to_f64(alpha);
+                if is_f64 {
+                    unsafe {
+                        let a_f64 = a_data.as_ptr().cast::<f64>();
+                        let c_f64 = c_data.as_mut_ptr().cast::<f64>();
+                        let alpha_f64 = crate::simd::t_to_f64(alpha);
 
-                            let j4 = nb / 4 * 4;
+                        // Pack A panel: A[pi..pi+mb, pk..pk+kb] → contiguous pack_a[i*kb + p]
+                        for i in 0..mb {
+                            let src_row = a_f64.add((pi + i) * k + pk);
+                            let dst_row = pack_a.as_mut_ptr().add(i * kb);
+                            core::ptr::copy_nonoverlapping(src_row, dst_row, kb);
+                        }
 
-                            // Process 8-row blocks with 8x4 micro-kernel
-                            let i8 = mb / 8 * 8;
-                            for i in (0..i8).step_by(8) {
-                                for j in (0..j4).step_by(4) {
-                                    let a_off = (pi + i) * k + pk;
-                                    let b_off = pk * n + (pj + j);
-                                    let c_off = (pi + i) * n + (pj + j);
-                                    crate::simd::neon_f64_ops::gemm_8x4_f64_neon(
-                                        a_f64.add(a_off),
-                                        b_f64.add(b_off),
-                                        c_f64.add(c_off),
-                                        alpha_f64,
-                                        kb,
-                                        k,
-                                        n,
-                                        n,
-                                    );
-                                }
-                                // Remainder columns (j4..nb)
-                                if j4 < nb {
-                                    for ii in 0..8 {
-                                        let row_a = (pi + i + ii) * k + pk;
-                                        let row_c = (pi + i + ii) * n + pj + j4;
-                                        for p in 0..kb {
-                                            let scale_f64 = alpha_f64 * *a_f64.add(row_a + p);
-                                            for jj in 0..(nb - j4) {
-                                                let b_idx = (pk + p) * n + pj + j4 + jj;
-                                                *c_f64.add(row_c + jj) +=
-                                                    scale_f64 * *b_f64.add(b_idx);
-                                            }
+                        let pa = pack_a.as_ptr();
+                        let pb = pack_b.as_ptr();
+                        let j4 = nb / 4 * 4;
+
+                        // Process 8-row blocks with 8x4 micro-kernel
+                        let i8 = mb / 8 * 8;
+                        for i in (0..i8).step_by(8) {
+                            for j in (0..j4).step_by(4) {
+                                crate::simd::neon_f64_ops::gemm_8x4_f64_neon(
+                                    pa.add(i * kb),
+                                    pb.add(j),
+                                    c_f64.add((pi + i) * n + (pj + j)),
+                                    alpha_f64,
+                                    kb,
+                                    kb, // packed A row stride = kb
+                                    nb, // packed B row stride = nb
+                                    n,  // C row stride = n
+                                );
+                            }
+                            // Remainder columns
+                            if j4 < nb {
+                                for ii in 0..8 {
+                                    let row_c = (pi + i + ii) * n + pj + j4;
+                                    for p in 0..kb {
+                                        let scale_f64 = alpha_f64 * *pa.add((i + ii) * kb + p);
+                                        for jj in 0..(nb - j4) {
+                                            *c_f64.add(row_c + jj) +=
+                                                scale_f64 * *pb.add(p * nb + j4 + jj);
                                         }
                                     }
-                                }
-                            }
-                            // Remaining 4-row block with 4x4 micro-kernel
-                            let i4_start = i8;
-                            let i4_end = i4_start + (mb - i8) / 4 * 4;
-                            for i in (i4_start..i4_end).step_by(4) {
-                                for j in (0..j4).step_by(4) {
-                                    let a_off = (pi + i) * k + pk;
-                                    let b_off = pk * n + (pj + j);
-                                    let c_off = (pi + i) * n + (pj + j);
-                                    crate::simd::neon_f64_ops::gemm_4x4_f64_neon(
-                                        a_f64.add(a_off),
-                                        b_f64.add(b_off),
-                                        c_f64.add(c_off),
-                                        alpha_f64,
-                                        kb,
-                                        k,
-                                        n,
-                                        n,
-                                    );
-                                }
-                                if j4 < nb {
-                                    for ii in 0..4 {
-                                        let row_a = (pi + i + ii) * k + pk;
-                                        let row_c = (pi + i + ii) * n + pj + j4;
-                                        for p in 0..kb {
-                                            let scale_f64 = alpha_f64 * *a_f64.add(row_a + p);
-                                            for jj in 0..(nb - j4) {
-                                                let b_idx = (pk + p) * n + pj + j4 + jj;
-                                                *c_f64.add(row_c + jj) +=
-                                                    scale_f64 * *b_f64.add(b_idx);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            // Scalar remainder rows
-                            for i in i4_end..mb {
-                                let row_a = (pi + i) * k + pk;
-                                let row_c = (pi + i) * n + pj;
-                                for p in 0..kb {
-                                    let scale = alpha * a_data[row_a + p];
-                                    let b_off2 = (pk + p) * n + pj;
-                                    let b_row = &b_data[b_off2..b_off2 + nb];
-                                    let c_slice = &mut c_data[row_c..row_c + nb];
-                                    axpy_slice(scale, b_row, c_slice);
                                 }
                             }
                         }
-                        continue;
+                        // Remaining 4-row block with 4x4 micro-kernel
+                        let i4_start = i8;
+                        let i4_end = i4_start + (mb - i8) / 4 * 4;
+                        for i in (i4_start..i4_end).step_by(4) {
+                            for j in (0..j4).step_by(4) {
+                                crate::simd::neon_f64_ops::gemm_4x4_f64_neon(
+                                    pa.add(i * kb),
+                                    pb.add(j),
+                                    c_f64.add((pi + i) * n + (pj + j)),
+                                    alpha_f64,
+                                    kb,
+                                    kb,
+                                    nb,
+                                    n,
+                                );
+                            }
+                            if j4 < nb {
+                                for ii in 0..4 {
+                                    let row_c = (pi + i + ii) * n + pj + j4;
+                                    for p in 0..kb {
+                                        let scale_f64 = alpha_f64 * *pa.add((i + ii) * kb + p);
+                                        for jj in 0..(nb - j4) {
+                                            *c_f64.add(row_c + jj) +=
+                                                scale_f64 * *pb.add(p * nb + j4 + jj);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Scalar remainder rows
+                        for i in i4_end..mb {
+                            let row_c = (pi + i) * n + pj;
+                            for p in 0..kb {
+                                let scale = alpha * a_data[(pi + i) * k + pk + p];
+                                let b_off = (pk + p) * n + pj;
+                                let b_row = &b_data[b_off..b_off + nb];
+                                let c_slice = &mut c_data[row_c..row_c + nb];
+                                axpy_slice(scale, b_row, c_slice);
+                            }
+                        }
                     }
+                    continue;
                 }
 
                 // Generic fallback (non-f64 or non-aarch64)

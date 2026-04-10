@@ -75,26 +75,42 @@ pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<
 
     if is_fir && order > 1 {
         // FIR-only fast path using Direct Form II Transposed without feedback.
+        // Uses unsafe indexing to eliminate bounds checks in the hot loop.
         let mut z = vec![T::zero(); order];
         let b0 = bn[0];
+        let ord_m1 = order - 1;
+        // SAFETY: all indices are within bounds (i < n, j < order-1, order-2 < order).
+        unsafe {
+            for i in 0..n {
+                let xi = *xs.get_unchecked(i);
+                *y.get_unchecked_mut(i) = b0 * xi + *z.get_unchecked(0);
+                for j in 1..ord_m1 {
+                    *z.get_unchecked_mut(j - 1) = *bn.get_unchecked(j) * xi + *z.get_unchecked(j);
+                }
+                *z.get_unchecked_mut(ord_m1 - 1) = *bn.get_unchecked(ord_m1) * xi;
+            }
+        }
+    } else if is_fir {
+        // Single-tap FIR: y[i] = b[0] * x[i].
+        let b0 = bn[0];
         for i in 0..n {
-            let xi = xs[i];
-            y[i] = b0 * xi + z[0];
-            // No an[j] * y[i] term since a = [1.0].
-            for j in 1..order - 1 {
-                z[j - 1] = bn[j] * xi + z[j];
-            }
-            if order > 1 {
-                z[order - 2] = bn[order - 1] * xi;
-            }
+            y[i] = b0 * xs[i];
         }
     } else {
         // General IIR path: Direct Form II Transposed.
+        // Uses unsafe indexing to eliminate bounds checks in the hot loop.
         let mut z = vec![T::zero(); order];
-        for i in 0..n {
-            y[i] = bn[0] * xs[i] + z[0];
-            for j in 1..order {
-                z[j - 1] = bn[j] * xs[i] - an[j] * y[i] + z[j];
+        let b0 = bn[0];
+        // SAFETY: all indices are within bounds (i < n, j < order).
+        unsafe {
+            for i in 0..n {
+                let xi = *xs.get_unchecked(i);
+                let yi = b0 * xi + *z.get_unchecked(0);
+                *y.get_unchecked_mut(i) = yi;
+                for j in 1..order {
+                    *z.get_unchecked_mut(j - 1) =
+                        *bn.get_unchecked(j) * xi - *an.get_unchecked(j) * yi + *z.get_unchecked(j);
+                }
             }
         }
     }

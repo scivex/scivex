@@ -1,4 +1,5 @@
 //! NEON-accelerated f64 kernels (2-wide `float64x2_t`) for aarch64.
+#![allow(clippy::wildcard_imports)]
 
 use core::arch::aarch64::*;
 
@@ -6,7 +7,7 @@ use core::arch::aarch64::*;
 ///
 /// # Safety
 /// Caller must ensure this runs on aarch64.
-#[inline(always)]
+#[inline]
 unsafe fn hsum_f64x2(v: float64x2_t) -> f64 {
     vaddvq_f64(v)
 }
@@ -515,6 +516,9 @@ pub(crate) unsafe fn max_f64_neon(a: &[f64]) -> f64 {
 /// Caller must ensure this runs on aarch64 and slice is non-empty.
 #[inline]
 pub(crate) unsafe fn mean_f64_neon(a: &[f64]) -> f64 {
+    if a.is_empty() {
+        return 0.0;
+    }
     sum_f64_neon(a) / a.len() as f64
 }
 
@@ -557,6 +561,160 @@ pub(crate) unsafe fn relu_f64_neon(a: &[f64], out: &mut [f64]) {
     }
 }
 
+/// NEON scalar broadcast add for f64: `out[i] = a[i] + s`.
+#[inline]
+pub(crate) unsafe fn add_scalar_f64_neon(a: &[f64], s: f64, out: &mut [f64]) {
+    let n = a.len();
+    let vs = vdupq_n_f64(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(o_ptr.add(base), vaddq_f64(vld1q_f64(a_ptr.add(base)), vs));
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vaddq_f64(vld1q_f64(a_ptr.add(base + 2)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vaddq_f64(vld1q_f64(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vaddq_f64(vld1q_f64(a_ptr.add(base + 6)), vs),
+        );
+    }
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) + s;
+    }
+}
+
+/// NEON scalar broadcast sub for f64: `out[i] = a[i] - s`.
+#[inline]
+pub(crate) unsafe fn sub_scalar_f64_neon(a: &[f64], s: f64, out: &mut [f64]) {
+    let n = a.len();
+    let vs = vdupq_n_f64(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(o_ptr.add(base), vsubq_f64(vld1q_f64(a_ptr.add(base)), vs));
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vsubq_f64(vld1q_f64(a_ptr.add(base + 2)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vsubq_f64(vld1q_f64(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vsubq_f64(vld1q_f64(a_ptr.add(base + 6)), vs),
+        );
+    }
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) - s;
+    }
+}
+
+/// NEON scalar broadcast mul for f64: `out[i] = a[i] * s`.
+#[inline]
+pub(crate) unsafe fn mul_scalar_f64_neon(a: &[f64], s: f64, out: &mut [f64]) {
+    let n = a.len();
+    let vs = vdupq_n_f64(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(o_ptr.add(base), vmulq_f64(vld1q_f64(a_ptr.add(base)), vs));
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vmulq_f64(vld1q_f64(a_ptr.add(base + 2)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vmulq_f64(vld1q_f64(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vmulq_f64(vld1q_f64(a_ptr.add(base + 6)), vs),
+        );
+    }
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) * s;
+    }
+}
+
+/// NEON scalar broadcast div for f64: `out[i] = a[i] / s`.
+#[inline]
+pub(crate) unsafe fn div_scalar_f64_neon(a: &[f64], s: f64, out: &mut [f64]) {
+    let n = a.len();
+    let vs = vdupq_n_f64(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(o_ptr.add(base), vdivq_f64(vld1q_f64(a_ptr.add(base)), vs));
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vdivq_f64(vld1q_f64(a_ptr.add(base + 2)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vdivq_f64(vld1q_f64(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vdivq_f64(vld1q_f64(a_ptr.add(base + 6)), vs),
+        );
+    }
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) / s;
+    }
+}
+
+/// NEON negate for f64: `out[i] = -a[i]`.
+#[inline]
+pub(crate) unsafe fn neg_f64_neon(a: &[f64], out: &mut [f64]) {
+    let n = a.len();
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(o_ptr.add(base), vnegq_f64(vld1q_f64(a_ptr.add(base))));
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vnegq_f64(vld1q_f64(a_ptr.add(base + 2))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vnegq_f64(vld1q_f64(a_ptr.add(base + 4))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vnegq_f64(vld1q_f64(a_ptr.add(base + 6))),
+        );
+    }
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = -*a.get_unchecked(j);
+    }
+}
+
 /// NEON 4x4 micro-kernel for GEMM: C[4x4] += alpha * A_panel[4xK] * B_panel[Kx4].
 ///
 /// Computes a 4x4 block of C by accumulating K rank-1 updates using NEON FMA.
@@ -578,6 +736,7 @@ pub(crate) unsafe fn relu_f64_neon(a: &[f64], out: &mut [f64]) {
 /// - All pointers must be valid for the described access patterns.
 /// - The 4x4 sub-block of C must be within bounds.
 #[inline]
+#[allow(clippy::too_many_arguments)]
 pub(crate) unsafe fn gemm_4x4_f64_neon(
     a_ptr: *const f64,
     b_ptr: *const f64,
@@ -603,11 +762,11 @@ pub(crate) unsafe fn gemm_4x4_f64_neon(
         let b0 = vld1q_f64(b_row);
         let b1 = vld1q_f64(b_row.add(2));
 
-        let a0 = vdupq_n_f64(*a_ptr.add(0 * a_rs + p));
+        let a0 = vdupq_n_f64(*a_ptr.add(p));
         c00 = vfmaq_f64(c00, a0, b0);
         c01 = vfmaq_f64(c01, a0, b1);
 
-        let a1 = vdupq_n_f64(*a_ptr.add(1 * a_rs + p));
+        let a1 = vdupq_n_f64(*a_ptr.add(a_rs + p));
         c10 = vfmaq_f64(c10, a1, b0);
         c11 = vfmaq_f64(c11, a1, b1);
 
@@ -653,6 +812,7 @@ pub(crate) unsafe fn gemm_4x4_f64_neon(
 /// # Safety
 /// Caller must ensure valid pointers and aarch64 target.
 #[inline]
+#[allow(clippy::too_many_arguments)]
 pub(crate) unsafe fn gemm_8x4_f64_neon(
     a_ptr: *const f64,
     b_ptr: *const f64,
@@ -685,10 +845,10 @@ pub(crate) unsafe fn gemm_8x4_f64_neon(
         let b0 = vld1q_f64(b_row);
         let b1 = vld1q_f64(b_row.add(2));
 
-        let a0 = vdupq_n_f64(*a_ptr.add(0 * a_rs + p));
+        let a0 = vdupq_n_f64(*a_ptr.add(p));
         c00 = vfmaq_f64(c00, a0, b0);
         c01 = vfmaq_f64(c01, a0, b1);
-        let a1 = vdupq_n_f64(*a_ptr.add(1 * a_rs + p));
+        let a1 = vdupq_n_f64(*a_ptr.add(a_rs + p));
         c10 = vfmaq_f64(c10, a1, b0);
         c11 = vfmaq_f64(c11, a1, b1);
         let a2 = vdupq_n_f64(*a_ptr.add(2 * a_rs + p));

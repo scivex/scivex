@@ -45,19 +45,72 @@ pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> 
 
     let mut out = vec![0.0f32; h * w * c];
 
-    for row in 0..h {
+    // Split into interior (no bounds checks) and border regions.
+    // Interior: rows [pad_y..h-pad_y), cols [pad_x..w-pad_x).
+    let row_start = pad_y;
+    let row_end = h.saturating_sub(pad_y);
+    let col_start = pad_x;
+    let col_end = w.saturating_sub(pad_x);
+
+    // Interior: all kernel taps are in-bounds — use unsafe indexing.
+    for row in row_start..row_end {
+        for col in col_start..col_end {
+            for ch in 0..c {
+                let mut sum = 0.0f32;
+                // SAFETY: row-pad_y..row+pad_y+1 is within [0,h),
+                //         col-pad_x..col+pad_x+1 is within [0,w).
+                unsafe {
+                    for ky in 0..kh {
+                        let sy = row + ky - pad_y;
+                        let row_base = sy * w;
+                        let k_row = ky * kw;
+                        for kx in 0..kw {
+                            let sx = col + kx - pad_x;
+                            sum += *src.get_unchecked((row_base + sx) * c + ch)
+                                * *k.get_unchecked(k_row + kx);
+                        }
+                    }
+                    *out.get_unchecked_mut((row * w + col) * c + ch) = sum;
+                }
+            }
+        }
+    }
+
+    // Border rows (top and bottom) — need bounds checks.
+    let border_rows = (0..row_start).chain(row_end..h);
+    for row in border_rows {
         for col in 0..w {
             for ch in 0..c {
                 let mut sum = 0.0f32;
                 for ky in 0..kh {
+                    let sy = row as isize + ky as isize - pad_y as isize;
+                    if sy < 0 || sy >= h as isize {
+                        continue;
+                    }
                     for kx in 0..kw {
-                        let sy = row as isize + ky as isize - pad_y as isize;
                         let sx = col as isize + kx as isize - pad_x as isize;
+                        if sx >= 0 && sx < w as isize {
+                            sum += src[(sy as usize * w + sx as usize) * c + ch] * k[ky * kw + kx];
+                        }
+                    }
+                }
+                out[(row * w + col) * c + ch] = sum;
+            }
+        }
+    }
 
-                        if sy >= 0 && sy < h as isize && sx >= 0 && sx < w as isize {
-                            let src_idx = (sy as usize * w + sx as usize) * c + ch;
-                            let k_idx = ky * kw + kx;
-                            sum += src[src_idx] * k[k_idx];
+    // Interior rows, border columns (left and right edges).
+    for row in row_start..row_end {
+        let border_cols = (0..col_start).chain(col_end..w);
+        for col in border_cols {
+            for ch in 0..c {
+                let mut sum = 0.0f32;
+                for ky in 0..kh {
+                    let sy = row + ky - pad_y;
+                    for kx in 0..kw {
+                        let sx = col as isize + kx as isize - pad_x as isize;
+                        if sx >= 0 && sx < w as isize {
+                            sum += src[(sy * w + sx as usize) * c + ch] * k[ky * kw + kx];
                         }
                     }
                 }

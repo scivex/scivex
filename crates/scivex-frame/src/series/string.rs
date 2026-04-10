@@ -438,6 +438,17 @@ impl AnySeries for StringSeries {
         }
     }
 
+    fn hash_value(&self, index: usize) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        if self.is_null_at(index) {
+            u64::MAX.hash(&mut hasher);
+        } else if index < self.data.len() {
+            self.data[index].hash(&mut hasher);
+        }
+        hasher.finish()
+    }
+
     fn filter_mask(&self, mask: &[bool]) -> Box<dyn AnySeries> {
         let mut data = Vec::new();
         let mut new_nulls: Option<Vec<bool>> = self.null_mask.as_ref().map(|_| Vec::new());

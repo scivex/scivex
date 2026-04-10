@@ -86,6 +86,41 @@ pub(crate) fn mean_f64_scalar(a: &[f64]) -> f64 {
     sum_f64_scalar(a) / a.len() as f64
 }
 
+/// Scalar broadcast add: `out[i] = a[i] + s`.
+pub(crate) fn add_scalar_f64_scalar(a: &[f64], s: f64, out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = a[i] + s;
+    }
+}
+
+/// Scalar broadcast sub: `out[i] = a[i] - s`.
+pub(crate) fn sub_scalar_f64_scalar(a: &[f64], s: f64, out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = a[i] - s;
+    }
+}
+
+/// Scalar broadcast mul: `out[i] = a[i] * s`.
+pub(crate) fn mul_scalar_f64_scalar(a: &[f64], s: f64, out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = a[i] * s;
+    }
+}
+
+/// Scalar broadcast div: `out[i] = a[i] / s`.
+pub(crate) fn div_scalar_f64_scalar(a: &[f64], s: f64, out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = a[i] / s;
+    }
+}
+
+/// Scalar negate: `out[i] = -a[i]`.
+pub(crate) fn neg_f64_scalar(a: &[f64], out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = -a[i];
+    }
+}
+
 /// Scalar ReLU: `out[i] = max(0, a[i])`.
 pub(crate) fn relu_f64_scalar(a: &[f64], out: &mut [f64]) {
     for i in 0..a.len() {
@@ -483,6 +518,111 @@ mod avx {
         result
     }
 
+    /// AVX scalar broadcast add: `out[i] = a[i] + s`.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn add_scalar_f64_avx(a: &[f64], s: f64, out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let vs = _mm256_set1_pd(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 4;
+            _mm256_storeu_pd(
+                o_ptr.add(off),
+                _mm256_add_pd(_mm256_loadu_pd(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 4;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) + s;
+        }
+    }
+
+    /// AVX scalar broadcast sub: `out[i] = a[i] - s`.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn sub_scalar_f64_avx(a: &[f64], s: f64, out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let vs = _mm256_set1_pd(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 4;
+            _mm256_storeu_pd(
+                o_ptr.add(off),
+                _mm256_sub_pd(_mm256_loadu_pd(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 4;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) - s;
+        }
+    }
+
+    /// AVX scalar broadcast mul: `out[i] = a[i] * s`.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn mul_scalar_f64_avx(a: &[f64], s: f64, out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let vs = _mm256_set1_pd(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 4;
+            _mm256_storeu_pd(
+                o_ptr.add(off),
+                _mm256_mul_pd(_mm256_loadu_pd(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 4;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) * s;
+        }
+    }
+
+    /// AVX scalar broadcast div: `out[i] = a[i] / s`.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn div_scalar_f64_avx(a: &[f64], s: f64, out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let vs = _mm256_set1_pd(s);
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 4;
+            _mm256_storeu_pd(
+                o_ptr.add(off),
+                _mm256_div_pd(_mm256_loadu_pd(a_ptr.add(off)), vs),
+            );
+        }
+        let tail = chunks * 4;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = *a.get_unchecked(j) / s;
+        }
+    }
+
+    /// AVX negate: `out[i] = -a[i]`.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn neg_f64_avx(a: &[f64], out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let vneg = _mm256_set1_pd(-0.0); // sign bit mask
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        for i in 0..chunks {
+            let off = i * 4;
+            _mm256_storeu_pd(
+                o_ptr.add(off),
+                _mm256_xor_pd(_mm256_loadu_pd(a_ptr.add(off)), vneg),
+            );
+        }
+        let tail = chunks * 4;
+        for j in tail..n {
+            *out.get_unchecked_mut(j) = -*a.get_unchecked(j);
+        }
+    }
+
     /// AVX ReLU: `out[i] = max(0, a[i])`.
     ///
     /// # Safety
@@ -660,6 +800,65 @@ pub(crate) fn relu_f64(a: &[f64], out: &mut [f64]) {
         avx::relu_f64_avx,
         super::neon_f64_ops::relu_f64_neon,
         relu_f64_scalar,
+        a,
+        out
+    );
+}
+
+/// SIMD-accelerated scalar broadcast add for f64: `out[i] = a[i] + s`.
+pub(crate) fn add_scalar_f64(a: &[f64], s: f64, out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::add_scalar_f64_avx,
+        super::neon_f64_ops::add_scalar_f64_neon,
+        add_scalar_f64_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+/// SIMD-accelerated scalar broadcast sub for f64: `out[i] = a[i] - s`.
+pub(crate) fn sub_scalar_f64(a: &[f64], s: f64, out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::sub_scalar_f64_avx,
+        super::neon_f64_ops::sub_scalar_f64_neon,
+        sub_scalar_f64_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+/// SIMD-accelerated scalar broadcast mul for f64: `out[i] = a[i] * s`.
+pub(crate) fn mul_scalar_f64(a: &[f64], s: f64, out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::mul_scalar_f64_avx,
+        super::neon_f64_ops::mul_scalar_f64_neon,
+        mul_scalar_f64_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+/// SIMD-accelerated scalar broadcast div for f64: `out[i] = a[i] / s`.
+pub(crate) fn div_scalar_f64(a: &[f64], s: f64, out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::div_scalar_f64_avx,
+        super::neon_f64_ops::div_scalar_f64_neon,
+        div_scalar_f64_scalar,
+        a,
+        s,
+        out
+    );
+}
+
+/// SIMD-accelerated negate for f64: `out[i] = -a[i]`.
+pub(crate) fn neg_f64(a: &[f64], out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::neg_f64_avx,
+        super::neon_f64_ops::neg_f64_neon,
+        neg_f64_scalar,
         a,
         out
     );

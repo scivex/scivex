@@ -52,6 +52,11 @@ pub trait AnySeries: Send + Sync + fmt::Debug {
     /// Format the value at `index` for display.
     fn display_value(&self, index: usize) -> String;
 
+    /// Return a 64-bit hash of the value at `index` for groupby keys.
+    ///
+    /// Uses raw byte representation for numeric types, avoiding string formatting.
+    fn hash_value(&self, index: usize) -> u64;
+
     /// Return a new series keeping only rows where `mask[i]` is true.
     fn filter_mask(&self, mask: &[bool]) -> Box<dyn AnySeries>;
 
@@ -366,6 +371,24 @@ impl<T: Scalar + HasDType + 'static> AnySeries for Series<T> {
         } else {
             String::new()
         }
+    }
+
+    fn hash_value(&self, index: usize) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        if self.is_null_at(index) {
+            u64::MAX.hash(&mut hasher);
+        } else if index < self.data.len() {
+            // Hash the raw bytes of the value — no string conversion.
+            let bytes = unsafe {
+                core::slice::from_raw_parts(
+                    (&raw const self.data[index]).cast::<u8>(),
+                    core::mem::size_of::<T>(),
+                )
+            };
+            bytes.hash(&mut hasher);
+        }
+        hasher.finish()
     }
 
     fn filter_mask(&self, mask: &[bool]) -> Box<dyn AnySeries> {

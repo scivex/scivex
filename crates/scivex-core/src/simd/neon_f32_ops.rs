@@ -1,4 +1,5 @@
 //! NEON-accelerated f32 kernels (4-wide `float32x4_t`) for aarch64.
+#![allow(clippy::wildcard_imports)]
 
 use core::arch::aarch64::*;
 
@@ -542,5 +543,157 @@ pub(crate) unsafe fn relu_f32_neon(a: &[f32], out: &mut [f32]) {
 /// Caller must ensure this runs on aarch64 and slice is non-empty.
 #[inline]
 pub(crate) unsafe fn mean_f32_neon(a: &[f32]) -> f32 {
+    if a.is_empty() {
+        return 0.0;
+    }
     sum_f32_neon(a) / a.len() as f32
+}
+
+/// NEON scalar broadcast add for f32: `out[i] = a[i] + s`.
+#[inline]
+pub(crate) unsafe fn add_scalar_f32_neon(a: &[f32], s: f32, out: &mut [f32]) {
+    let n = a.len();
+    let vs = vdupq_n_f32(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+    let chunks16 = n / 16;
+    for i in 0..chunks16 {
+        let base = i * 16;
+        vst1q_f32(o_ptr.add(base), vaddq_f32(vld1q_f32(a_ptr.add(base)), vs));
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vaddq_f32(vld1q_f32(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vaddq_f32(vld1q_f32(a_ptr.add(base + 8)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vaddq_f32(vld1q_f32(a_ptr.add(base + 12)), vs),
+        );
+    }
+    let tail = chunks16 * 16;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) + s;
+    }
+}
+
+/// NEON scalar broadcast sub for f32: `out[i] = a[i] - s`.
+#[inline]
+pub(crate) unsafe fn sub_scalar_f32_neon(a: &[f32], s: f32, out: &mut [f32]) {
+    let n = a.len();
+    let vs = vdupq_n_f32(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+    let chunks16 = n / 16;
+    for i in 0..chunks16 {
+        let base = i * 16;
+        vst1q_f32(o_ptr.add(base), vsubq_f32(vld1q_f32(a_ptr.add(base)), vs));
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vsubq_f32(vld1q_f32(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vsubq_f32(vld1q_f32(a_ptr.add(base + 8)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vsubq_f32(vld1q_f32(a_ptr.add(base + 12)), vs),
+        );
+    }
+    let tail = chunks16 * 16;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) - s;
+    }
+}
+
+/// NEON scalar broadcast mul for f32: `out[i] = a[i] * s`.
+#[inline]
+pub(crate) unsafe fn mul_scalar_f32_neon(a: &[f32], s: f32, out: &mut [f32]) {
+    let n = a.len();
+    let vs = vdupq_n_f32(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+    let chunks16 = n / 16;
+    for i in 0..chunks16 {
+        let base = i * 16;
+        vst1q_f32(o_ptr.add(base), vmulq_f32(vld1q_f32(a_ptr.add(base)), vs));
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vmulq_f32(vld1q_f32(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vmulq_f32(vld1q_f32(a_ptr.add(base + 8)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vmulq_f32(vld1q_f32(a_ptr.add(base + 12)), vs),
+        );
+    }
+    let tail = chunks16 * 16;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) * s;
+    }
+}
+
+/// NEON scalar broadcast div for f32: `out[i] = a[i] / s`.
+#[inline]
+pub(crate) unsafe fn div_scalar_f32_neon(a: &[f32], s: f32, out: &mut [f32]) {
+    let n = a.len();
+    let vs = vdupq_n_f32(s);
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+    let chunks16 = n / 16;
+    for i in 0..chunks16 {
+        let base = i * 16;
+        vst1q_f32(o_ptr.add(base), vdivq_f32(vld1q_f32(a_ptr.add(base)), vs));
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vdivq_f32(vld1q_f32(a_ptr.add(base + 4)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vdivq_f32(vld1q_f32(a_ptr.add(base + 8)), vs),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vdivq_f32(vld1q_f32(a_ptr.add(base + 12)), vs),
+        );
+    }
+    let tail = chunks16 * 16;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) / s;
+    }
+}
+
+/// NEON negate for f32: `out[i] = -a[i]`.
+#[inline]
+pub(crate) unsafe fn neg_f32_neon(a: &[f32], out: &mut [f32]) {
+    let n = a.len();
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+    let chunks16 = n / 16;
+    for i in 0..chunks16 {
+        let base = i * 16;
+        vst1q_f32(o_ptr.add(base), vnegq_f32(vld1q_f32(a_ptr.add(base))));
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vnegq_f32(vld1q_f32(a_ptr.add(base + 4))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vnegq_f32(vld1q_f32(a_ptr.add(base + 8))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vnegq_f32(vld1q_f32(a_ptr.add(base + 12))),
+        );
+    }
+    let tail = chunks16 * 16;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = -*a.get_unchecked(j);
+    }
 }
