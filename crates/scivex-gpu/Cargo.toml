@@ -11,7 +11,7 @@ keywords = ["gpu", "wgpu", "tensor", "compute-shader", "scientific-computing"]
 categories = ["science", "graphics"]
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
 wgpu = { version = "24", features = ["wgsl"] }
 bytemuck = { version = "1", features = ["derive"] }
 pollster = "0.4"

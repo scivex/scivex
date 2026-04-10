@@ -20,8 +20,7 @@ use crate::variable::Variable;
 /// ```
 pub fn relu<T: Float>(x: &Variable<T>) -> Variable<T> {
     let x_data = x.data();
-    let zero = T::zero();
-    let out = x_data.map(|v| if v > zero { v } else { zero });
+    let out = x_data.relu();
     Variable::from_op(
         out,
         vec![x.clone()],

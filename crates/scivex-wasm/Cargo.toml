@@ -15,13 +15,13 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
-scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
-scivex-stats = { version = "0.1.0", path = "../scivex-stats" }
-scivex-ml = { version = "0.1.0", path = "../scivex-ml" }
-scivex-sym = { version = "0.1.0", path = "../scivex-sym" }
-scivex-signal = { version = "0.1.0", path = "../scivex-signal" }
-scivex-graph = { version = "0.1.0", path = "../scivex-graph" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
+scivex-frame = { version = "0.1.1", path = "../scivex-frame" }
+scivex-stats = { version = "0.1.1", path = "../scivex-stats" }
+scivex-ml = { version = "0.1.1", path = "../scivex-ml" }
+scivex-sym = { version = "0.1.1", path = "../scivex-sym" }
+scivex-signal = { version = "0.1.1", path = "../scivex-signal" }
+scivex-graph = { version = "0.1.1", path = "../scivex-graph" }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }

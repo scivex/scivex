@@ -9,6 +9,7 @@ pub mod string;
 pub mod window;
 
 use std::any::Any;
+use std::cmp::Ordering;
 use std::fmt;
 
 use scivex_core::Scalar;
@@ -75,6 +76,13 @@ pub trait AnySeries: Send + Sync + fmt::Debug {
     /// Build a new series by picking values from optional row indices.
     /// `None` entries produce null values.
     fn take_optional(&self, indices: &[Option<usize>]) -> Box<dyn AnySeries>;
+
+    /// Compare the values at two indices. Used for sorting without string conversion.
+    /// Nulls sort after all non-null values.
+    fn compare_at(&self, a: usize, b: usize) -> Ordering;
+
+    /// Sort indices by this column's values. Avoids per-comparison dynamic dispatch.
+    fn sort_indices(&self, indices: &mut [usize], ascending: bool);
 }
 
 impl Clone for Box<dyn AnySeries> {
@@ -456,6 +464,42 @@ impl<T: Scalar + HasDType + 'static> AnySeries for Series<T> {
             data,
             null_mask: if has_nulls { Some(nulls) } else { None },
         })
+    }
+
+    fn compare_at(&self, a: usize, b: usize) -> Ordering {
+        // Fast path: no null mask at all (common case).
+        if self.null_mask.is_none() {
+            return self.data[a].partial_cmp(&self.data[b]).unwrap_or(Ordering::Equal);
+        }
+        let a_null = self.is_null_at(a);
+        let b_null = self.is_null_at(b);
+        match (a_null, b_null) {
+            (true, true) => Ordering::Equal,
+            (true, false) => Ordering::Greater,
+            (false, true) => Ordering::Less,
+            (false, false) => self.data[a].partial_cmp(&self.data[b]).unwrap_or(Ordering::Equal),
+        }
+    }
+
+    fn sort_indices(&self, indices: &mut [usize], ascending: bool) {
+        let data = &self.data;
+        if self.null_mask.is_none() {
+            // Fast path: no nulls, direct comparison with no vtable dispatch.
+            if ascending {
+                indices.sort_unstable_by(|&a, &b| {
+                    data[a].partial_cmp(&data[b]).unwrap_or(Ordering::Equal)
+                });
+            } else {
+                indices.sort_unstable_by(|&a, &b| {
+                    data[b].partial_cmp(&data[a]).unwrap_or(Ordering::Equal)
+                });
+            }
+        } else {
+            indices.sort_unstable_by(|&a, &b| {
+                let cmp = self.compare_at(a, b);
+                if ascending { cmp } else { cmp.reverse() }
+            });
+        }
     }
 }
 

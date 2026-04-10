@@ -14,5 +14,5 @@ categories = ["science", "algorithms"]
 workspace = true
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
-scivex-nn = { version = "0.1.0", path = "../scivex-nn" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
+scivex-nn = { version = "0.1.1", path = "../scivex-nn" }

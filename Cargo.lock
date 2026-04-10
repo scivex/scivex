@@ -3113,7 +3113,7 @@ dependencies = [
 
 [[package]]
 name = "pyscivex"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "pyo3",
  "scivex-core",
@@ -3677,7 +3677,7 @@ dependencies = [
 
 [[package]]
 name = "scivex"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "scivex-core",
  "scivex-frame",
@@ -3698,7 +3698,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "half",
@@ -3709,7 +3709,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-ffi"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "scivex-core",
  "scivex-frame",
@@ -3720,7 +3720,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-frame"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "proptest",
@@ -3732,7 +3732,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-gpu"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bytemuck",
  "pollster",
@@ -3742,7 +3742,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-graph"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "scivex-core",
@@ -3751,7 +3751,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-image"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "jpeg-decoder",
  "jpeg-encoder",
@@ -3762,7 +3762,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-io"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arrow 55.2.0",
  "bytes",
@@ -3786,7 +3786,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-ml"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "rayon",
@@ -3797,7 +3797,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-nlp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "scivex-core",
  "serde",
@@ -3805,7 +3805,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-nn"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "scivex-core",
@@ -3815,7 +3815,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-optim"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "scivex-core",
  "serde",
@@ -3823,7 +3823,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-rl"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "scivex-core",
  "scivex-nn",
@@ -3831,7 +3831,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-signal"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "scivex-core",
@@ -3840,7 +3840,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-stats"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "proptest",
@@ -3850,7 +3850,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-sym"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "proptest",
@@ -3860,7 +3860,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-viz"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "scivex-core",
  "serde",
@@ -3868,7 +3868,7 @@ dependencies = [
 
 [[package]]
 name = "scivex-wasm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "js-sys",
  "scivex-core",

@@ -79,6 +79,9 @@ pub trait Scalar:
 pub trait Integer: Scalar {
     /// Remainder after division.
     fn rem(self, rhs: Self) -> Self;
+
+    /// Convert to `usize` (inverse of `from_usize`).
+    fn to_usize(self) -> usize;
 }
 
 // ---------------------------------------------------------------------------
@@ -476,6 +479,10 @@ macro_rules! impl_scalar_int {
             #[inline]
             fn rem(self, rhs: Self) -> Self {
                 self % rhs
+            }
+            #[inline]
+            fn to_usize(self) -> usize {
+                self as usize
             }
         }
     };

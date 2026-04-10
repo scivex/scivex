@@ -90,26 +90,120 @@ pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
 
     let radius = (3.0 * sigma).ceil() as usize;
     let size = 2 * radius + 1;
-    let mut kernel_data = vec![0.0f32; size * size];
+
+    // Build 1-D Gaussian kernel.
+    let mut k1d = vec![0.0f32; size];
     let mut sum = 0.0f32;
-
-    for y in 0..size {
-        for x in 0..size {
-            let dy = y as f32 - radius as f32;
-            let dx = x as f32 - radius as f32;
-            let val = (-(dy * dy + dx * dx) / (2.0 * sigma * sigma)).exp();
-            kernel_data[y * size + x] = val;
-            sum += val;
-        }
+    for i in 0..size {
+        let d = i as f32 - radius as f32;
+        let val = (-d * d / (2.0 * sigma * sigma)).exp();
+        k1d[i] = val;
+        sum += val;
     }
-
-    // Normalize
-    for v in &mut kernel_data {
+    for v in &mut k1d {
         *v /= sum;
     }
 
-    let kernel = Tensor::from_vec(kernel_data, vec![size, size])?;
-    convolve2d(img, &kernel)
+    let (w, h) = img.dimensions();
+    let c = img.channels();
+    let src = img.as_slice();
+
+    // Horizontal pass: convolve each row with the 1-D kernel.
+    // Split into: left edge, branchless middle, right edge.
+    let mut tmp = vec![0.0f32; h * w * c];
+    for row in 0..h {
+        let row_off = row * w;
+        // Left edge: col < radius
+        for col in 0..radius.min(w) {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                for ki in 0..size {
+                    let sx = col + ki;
+                    if sx >= radius && sx < w + radius {
+                        acc += src[(row_off + sx - radius) * c + ch] * k1d[ki];
+                    }
+                }
+                tmp[(row_off + col) * c + ch] = acc;
+            }
+        }
+        // Middle: no boundary checks needed.
+        let mid_start = radius;
+        let mid_end = if w > radius { w - radius } else { 0 };
+        for col in mid_start..mid_end {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                let base = row_off + col - radius;
+                for ki in 0..size {
+                    acc += unsafe { *src.get_unchecked((base + ki) * c + ch) } * k1d[ki];
+                }
+                tmp[(row_off + col) * c + ch] = acc;
+            }
+        }
+        // Right edge: col >= w - radius
+        for col in mid_end.max(radius)..w {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                for ki in 0..size {
+                    let sx = col + ki;
+                    if sx >= radius && sx < w + radius {
+                        acc += src[(row_off + sx - radius) * c + ch] * k1d[ki];
+                    }
+                }
+                tmp[(row_off + col) * c + ch] = acc;
+            }
+        }
+    }
+
+    // Vertical pass: convolve each column with the 1-D kernel.
+    // Same split: top edge, branchless middle, bottom edge.
+    let mut out = vec![0.0f32; h * w * c];
+    // Top edge: row < radius
+    for row in 0..radius.min(h) {
+        for col in 0..w {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                for ki in 0..size {
+                    let sy = row + ki;
+                    if sy >= radius && sy < h + radius {
+                        acc += tmp[((sy - radius) * w + col) * c + ch] * k1d[ki];
+                    }
+                }
+                out[(row * w + col) * c + ch] = acc;
+            }
+        }
+    }
+    // Middle: no boundary checks needed.
+    let mid_start = radius;
+    let mid_end = if h > radius { h - radius } else { 0 };
+    for row in mid_start..mid_end {
+        for col in 0..w {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                let base_row = row - radius;
+                for ki in 0..size {
+                    acc += unsafe { *tmp.get_unchecked(((base_row + ki) * w + col) * c + ch) } * k1d[ki];
+                }
+                out[(row * w + col) * c + ch] = acc;
+            }
+        }
+    }
+    // Bottom edge: row >= h - radius
+    for row in mid_end.max(radius)..h {
+        for col in 0..w {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                for ki in 0..size {
+                    let sy = row + ki;
+                    if sy >= radius && sy < h + radius {
+                        acc += tmp[((sy - radius) * w + col) * c + ch] * k1d[ki];
+                    }
+                }
+                out[(row * w + col) * c + ch] = acc;
+            }
+        }
+    }
+
+    Image::from_raw(out, w, h, img.format())
 }
 
 /// Apply a box (uniform) blur with the given radius.

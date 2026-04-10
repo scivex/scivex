@@ -14,7 +14,7 @@ categories = ["science", "data-structures"]
 workspace = true
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
 rayon = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }

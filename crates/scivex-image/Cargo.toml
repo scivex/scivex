@@ -14,7 +14,7 @@ categories = ["science", "multimedia::images"]
 workspace = true
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
 png = { version = "0.17", optional = true }
 jpeg-decoder = { version = "0.3", optional = true }
 jpeg-encoder = { version = "0.6", optional = true }

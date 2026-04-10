@@ -15,11 +15,11 @@ publish = false
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
-scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
-scivex-stats = { version = "0.1.0", path = "../scivex-stats" }
-scivex-ml = { version = "0.1.0", path = "../scivex-ml" }
-scivex-viz = { version = "0.1.0", path = "../scivex-viz" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
+scivex-frame = { version = "0.1.1", path = "../scivex-frame" }
+scivex-stats = { version = "0.1.1", path = "../scivex-stats" }
+scivex-ml = { version = "0.1.1", path = "../scivex-ml" }
+scivex-viz = { version = "0.1.1", path = "../scivex-viz" }
 
 [lints]
 workspace = true

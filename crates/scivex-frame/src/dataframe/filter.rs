@@ -2,7 +2,6 @@
 
 use super::DataFrame;
 use crate::error::{FrameError, Result};
-use crate::series::AnySeries;
 
 impl DataFrame {
     /// First `n` rows.
@@ -106,17 +105,11 @@ impl DataFrame {
     /// ```
     pub fn sort_by(&self, column: &str, ascending: bool) -> Result<DataFrame> {
         let col = self.column(column)?;
-        // Build sort indices via display_value comparison (simple MVP approach).
-        // For numeric columns this works because the AnySeries stores real data
-        // and we can access via take_indices.
         let n = col.len();
         let mut indices: Vec<usize> = (0..n).collect();
 
-        // We need a way to compare arbitrary column values. For MVP, we use
-        // display_value string comparison which works correctly for integers.
-        // For proper numeric sort we use the concrete typed approach below.
-        // Try to get a typed sort key first.
-        sort_indices_by_column(col, &mut indices, ascending);
+        // Dispatch into the concrete type's sort_indices to avoid per-comparison vtable calls.
+        col.sort_indices(&mut indices, ascending);
 
         let cols = self
             .columns
@@ -125,20 +118,6 @@ impl DataFrame {
             .collect();
         Ok(DataFrame { columns: cols })
     }
-}
-
-/// Sort indices by a column's values using string representation.
-fn sort_indices_by_column(col: &dyn AnySeries, indices: &mut [usize], ascending: bool) {
-    indices.sort_by(|&a, &b| {
-        let va = col.display_value(a);
-        let vb = col.display_value(b);
-        // Try numeric parse first for proper numeric ordering.
-        let cmp = match (va.parse::<f64>(), vb.parse::<f64>()) {
-            (Ok(fa), Ok(fb)) => fa.partial_cmp(&fb).unwrap_or(core::cmp::Ordering::Equal),
-            _ => va.cmp(&vb),
-        };
-        if ascending { cmp } else { cmp.reverse() }
-    });
 }
 
 #[cfg(test)]
