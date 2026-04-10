@@ -56,7 +56,10 @@ fn simd_binop<T: Scalar>(
         let mut out = core::mem::ManuallyDrop::new(out);
         unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
     } else {
-        a.iter().zip(b.iter()).map(|(&x, &y)| scalar_op(x, y)).collect()
+        a.iter()
+            .zip(b.iter())
+            .map(|(&x, &y)| scalar_op(x, y))
+            .collect()
     }
 }
 
@@ -650,7 +653,11 @@ impl<T: Float> Tensor<T> {
             }
         }
         let zero = T::zero();
-        let data = self.data.iter().map(|&v| if v > zero { v } else { zero }).collect();
+        let data = self
+            .data
+            .iter()
+            .map(|&v| if v > zero { v } else { zero })
+            .collect();
         Tensor {
             data,
             shape: self.shape.clone(),

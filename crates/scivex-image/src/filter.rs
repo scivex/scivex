@@ -80,6 +80,11 @@ pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> 
 /// let blurred = filter::gaussian_blur(&img, 1.0).unwrap();
 /// assert_eq!(blurred.dimensions(), (5, 5));
 /// ```
+#[allow(
+    clippy::needless_range_loop,
+    clippy::manual_range_contains,
+    clippy::too_many_lines
+)]
 pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
     if sigma <= 0.0 {
         return Err(ImageError::InvalidParameter {
@@ -128,7 +133,7 @@ pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
         }
         // Middle: no boundary checks needed.
         let mid_start = radius;
-        let mid_end = if w > radius { w - radius } else { 0 };
+        let mid_end = w.saturating_sub(radius);
         for col in mid_start..mid_end {
             for ch in 0..c {
                 let mut acc = 0.0f32;
@@ -174,14 +179,15 @@ pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
     }
     // Middle: no boundary checks needed.
     let mid_start = radius;
-    let mid_end = if h > radius { h - radius } else { 0 };
+    let mid_end = h.saturating_sub(radius);
     for row in mid_start..mid_end {
         for col in 0..w {
             for ch in 0..c {
                 let mut acc = 0.0f32;
                 let base_row = row - radius;
                 for ki in 0..size {
-                    acc += unsafe { *tmp.get_unchecked(((base_row + ki) * w + col) * c + ch) } * k1d[ki];
+                    acc += unsafe { *tmp.get_unchecked(((base_row + ki) * w + col) * c + ch) }
+                        * k1d[ki];
                 }
                 out[(row * w + col) * c + ch] = acc;
             }

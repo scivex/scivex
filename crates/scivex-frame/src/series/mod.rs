@@ -469,7 +469,9 @@ impl<T: Scalar + HasDType + 'static> AnySeries for Series<T> {
     fn compare_at(&self, a: usize, b: usize) -> Ordering {
         // Fast path: no null mask at all (common case).
         if self.null_mask.is_none() {
-            return self.data[a].partial_cmp(&self.data[b]).unwrap_or(Ordering::Equal);
+            return self.data[a]
+                .partial_cmp(&self.data[b])
+                .unwrap_or(Ordering::Equal);
         }
         let a_null = self.is_null_at(a);
         let b_null = self.is_null_at(b);
@@ -477,7 +479,9 @@ impl<T: Scalar + HasDType + 'static> AnySeries for Series<T> {
             (true, true) => Ordering::Equal,
             (true, false) => Ordering::Greater,
             (false, true) => Ordering::Less,
-            (false, false) => self.data[a].partial_cmp(&self.data[b]).unwrap_or(Ordering::Equal),
+            (false, false) => self.data[a]
+                .partial_cmp(&self.data[b])
+                .unwrap_or(Ordering::Equal),
         }
     }
 

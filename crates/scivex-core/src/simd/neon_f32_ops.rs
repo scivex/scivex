@@ -22,9 +22,21 @@ pub(crate) unsafe fn dot_f32_neon(a: &[f32], b: &[f32]) -> f32 {
     for i in 0..chunks16 {
         let base = i * 16;
         acc0 = vfmaq_f32(acc0, vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base)));
-        acc1 = vfmaq_f32(acc1, vld1q_f32(a_ptr.add(base + 4)), vld1q_f32(b_ptr.add(base + 4)));
-        acc2 = vfmaq_f32(acc2, vld1q_f32(a_ptr.add(base + 8)), vld1q_f32(b_ptr.add(base + 8)));
-        acc3 = vfmaq_f32(acc3, vld1q_f32(a_ptr.add(base + 12)), vld1q_f32(b_ptr.add(base + 12)));
+        acc1 = vfmaq_f32(
+            acc1,
+            vld1q_f32(a_ptr.add(base + 4)),
+            vld1q_f32(b_ptr.add(base + 4)),
+        );
+        acc2 = vfmaq_f32(
+            acc2,
+            vld1q_f32(a_ptr.add(base + 8)),
+            vld1q_f32(b_ptr.add(base + 8)),
+        );
+        acc3 = vfmaq_f32(
+            acc3,
+            vld1q_f32(a_ptr.add(base + 12)),
+            vld1q_f32(b_ptr.add(base + 12)),
+        );
     }
 
     acc0 = vaddq_f32(acc0, acc1);
@@ -89,10 +101,31 @@ pub(crate) unsafe fn add_f32_neon(a: &[f32], b: &[f32], out: &mut [f32]) {
     let chunks16 = n / 16;
     for i in 0..chunks16 {
         let base = i * 16;
-        vst1q_f32(o_ptr.add(base), vaddq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))));
-        vst1q_f32(o_ptr.add(base + 4), vaddq_f32(vld1q_f32(a_ptr.add(base + 4)), vld1q_f32(b_ptr.add(base + 4))));
-        vst1q_f32(o_ptr.add(base + 8), vaddq_f32(vld1q_f32(a_ptr.add(base + 8)), vld1q_f32(b_ptr.add(base + 8))));
-        vst1q_f32(o_ptr.add(base + 12), vaddq_f32(vld1q_f32(a_ptr.add(base + 12)), vld1q_f32(b_ptr.add(base + 12))));
+        vst1q_f32(
+            o_ptr.add(base),
+            vaddq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vaddq_f32(
+                vld1q_f32(a_ptr.add(base + 4)),
+                vld1q_f32(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vaddq_f32(
+                vld1q_f32(a_ptr.add(base + 8)),
+                vld1q_f32(b_ptr.add(base + 8)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vaddq_f32(
+                vld1q_f32(a_ptr.add(base + 12)),
+                vld1q_f32(b_ptr.add(base + 12)),
+            ),
+        );
     }
 
     let tail = chunks16 * 16;
@@ -115,10 +148,31 @@ pub(crate) unsafe fn sub_f32_neon(a: &[f32], b: &[f32], out: &mut [f32]) {
     let chunks16 = n / 16;
     for i in 0..chunks16 {
         let base = i * 16;
-        vst1q_f32(o_ptr.add(base), vsubq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))));
-        vst1q_f32(o_ptr.add(base + 4), vsubq_f32(vld1q_f32(a_ptr.add(base + 4)), vld1q_f32(b_ptr.add(base + 4))));
-        vst1q_f32(o_ptr.add(base + 8), vsubq_f32(vld1q_f32(a_ptr.add(base + 8)), vld1q_f32(b_ptr.add(base + 8))));
-        vst1q_f32(o_ptr.add(base + 12), vsubq_f32(vld1q_f32(a_ptr.add(base + 12)), vld1q_f32(b_ptr.add(base + 12))));
+        vst1q_f32(
+            o_ptr.add(base),
+            vsubq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vsubq_f32(
+                vld1q_f32(a_ptr.add(base + 4)),
+                vld1q_f32(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vsubq_f32(
+                vld1q_f32(a_ptr.add(base + 8)),
+                vld1q_f32(b_ptr.add(base + 8)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vsubq_f32(
+                vld1q_f32(a_ptr.add(base + 12)),
+                vld1q_f32(b_ptr.add(base + 12)),
+            ),
+        );
     }
 
     let tail = chunks16 * 16;
@@ -141,10 +195,31 @@ pub(crate) unsafe fn mul_f32_neon(a: &[f32], b: &[f32], out: &mut [f32]) {
     let chunks16 = n / 16;
     for i in 0..chunks16 {
         let base = i * 16;
-        vst1q_f32(o_ptr.add(base), vmulq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))));
-        vst1q_f32(o_ptr.add(base + 4), vmulq_f32(vld1q_f32(a_ptr.add(base + 4)), vld1q_f32(b_ptr.add(base + 4))));
-        vst1q_f32(o_ptr.add(base + 8), vmulq_f32(vld1q_f32(a_ptr.add(base + 8)), vld1q_f32(b_ptr.add(base + 8))));
-        vst1q_f32(o_ptr.add(base + 12), vmulq_f32(vld1q_f32(a_ptr.add(base + 12)), vld1q_f32(b_ptr.add(base + 12))));
+        vst1q_f32(
+            o_ptr.add(base),
+            vmulq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vmulq_f32(
+                vld1q_f32(a_ptr.add(base + 4)),
+                vld1q_f32(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vmulq_f32(
+                vld1q_f32(a_ptr.add(base + 8)),
+                vld1q_f32(b_ptr.add(base + 8)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vmulq_f32(
+                vld1q_f32(a_ptr.add(base + 12)),
+                vld1q_f32(b_ptr.add(base + 12)),
+            ),
+        );
     }
 
     let tail = chunks16 * 16;
@@ -167,10 +242,31 @@ pub(crate) unsafe fn div_f32_neon(a: &[f32], b: &[f32], out: &mut [f32]) {
     let chunks16 = n / 16;
     for i in 0..chunks16 {
         let base = i * 16;
-        vst1q_f32(o_ptr.add(base), vdivq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))));
-        vst1q_f32(o_ptr.add(base + 4), vdivq_f32(vld1q_f32(a_ptr.add(base + 4)), vld1q_f32(b_ptr.add(base + 4))));
-        vst1q_f32(o_ptr.add(base + 8), vdivq_f32(vld1q_f32(a_ptr.add(base + 8)), vld1q_f32(b_ptr.add(base + 8))));
-        vst1q_f32(o_ptr.add(base + 12), vdivq_f32(vld1q_f32(a_ptr.add(base + 12)), vld1q_f32(b_ptr.add(base + 12))));
+        vst1q_f32(
+            o_ptr.add(base),
+            vdivq_f32(vld1q_f32(a_ptr.add(base)), vld1q_f32(b_ptr.add(base))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vdivq_f32(
+                vld1q_f32(a_ptr.add(base + 4)),
+                vld1q_f32(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vdivq_f32(
+                vld1q_f32(a_ptr.add(base + 8)),
+                vld1q_f32(b_ptr.add(base + 8)),
+            ),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vdivq_f32(
+                vld1q_f32(a_ptr.add(base + 12)),
+                vld1q_f32(b_ptr.add(base + 12)),
+            ),
+        );
     }
 
     let tail = chunks16 * 16;
@@ -197,10 +293,22 @@ pub(crate) unsafe fn axpy_f32_neon(alpha: f32, x: &[f32], y: &mut [f32]) {
         let vy1 = vld1q_f32(y_ptr.add(base + 4));
         let vy2 = vld1q_f32(y_ptr.add(base + 8));
         let vy3 = vld1q_f32(y_ptr.add(base + 12));
-        vst1q_f32(y_ptr.add(base), vfmaq_f32(vy0, valpha, vld1q_f32(x_ptr.add(base))));
-        vst1q_f32(y_ptr.add(base + 4), vfmaq_f32(vy1, valpha, vld1q_f32(x_ptr.add(base + 4))));
-        vst1q_f32(y_ptr.add(base + 8), vfmaq_f32(vy2, valpha, vld1q_f32(x_ptr.add(base + 8))));
-        vst1q_f32(y_ptr.add(base + 12), vfmaq_f32(vy3, valpha, vld1q_f32(x_ptr.add(base + 12))));
+        vst1q_f32(
+            y_ptr.add(base),
+            vfmaq_f32(vy0, valpha, vld1q_f32(x_ptr.add(base))),
+        );
+        vst1q_f32(
+            y_ptr.add(base + 4),
+            vfmaq_f32(vy1, valpha, vld1q_f32(x_ptr.add(base + 4))),
+        );
+        vst1q_f32(
+            y_ptr.add(base + 8),
+            vfmaq_f32(vy2, valpha, vld1q_f32(x_ptr.add(base + 8))),
+        );
+        vst1q_f32(
+            y_ptr.add(base + 12),
+            vfmaq_f32(vy3, valpha, vld1q_f32(x_ptr.add(base + 12))),
+        );
     }
 
     let tail = chunks16 * 16;
@@ -223,9 +331,18 @@ pub(crate) unsafe fn scal_f32_neon(alpha: f32, x: &mut [f32]) {
     for i in 0..chunks16 {
         let base = i * 16;
         vst1q_f32(ptr.add(base), vmulq_f32(valpha, vld1q_f32(ptr.add(base))));
-        vst1q_f32(ptr.add(base + 4), vmulq_f32(valpha, vld1q_f32(ptr.add(base + 4))));
-        vst1q_f32(ptr.add(base + 8), vmulq_f32(valpha, vld1q_f32(ptr.add(base + 8))));
-        vst1q_f32(ptr.add(base + 12), vmulq_f32(valpha, vld1q_f32(ptr.add(base + 12))));
+        vst1q_f32(
+            ptr.add(base + 4),
+            vmulq_f32(valpha, vld1q_f32(ptr.add(base + 4))),
+        );
+        vst1q_f32(
+            ptr.add(base + 8),
+            vmulq_f32(valpha, vld1q_f32(ptr.add(base + 8))),
+        );
+        vst1q_f32(
+            ptr.add(base + 12),
+            vmulq_f32(valpha, vld1q_f32(ptr.add(base + 12))),
+        );
     }
 
     let tail = chunks16 * 16;
@@ -394,10 +511,22 @@ pub(crate) unsafe fn relu_f32_neon(a: &[f32], out: &mut [f32]) {
     let chunks16 = n / 16;
     for i in 0..chunks16 {
         let base = i * 16;
-        vst1q_f32(o_ptr.add(base), vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base))));
-        vst1q_f32(o_ptr.add(base + 4), vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base + 4))));
-        vst1q_f32(o_ptr.add(base + 8), vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base + 8))));
-        vst1q_f32(o_ptr.add(base + 12), vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base + 12))));
+        vst1q_f32(
+            o_ptr.add(base),
+            vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 4),
+            vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base + 4))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 8),
+            vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base + 8))),
+        );
+        vst1q_f32(
+            o_ptr.add(base + 12),
+            vmaxq_f32(vzero, vld1q_f32(a_ptr.add(base + 12))),
+        );
     }
 
     let tail = chunks16 * 16;

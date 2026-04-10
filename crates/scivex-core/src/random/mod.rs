@@ -51,6 +51,7 @@ fn splitmix64(state: &mut u64) -> u64 {
 pub struct Rng {
     s: [u64; 4],
     /// Cached spare normal value from Box-Muller (None when empty).
+    #[allow(dead_code)]
     spare_normal: Option<f64>,
 }
 
@@ -166,9 +167,9 @@ impl Rng {
 /// Number of rectangles in the Ziggurat decomposition.
 const ZIG_N: usize = 128;
 /// Right-most x of the base rectangle.
-const ZIG_R: f64 = 3.442619855899;
+const ZIG_R: f64 = 3.442_619_855_899;
 /// Area of each rectangle (= area of the tail).
-const ZIG_V: f64 = 9.91256303526217e-3;
+const ZIG_V: f64 = 9.912_563_035_262_17e-3;
 
 /// Precomputed Ziggurat table: x-coordinates of rectangle right edges.
 /// `YTAB[i] = f(XTAB[i])` where `f(x) = exp(-x*x/2)`.

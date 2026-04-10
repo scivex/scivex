@@ -71,9 +71,7 @@ pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<
     // Check if this is a pure FIR filter (a = [1.0], no feedback).
     let is_fir = an.len() == 1 || an[1..].iter().all(|&v| v == T::zero());
 
-    let mut y = Vec::with_capacity(n);
-    // SAFETY: we will write all n elements below.
-    unsafe { y.set_len(n) };
+    let mut y = vec![T::zero(); n];
 
     if is_fir && order > 1 {
         // FIR-only fast path using Direct Form II Transposed without feedback.

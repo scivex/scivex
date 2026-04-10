@@ -31,9 +31,21 @@ pub(crate) unsafe fn dot_f64_neon(a: &[f64], b: &[f64]) -> f64 {
     for i in 0..chunks8 {
         let base = i * 8;
         acc0 = vfmaq_f64(acc0, vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base)));
-        acc1 = vfmaq_f64(acc1, vld1q_f64(a_ptr.add(base + 2)), vld1q_f64(b_ptr.add(base + 2)));
-        acc2 = vfmaq_f64(acc2, vld1q_f64(a_ptr.add(base + 4)), vld1q_f64(b_ptr.add(base + 4)));
-        acc3 = vfmaq_f64(acc3, vld1q_f64(a_ptr.add(base + 6)), vld1q_f64(b_ptr.add(base + 6)));
+        acc1 = vfmaq_f64(
+            acc1,
+            vld1q_f64(a_ptr.add(base + 2)),
+            vld1q_f64(b_ptr.add(base + 2)),
+        );
+        acc2 = vfmaq_f64(
+            acc2,
+            vld1q_f64(a_ptr.add(base + 4)),
+            vld1q_f64(b_ptr.add(base + 4)),
+        );
+        acc3 = vfmaq_f64(
+            acc3,
+            vld1q_f64(a_ptr.add(base + 6)),
+            vld1q_f64(b_ptr.add(base + 6)),
+        );
     }
 
     acc0 = vaddq_f64(acc0, acc1);
@@ -101,10 +113,31 @@ pub(crate) unsafe fn add_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
     let chunks8 = n / 8;
     for i in 0..chunks8 {
         let base = i * 8;
-        vst1q_f64(o_ptr.add(base), vaddq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))));
-        vst1q_f64(o_ptr.add(base + 2), vaddq_f64(vld1q_f64(a_ptr.add(base + 2)), vld1q_f64(b_ptr.add(base + 2))));
-        vst1q_f64(o_ptr.add(base + 4), vaddq_f64(vld1q_f64(a_ptr.add(base + 4)), vld1q_f64(b_ptr.add(base + 4))));
-        vst1q_f64(o_ptr.add(base + 6), vaddq_f64(vld1q_f64(a_ptr.add(base + 6)), vld1q_f64(b_ptr.add(base + 6))));
+        vst1q_f64(
+            o_ptr.add(base),
+            vaddq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vaddq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vaddq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vaddq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
     }
 
     let tail = chunks8 * 8;
@@ -127,10 +160,31 @@ pub(crate) unsafe fn sub_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
     let chunks8 = n / 8;
     for i in 0..chunks8 {
         let base = i * 8;
-        vst1q_f64(o_ptr.add(base), vsubq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))));
-        vst1q_f64(o_ptr.add(base + 2), vsubq_f64(vld1q_f64(a_ptr.add(base + 2)), vld1q_f64(b_ptr.add(base + 2))));
-        vst1q_f64(o_ptr.add(base + 4), vsubq_f64(vld1q_f64(a_ptr.add(base + 4)), vld1q_f64(b_ptr.add(base + 4))));
-        vst1q_f64(o_ptr.add(base + 6), vsubq_f64(vld1q_f64(a_ptr.add(base + 6)), vld1q_f64(b_ptr.add(base + 6))));
+        vst1q_f64(
+            o_ptr.add(base),
+            vsubq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vsubq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vsubq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vsubq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
     }
 
     let tail = chunks8 * 8;
@@ -153,10 +207,31 @@ pub(crate) unsafe fn mul_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
     let chunks8 = n / 8;
     for i in 0..chunks8 {
         let base = i * 8;
-        vst1q_f64(o_ptr.add(base), vmulq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))));
-        vst1q_f64(o_ptr.add(base + 2), vmulq_f64(vld1q_f64(a_ptr.add(base + 2)), vld1q_f64(b_ptr.add(base + 2))));
-        vst1q_f64(o_ptr.add(base + 4), vmulq_f64(vld1q_f64(a_ptr.add(base + 4)), vld1q_f64(b_ptr.add(base + 4))));
-        vst1q_f64(o_ptr.add(base + 6), vmulq_f64(vld1q_f64(a_ptr.add(base + 6)), vld1q_f64(b_ptr.add(base + 6))));
+        vst1q_f64(
+            o_ptr.add(base),
+            vmulq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vmulq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vmulq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vmulq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
     }
 
     let tail = chunks8 * 8;
@@ -179,10 +254,31 @@ pub(crate) unsafe fn div_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
     let chunks8 = n / 8;
     for i in 0..chunks8 {
         let base = i * 8;
-        vst1q_f64(o_ptr.add(base), vdivq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))));
-        vst1q_f64(o_ptr.add(base + 2), vdivq_f64(vld1q_f64(a_ptr.add(base + 2)), vld1q_f64(b_ptr.add(base + 2))));
-        vst1q_f64(o_ptr.add(base + 4), vdivq_f64(vld1q_f64(a_ptr.add(base + 4)), vld1q_f64(b_ptr.add(base + 4))));
-        vst1q_f64(o_ptr.add(base + 6), vdivq_f64(vld1q_f64(a_ptr.add(base + 6)), vld1q_f64(b_ptr.add(base + 6))));
+        vst1q_f64(
+            o_ptr.add(base),
+            vdivq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vdivq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vdivq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vdivq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
     }
 
     let tail = chunks8 * 8;
@@ -209,10 +305,22 @@ pub(crate) unsafe fn axpy_f64_neon(alpha: f64, x: &[f64], y: &mut [f64]) {
         let vy1 = vld1q_f64(y_ptr.add(base + 2));
         let vy2 = vld1q_f64(y_ptr.add(base + 4));
         let vy3 = vld1q_f64(y_ptr.add(base + 6));
-        vst1q_f64(y_ptr.add(base), vfmaq_f64(vy0, valpha, vld1q_f64(x_ptr.add(base))));
-        vst1q_f64(y_ptr.add(base + 2), vfmaq_f64(vy1, valpha, vld1q_f64(x_ptr.add(base + 2))));
-        vst1q_f64(y_ptr.add(base + 4), vfmaq_f64(vy2, valpha, vld1q_f64(x_ptr.add(base + 4))));
-        vst1q_f64(y_ptr.add(base + 6), vfmaq_f64(vy3, valpha, vld1q_f64(x_ptr.add(base + 6))));
+        vst1q_f64(
+            y_ptr.add(base),
+            vfmaq_f64(vy0, valpha, vld1q_f64(x_ptr.add(base))),
+        );
+        vst1q_f64(
+            y_ptr.add(base + 2),
+            vfmaq_f64(vy1, valpha, vld1q_f64(x_ptr.add(base + 2))),
+        );
+        vst1q_f64(
+            y_ptr.add(base + 4),
+            vfmaq_f64(vy2, valpha, vld1q_f64(x_ptr.add(base + 4))),
+        );
+        vst1q_f64(
+            y_ptr.add(base + 6),
+            vfmaq_f64(vy3, valpha, vld1q_f64(x_ptr.add(base + 6))),
+        );
     }
 
     let tail = chunks8 * 8;
@@ -235,9 +343,18 @@ pub(crate) unsafe fn scal_f64_neon(alpha: f64, x: &mut [f64]) {
     for i in 0..chunks8 {
         let base = i * 8;
         vst1q_f64(ptr.add(base), vmulq_f64(valpha, vld1q_f64(ptr.add(base))));
-        vst1q_f64(ptr.add(base + 2), vmulq_f64(valpha, vld1q_f64(ptr.add(base + 2))));
-        vst1q_f64(ptr.add(base + 4), vmulq_f64(valpha, vld1q_f64(ptr.add(base + 4))));
-        vst1q_f64(ptr.add(base + 6), vmulq_f64(valpha, vld1q_f64(ptr.add(base + 6))));
+        vst1q_f64(
+            ptr.add(base + 2),
+            vmulq_f64(valpha, vld1q_f64(ptr.add(base + 2))),
+        );
+        vst1q_f64(
+            ptr.add(base + 4),
+            vmulq_f64(valpha, vld1q_f64(ptr.add(base + 4))),
+        );
+        vst1q_f64(
+            ptr.add(base + 6),
+            vmulq_f64(valpha, vld1q_f64(ptr.add(base + 6))),
+        );
     }
 
     let tail = chunks8 * 8;
@@ -415,10 +532,22 @@ pub(crate) unsafe fn relu_f64_neon(a: &[f64], out: &mut [f64]) {
     let chunks8 = n / 8;
     for i in 0..chunks8 {
         let base = i * 8;
-        vst1q_f64(o_ptr.add(base), vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base))));
-        vst1q_f64(o_ptr.add(base + 2), vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 2))));
-        vst1q_f64(o_ptr.add(base + 4), vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 4))));
-        vst1q_f64(o_ptr.add(base + 6), vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 6))));
+        vst1q_f64(
+            o_ptr.add(base),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 2))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 4))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 6))),
+        );
     }
 
     let tail = chunks8 * 8;
@@ -534,14 +663,22 @@ pub(crate) unsafe fn gemm_8x4_f64_neon(
     b_rs: usize,
     c_rs: usize,
 ) {
-    let mut c00 = vdupq_n_f64(0.0); let mut c01 = vdupq_n_f64(0.0);
-    let mut c10 = vdupq_n_f64(0.0); let mut c11 = vdupq_n_f64(0.0);
-    let mut c20 = vdupq_n_f64(0.0); let mut c21 = vdupq_n_f64(0.0);
-    let mut c30 = vdupq_n_f64(0.0); let mut c31 = vdupq_n_f64(0.0);
-    let mut c40 = vdupq_n_f64(0.0); let mut c41 = vdupq_n_f64(0.0);
-    let mut c50 = vdupq_n_f64(0.0); let mut c51 = vdupq_n_f64(0.0);
-    let mut c60 = vdupq_n_f64(0.0); let mut c61 = vdupq_n_f64(0.0);
-    let mut c70 = vdupq_n_f64(0.0); let mut c71 = vdupq_n_f64(0.0);
+    let mut c00 = vdupq_n_f64(0.0);
+    let mut c01 = vdupq_n_f64(0.0);
+    let mut c10 = vdupq_n_f64(0.0);
+    let mut c11 = vdupq_n_f64(0.0);
+    let mut c20 = vdupq_n_f64(0.0);
+    let mut c21 = vdupq_n_f64(0.0);
+    let mut c30 = vdupq_n_f64(0.0);
+    let mut c31 = vdupq_n_f64(0.0);
+    let mut c40 = vdupq_n_f64(0.0);
+    let mut c41 = vdupq_n_f64(0.0);
+    let mut c50 = vdupq_n_f64(0.0);
+    let mut c51 = vdupq_n_f64(0.0);
+    let mut c60 = vdupq_n_f64(0.0);
+    let mut c61 = vdupq_n_f64(0.0);
+    let mut c70 = vdupq_n_f64(0.0);
+    let mut c71 = vdupq_n_f64(0.0);
 
     for p in 0..kb {
         let b_row = b_ptr.add(p * b_rs);
@@ -549,21 +686,29 @@ pub(crate) unsafe fn gemm_8x4_f64_neon(
         let b1 = vld1q_f64(b_row.add(2));
 
         let a0 = vdupq_n_f64(*a_ptr.add(0 * a_rs + p));
-        c00 = vfmaq_f64(c00, a0, b0); c01 = vfmaq_f64(c01, a0, b1);
+        c00 = vfmaq_f64(c00, a0, b0);
+        c01 = vfmaq_f64(c01, a0, b1);
         let a1 = vdupq_n_f64(*a_ptr.add(1 * a_rs + p));
-        c10 = vfmaq_f64(c10, a1, b0); c11 = vfmaq_f64(c11, a1, b1);
+        c10 = vfmaq_f64(c10, a1, b0);
+        c11 = vfmaq_f64(c11, a1, b1);
         let a2 = vdupq_n_f64(*a_ptr.add(2 * a_rs + p));
-        c20 = vfmaq_f64(c20, a2, b0); c21 = vfmaq_f64(c21, a2, b1);
+        c20 = vfmaq_f64(c20, a2, b0);
+        c21 = vfmaq_f64(c21, a2, b1);
         let a3 = vdupq_n_f64(*a_ptr.add(3 * a_rs + p));
-        c30 = vfmaq_f64(c30, a3, b0); c31 = vfmaq_f64(c31, a3, b1);
+        c30 = vfmaq_f64(c30, a3, b0);
+        c31 = vfmaq_f64(c31, a3, b1);
         let a4 = vdupq_n_f64(*a_ptr.add(4 * a_rs + p));
-        c40 = vfmaq_f64(c40, a4, b0); c41 = vfmaq_f64(c41, a4, b1);
+        c40 = vfmaq_f64(c40, a4, b0);
+        c41 = vfmaq_f64(c41, a4, b1);
         let a5 = vdupq_n_f64(*a_ptr.add(5 * a_rs + p));
-        c50 = vfmaq_f64(c50, a5, b0); c51 = vfmaq_f64(c51, a5, b1);
+        c50 = vfmaq_f64(c50, a5, b0);
+        c51 = vfmaq_f64(c51, a5, b1);
         let a6 = vdupq_n_f64(*a_ptr.add(6 * a_rs + p));
-        c60 = vfmaq_f64(c60, a6, b0); c61 = vfmaq_f64(c61, a6, b1);
+        c60 = vfmaq_f64(c60, a6, b0);
+        c61 = vfmaq_f64(c61, a6, b1);
         let a7 = vdupq_n_f64(*a_ptr.add(7 * a_rs + p));
-        c70 = vfmaq_f64(c70, a7, b0); c71 = vfmaq_f64(c71, a7, b1);
+        c70 = vfmaq_f64(c70, a7, b0);
+        c71 = vfmaq_f64(c71, a7, b1);
     }
 
     let valpha = vdupq_n_f64(alpha);
@@ -572,7 +717,10 @@ pub(crate) unsafe fn gemm_8x4_f64_neon(
         ($row:expr, $lo:ident, $hi:ident) => {{
             let cp = c_ptr.add($row * c_rs);
             vst1q_f64(cp, vaddq_f64(vld1q_f64(cp), vmulq_f64($lo, valpha)));
-            vst1q_f64(cp.add(2), vaddq_f64(vld1q_f64(cp.add(2)), vmulq_f64($hi, valpha)));
+            vst1q_f64(
+                cp.add(2),
+                vaddq_f64(vld1q_f64(cp.add(2)), vmulq_f64($hi, valpha)),
+            );
         }};
     }
     store_row!(0, c00, c01);

@@ -425,7 +425,10 @@ pub fn gemm<T: Scalar>(
                                         b_f64.add(b_off),
                                         c_f64.add(c_off),
                                         alpha_f64,
-                                        kb, k, n, n,
+                                        kb,
+                                        k,
+                                        n,
+                                        n,
                                     );
                                 }
                                 // Remainder columns (j4..nb)
@@ -437,7 +440,8 @@ pub fn gemm<T: Scalar>(
                                             let scale_f64 = alpha_f64 * *a_f64.add(row_a + p);
                                             for jj in 0..(nb - j4) {
                                                 let b_idx = (pk + p) * n + pj + j4 + jj;
-                                                *c_f64.add(row_c + jj) += scale_f64 * *b_f64.add(b_idx);
+                                                *c_f64.add(row_c + jj) +=
+                                                    scale_f64 * *b_f64.add(b_idx);
                                             }
                                         }
                                     }
@@ -456,7 +460,10 @@ pub fn gemm<T: Scalar>(
                                         b_f64.add(b_off),
                                         c_f64.add(c_off),
                                         alpha_f64,
-                                        kb, k, n, n,
+                                        kb,
+                                        k,
+                                        n,
+                                        n,
                                     );
                                 }
                                 if j4 < nb {
@@ -467,7 +474,8 @@ pub fn gemm<T: Scalar>(
                                             let scale_f64 = alpha_f64 * *a_f64.add(row_a + p);
                                             for jj in 0..(nb - j4) {
                                                 let b_idx = (pk + p) * n + pj + j4 + jj;
-                                                *c_f64.add(row_c + jj) += scale_f64 * *b_f64.add(b_idx);
+                                                *c_f64.add(row_c + jj) +=
+                                                    scale_f64 * *b_f64.add(b_idx);
                                             }
                                         }
                                     }
