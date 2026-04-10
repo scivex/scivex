@@ -399,27 +399,58 @@ pub fn gemm<T: Scalar>(
             for pj in (0..n).step_by(NC) {
                 let nb = NC.min(n - pj);
 
-                // Micro-kernel: multiply A[pi..pi+mb, pk..pk+kb] × B[pk..pk+kb, pj..pj+nb]
-                //                   into C[pi..pi+mb, pj..pj+nb]
-                //
                 // On aarch64 with f64, use the NEON 4x4 micro-kernel for the
                 // bulk of the tile, then clean up remainder rows/cols with axpy.
                 #[cfg(all(target_arch = "aarch64", feature = "simd"))]
                 {
                     use std::any::TypeId;
                     if TypeId::of::<T>() == TypeId::of::<f64>() {
-                        // SAFETY: T is f64 confirmed by TypeId check.
-                        // Pointers are within the allocated tensor slices.
                         unsafe {
                             let a_f64 = a_data.as_ptr().cast::<f64>();
                             let b_f64 = b_data.as_ptr().cast::<f64>();
                             let c_f64 = c_data.as_mut_ptr().cast::<f64>();
                             let alpha_f64 = crate::simd::t_to_f64(alpha);
 
-                            // Process 4x4 blocks
-                            let i4 = mb / 4 * 4;
                             let j4 = nb / 4 * 4;
-                            for i in (0..i4).step_by(4) {
+
+                            // Process 8-row blocks with 8x4 micro-kernel
+                            let i8 = mb / 8 * 8;
+                            for i in (0..i8).step_by(8) {
+                                for j in (0..j4).step_by(4) {
+                                    let a_off = (pi + i) * k + pk;
+                                    let b_off = pk * n + (pj + j);
+                                    let c_off = (pi + i) * n + (pj + j);
+                                    crate::simd::neon_f64_ops::gemm_8x4_f64_neon(
+                                        a_f64.add(a_off),
+                                        b_f64.add(b_off),
+                                        c_f64.add(c_off),
+                                        alpha_f64,
+                                        kb,
+                                        k,
+                                        n,
+                                        n,
+                                    );
+                                }
+                                // Remainder columns (j4..nb)
+                                if j4 < nb {
+                                    for ii in 0..8 {
+                                        let row_a = (pi + i + ii) * k + pk;
+                                        let row_c = (pi + i + ii) * n + pj + j4;
+                                        for p in 0..kb {
+                                            let scale_f64 = alpha_f64 * *a_f64.add(row_a + p);
+                                            for jj in 0..(nb - j4) {
+                                                let b_idx = (pk + p) * n + pj + j4 + jj;
+                                                *c_f64.add(row_c + jj) +=
+                                                    scale_f64 * *b_f64.add(b_idx);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // Remaining 4-row block with 4x4 micro-kernel
+                            let i4_start = i8;
+                            let i4_end = i4_start + (mb - i8) / 4 * 4;
+                            for i in (i4_start..i4_end).step_by(4) {
                                 for j in (0..j4).step_by(4) {
                                     let a_off = (pi + i) * k + pk;
                                     let b_off = pk * n + (pj + j);
@@ -430,12 +461,11 @@ pub fn gemm<T: Scalar>(
                                         c_f64.add(c_off),
                                         alpha_f64,
                                         kb,
-                                        k, // a row stride
-                                        n, // b row stride
-                                        n, // c row stride
+                                        k,
+                                        n,
+                                        n,
                                     );
                                 }
-                                // Remainder columns (j4..nb)
                                 if j4 < nb {
                                     for ii in 0..4 {
                                         let row_a = (pi + i + ii) * k + pk;
@@ -444,15 +474,15 @@ pub fn gemm<T: Scalar>(
                                             let scale_f64 = alpha_f64 * *a_f64.add(row_a + p);
                                             for jj in 0..(nb - j4) {
                                                 let b_idx = (pk + p) * n + pj + j4 + jj;
-                                                let c_idx = row_c + jj;
-                                                *c_f64.add(c_idx) += scale_f64 * *b_f64.add(b_idx);
+                                                *c_f64.add(row_c + jj) +=
+                                                    scale_f64 * *b_f64.add(b_idx);
                                             }
                                         }
                                     }
                                 }
                             }
-                            // Remainder rows (i4..mb) — use axpy fallback
-                            for i in i4..mb {
+                            // Scalar remainder rows
+                            for i in i4_end..mb {
                                 let row_a = (pi + i) * k + pk;
                                 let row_c = (pi + i) * n + pj;
                                 for p in 0..kb {
@@ -464,7 +494,6 @@ pub fn gemm<T: Scalar>(
                                 }
                             }
                         }
-                        // Skip the generic path below on aarch64+f64.
                         continue;
                     }
                 }

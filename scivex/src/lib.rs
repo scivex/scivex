@@ -26,21 +26,21 @@
 //!
 //! | Module | Crate | Description |
 //! |--------|-------|-------------|
-//! | [`core`] | [`scivex-core`](https://docs.rs/scivex-core) | Tensors, linear algebra, FFT, SIMD, math primitives |
-//! | [`frame`] | [`scivex-frame`](https://docs.rs/scivex-frame) | DataFrames, Series, GroupBy, joins, reshaping |
-//! | [`stats`] | [`scivex-stats`](https://docs.rs/scivex-stats) | Distributions, hypothesis tests, regression, Bayesian |
-//! | [`io`] | [`scivex-io`](https://docs.rs/scivex-io) | CSV, JSON, Parquet, Arrow IPC, HDF5, Excel, SQLite |
-//! | [`optim`] | [`scivex-optim`](https://docs.rs/scivex-optim) | Optimization, root finding, integration, ODE solvers |
-//! | [`viz`] | [`scivex-viz`](https://docs.rs/scivex-viz) | Plotting, charts, SVG/PNG rendering |
-//! | [`ml`] | [`scivex-ml`](https://docs.rs/scivex-ml) | Trees, ensembles, SVM, clustering, pipelines, AutoML |
-//! | [`nn`] | [`scivex-nn`](https://docs.rs/scivex-nn) | Neural networks, autograd, layers, optimizers |
-//! | [`image`] | [`scivex-image`](https://docs.rs/scivex-image) | Image loading, transforms, filters, morphology |
-//! | [`signal`] | [`scivex-signal`](https://docs.rs/scivex-signal) | Signal processing, FFT, wavelets, audio |
-//! | [`graph`] | [`scivex-graph`](https://docs.rs/scivex-graph) | Graph data structures, algorithms, network analysis |
-//! | [`nlp`] | [`scivex-nlp`](https://docs.rs/scivex-nlp) | Tokenization, embeddings, text processing |
-//! | [`sym`] | [`scivex-sym`](https://docs.rs/scivex-sym) | Symbolic math, CAS, expression simplification |
-//! | [`gpu`] | [`scivex-gpu`](https://docs.rs/scivex-gpu) | GPU-accelerated tensor ops via wgpu |
-//! | [`rl`] | [`scivex-rl`](https://docs.rs/scivex-rl) | Reinforcement learning: DQN, PPO, A2C |
+//! | `core` | [`scivex-core`](https://docs.rs/scivex-core) | Tensors, linear algebra, FFT, SIMD, math primitives |
+//! | `frame` | [`scivex-frame`](https://docs.rs/scivex-frame) | DataFrames, Series, GroupBy, joins, reshaping |
+//! | `stats` | [`scivex-stats`](https://docs.rs/scivex-stats) | Distributions, hypothesis tests, regression, Bayesian |
+//! | `io` | [`scivex-io`](https://docs.rs/scivex-io) | CSV, JSON, Parquet, Arrow IPC, HDF5, Excel, SQLite |
+//! | `optim` | [`scivex-optim`](https://docs.rs/scivex-optim) | Optimization, root finding, integration, ODE solvers |
+//! | `viz` | [`scivex-viz`](https://docs.rs/scivex-viz) | Plotting, charts, SVG/PNG rendering |
+//! | `ml` | [`scivex-ml`](https://docs.rs/scivex-ml) | Trees, ensembles, SVM, clustering, pipelines, AutoML |
+//! | `nn` | [`scivex-nn`](https://docs.rs/scivex-nn) | Neural networks, autograd, layers, optimizers |
+//! | `image` | [`scivex-image`](https://docs.rs/scivex-image) | Image loading, transforms, filters, morphology |
+//! | `signal` | [`scivex-signal`](https://docs.rs/scivex-signal) | Signal processing, FFT, wavelets, audio |
+//! | `graph` | [`scivex-graph`](https://docs.rs/scivex-graph) | Graph data structures, algorithms, network analysis |
+//! | `nlp` | [`scivex-nlp`](https://docs.rs/scivex-nlp) | Tokenization, embeddings, text processing |
+//! | `sym` | [`scivex-sym`](https://docs.rs/scivex-sym) | Symbolic math, CAS, expression simplification |
+//! | `gpu` | [`scivex-gpu`](https://docs.rs/scivex-gpu) | GPU-accelerated tensor ops via wgpu |
+//! | `rl` | [`scivex-rl`](https://docs.rs/scivex-rl) | Reinforcement learning: DQN, PPO, A2C |
 //!
 //! ## Feature Flags
 //!

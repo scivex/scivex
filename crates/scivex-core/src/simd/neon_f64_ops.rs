@@ -18,49 +18,82 @@ unsafe fn hsum_f64x2(v: float64x2_t) -> f64 {
 #[inline]
 pub(crate) unsafe fn dot_f64_neon(a: &[f64], b: &[f64]) -> f64 {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
-    let mut acc = vdupq_n_f64(0.0);
     let a_ptr = a.as_ptr();
     let b_ptr = b.as_ptr();
 
-    for i in 0..chunks {
-        let va = vld1q_f64(a_ptr.add(i * 2));
-        let vb = vld1q_f64(b_ptr.add(i * 2));
-        acc = vfmaq_f64(acc, va, vb);
+    // 4 accumulators × 2 lanes = 8 f64 FMAs per unrolled iteration.
+    let mut acc0 = vdupq_n_f64(0.0);
+    let mut acc1 = vdupq_n_f64(0.0);
+    let mut acc2 = vdupq_n_f64(0.0);
+    let mut acc3 = vdupq_n_f64(0.0);
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        acc0 = vfmaq_f64(acc0, vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base)));
+        acc1 = vfmaq_f64(
+            acc1,
+            vld1q_f64(a_ptr.add(base + 2)),
+            vld1q_f64(b_ptr.add(base + 2)),
+        );
+        acc2 = vfmaq_f64(
+            acc2,
+            vld1q_f64(a_ptr.add(base + 4)),
+            vld1q_f64(b_ptr.add(base + 4)),
+        );
+        acc3 = vfmaq_f64(
+            acc3,
+            vld1q_f64(a_ptr.add(base + 6)),
+            vld1q_f64(b_ptr.add(base + 6)),
+        );
     }
 
-    let mut result = hsum_f64x2(acc);
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        result += *a.get_unchecked(tail + j) * *b.get_unchecked(tail + j);
+    acc0 = vaddq_f64(acc0, acc1);
+    acc2 = vaddq_f64(acc2, acc3);
+    acc0 = vaddq_f64(acc0, acc2);
+    let mut result = hsum_f64x2(acc0);
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        result += *a.get_unchecked(j) * *b.get_unchecked(j);
     }
     result
 }
 
-/// NEON sum of an f64 slice.
+/// NEON sum of an f64 slice using 4 independent accumulators to hide ADD latency.
 ///
 /// # Safety
 /// Caller must ensure this runs on aarch64.
 #[inline]
 pub(crate) unsafe fn sum_f64_neon(a: &[f64]) -> f64 {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
-    let mut acc = vdupq_n_f64(0.0);
     let ptr = a.as_ptr();
 
-    for i in 0..chunks {
-        let va = vld1q_f64(ptr.add(i * 2));
-        acc = vaddq_f64(acc, va);
+    // 4 accumulators × 2 lanes = 8 f64s per unrolled iteration.
+    let mut acc0 = vdupq_n_f64(0.0);
+    let mut acc1 = vdupq_n_f64(0.0);
+    let mut acc2 = vdupq_n_f64(0.0);
+    let mut acc3 = vdupq_n_f64(0.0);
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        acc0 = vaddq_f64(acc0, vld1q_f64(ptr.add(base)));
+        acc1 = vaddq_f64(acc1, vld1q_f64(ptr.add(base + 2)));
+        acc2 = vaddq_f64(acc2, vld1q_f64(ptr.add(base + 4)));
+        acc3 = vaddq_f64(acc3, vld1q_f64(ptr.add(base + 6)));
     }
 
-    let mut result = hsum_f64x2(acc);
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        result += *a.get_unchecked(tail + j);
+    // Reduce accumulators.
+    acc0 = vaddq_f64(acc0, acc1);
+    acc2 = vaddq_f64(acc2, acc3);
+    acc0 = vaddq_f64(acc0, acc2);
+    let mut result = hsum_f64x2(acc0);
+
+    // Handle remaining elements.
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        result += *a.get_unchecked(j);
     }
     result
 }
@@ -72,23 +105,91 @@ pub(crate) unsafe fn sum_f64_neon(a: &[f64]) -> f64 {
 #[inline]
 pub(crate) unsafe fn add_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
     let a_ptr = a.as_ptr();
     let b_ptr = b.as_ptr();
     let o_ptr = out.as_mut_ptr();
 
-    for i in 0..chunks {
-        let off = i * 2;
-        let va = vld1q_f64(a_ptr.add(off));
-        let vb = vld1q_f64(b_ptr.add(off));
-        vst1q_f64(o_ptr.add(off), vaddq_f64(va, vb));
+    // 4-way unroll: 8 f64s per iteration.
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(
+            o_ptr.add(base),
+            vaddq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vaddq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vaddq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vaddq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
     }
 
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        *out.get_unchecked_mut(tail + j) = *a.get_unchecked(tail + j) + *b.get_unchecked(tail + j);
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) + *b.get_unchecked(j);
+    }
+}
+
+/// NEON element-wise sub for f64.
+///
+/// # Safety
+/// Caller must ensure this runs on aarch64 and slices have equal length.
+#[inline]
+pub(crate) unsafe fn sub_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
+    let n = a.len();
+    let a_ptr = a.as_ptr();
+    let b_ptr = b.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(
+            o_ptr.add(base),
+            vsubq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vsubq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vsubq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vsubq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
+    }
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) - *b.get_unchecked(j);
     }
 }
 
@@ -99,23 +200,90 @@ pub(crate) unsafe fn add_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
 #[inline]
 pub(crate) unsafe fn mul_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
     let a_ptr = a.as_ptr();
     let b_ptr = b.as_ptr();
     let o_ptr = out.as_mut_ptr();
 
-    for i in 0..chunks {
-        let off = i * 2;
-        let va = vld1q_f64(a_ptr.add(off));
-        let vb = vld1q_f64(b_ptr.add(off));
-        vst1q_f64(o_ptr.add(off), vmulq_f64(va, vb));
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(
+            o_ptr.add(base),
+            vmulq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vmulq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vmulq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vmulq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
     }
 
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        *out.get_unchecked_mut(tail + j) = *a.get_unchecked(tail + j) * *b.get_unchecked(tail + j);
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) * *b.get_unchecked(j);
+    }
+}
+
+/// NEON element-wise div for f64.
+///
+/// # Safety
+/// Caller must ensure this runs on aarch64 and slices have equal length.
+#[inline]
+pub(crate) unsafe fn div_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
+    let n = a.len();
+    let a_ptr = a.as_ptr();
+    let b_ptr = b.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(
+            o_ptr.add(base),
+            vdivq_f64(vld1q_f64(a_ptr.add(base)), vld1q_f64(b_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vdivq_f64(
+                vld1q_f64(a_ptr.add(base + 2)),
+                vld1q_f64(b_ptr.add(base + 2)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vdivq_f64(
+                vld1q_f64(a_ptr.add(base + 4)),
+                vld1q_f64(b_ptr.add(base + 4)),
+            ),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vdivq_f64(
+                vld1q_f64(a_ptr.add(base + 6)),
+                vld1q_f64(b_ptr.add(base + 6)),
+            ),
+        );
+    }
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *out.get_unchecked_mut(j) = *a.get_unchecked(j) / *b.get_unchecked(j);
     }
 }
 
@@ -126,23 +294,38 @@ pub(crate) unsafe fn mul_f64_neon(a: &[f64], b: &[f64], out: &mut [f64]) {
 #[inline]
 pub(crate) unsafe fn axpy_f64_neon(alpha: f64, x: &[f64], y: &mut [f64]) {
     let n = x.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
     let valpha = vdupq_n_f64(alpha);
     let x_ptr = x.as_ptr();
     let y_ptr = y.as_mut_ptr();
 
-    for i in 0..chunks {
-        let off = i * 2;
-        let vx = vld1q_f64(x_ptr.add(off));
-        let vy = vld1q_f64(y_ptr.add(off));
-        vst1q_f64(y_ptr.add(off), vfmaq_f64(vy, valpha, vx));
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        let vy0 = vld1q_f64(y_ptr.add(base));
+        let vy1 = vld1q_f64(y_ptr.add(base + 2));
+        let vy2 = vld1q_f64(y_ptr.add(base + 4));
+        let vy3 = vld1q_f64(y_ptr.add(base + 6));
+        vst1q_f64(
+            y_ptr.add(base),
+            vfmaq_f64(vy0, valpha, vld1q_f64(x_ptr.add(base))),
+        );
+        vst1q_f64(
+            y_ptr.add(base + 2),
+            vfmaq_f64(vy1, valpha, vld1q_f64(x_ptr.add(base + 2))),
+        );
+        vst1q_f64(
+            y_ptr.add(base + 4),
+            vfmaq_f64(vy2, valpha, vld1q_f64(x_ptr.add(base + 4))),
+        );
+        vst1q_f64(
+            y_ptr.add(base + 6),
+            vfmaq_f64(vy3, valpha, vld1q_f64(x_ptr.add(base + 6))),
+        );
     }
 
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        *y.get_unchecked_mut(tail + j) += alpha * *x.get_unchecked(tail + j);
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *y.get_unchecked_mut(j) += alpha * *x.get_unchecked(j);
     }
 }
 
@@ -153,21 +336,30 @@ pub(crate) unsafe fn axpy_f64_neon(alpha: f64, x: &[f64], y: &mut [f64]) {
 #[inline]
 pub(crate) unsafe fn scal_f64_neon(alpha: f64, x: &mut [f64]) {
     let n = x.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
     let valpha = vdupq_n_f64(alpha);
     let ptr = x.as_mut_ptr();
 
-    for i in 0..chunks {
-        let off = i * 2;
-        let vx = vld1q_f64(ptr.add(off));
-        vst1q_f64(ptr.add(off), vmulq_f64(valpha, vx));
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(ptr.add(base), vmulq_f64(valpha, vld1q_f64(ptr.add(base))));
+        vst1q_f64(
+            ptr.add(base + 2),
+            vmulq_f64(valpha, vld1q_f64(ptr.add(base + 2))),
+        );
+        vst1q_f64(
+            ptr.add(base + 4),
+            vmulq_f64(valpha, vld1q_f64(ptr.add(base + 4))),
+        );
+        vst1q_f64(
+            ptr.add(base + 6),
+            vmulq_f64(valpha, vld1q_f64(ptr.add(base + 6))),
+        );
     }
 
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        *x.get_unchecked_mut(tail + j) *= alpha;
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        *x.get_unchecked_mut(j) *= alpha;
     }
 }
 
@@ -178,21 +370,35 @@ pub(crate) unsafe fn scal_f64_neon(alpha: f64, x: &mut [f64]) {
 #[inline]
 pub(crate) unsafe fn sum_sq_f64_neon(a: &[f64]) -> f64 {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
-    let mut acc = vdupq_n_f64(0.0);
     let ptr = a.as_ptr();
 
-    for i in 0..chunks {
-        let va = vld1q_f64(ptr.add(i * 2));
-        acc = vfmaq_f64(acc, va, va);
+    // 4 accumulators × 2 lanes = 8 f64s per unrolled iteration.
+    let mut acc0 = vdupq_n_f64(0.0);
+    let mut acc1 = vdupq_n_f64(0.0);
+    let mut acc2 = vdupq_n_f64(0.0);
+    let mut acc3 = vdupq_n_f64(0.0);
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        let v0 = vld1q_f64(ptr.add(base));
+        let v1 = vld1q_f64(ptr.add(base + 2));
+        let v2 = vld1q_f64(ptr.add(base + 4));
+        let v3 = vld1q_f64(ptr.add(base + 6));
+        acc0 = vfmaq_f64(acc0, v0, v0);
+        acc1 = vfmaq_f64(acc1, v1, v1);
+        acc2 = vfmaq_f64(acc2, v2, v2);
+        acc3 = vfmaq_f64(acc3, v3, v3);
     }
 
-    let mut result = hsum_f64x2(acc);
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        let v = *a.get_unchecked(tail + j);
+    acc0 = vaddq_f64(acc0, acc1);
+    acc2 = vaddq_f64(acc2, acc3);
+    acc0 = vaddq_f64(acc0, acc2);
+    let mut result = hsum_f64x2(acc0);
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        let v = *a.get_unchecked(j);
         result += v * v;
     }
     result
@@ -205,21 +411,30 @@ pub(crate) unsafe fn sum_sq_f64_neon(a: &[f64]) -> f64 {
 #[inline]
 pub(crate) unsafe fn asum_f64_neon(a: &[f64]) -> f64 {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
-    let mut acc = vdupq_n_f64(0.0);
     let ptr = a.as_ptr();
 
-    for i in 0..chunks {
-        let va = vld1q_f64(ptr.add(i * 2));
-        acc = vaddq_f64(acc, vabsq_f64(va));
+    let mut acc0 = vdupq_n_f64(0.0);
+    let mut acc1 = vdupq_n_f64(0.0);
+    let mut acc2 = vdupq_n_f64(0.0);
+    let mut acc3 = vdupq_n_f64(0.0);
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        acc0 = vaddq_f64(acc0, vabsq_f64(vld1q_f64(ptr.add(base))));
+        acc1 = vaddq_f64(acc1, vabsq_f64(vld1q_f64(ptr.add(base + 2))));
+        acc2 = vaddq_f64(acc2, vabsq_f64(vld1q_f64(ptr.add(base + 4))));
+        acc3 = vaddq_f64(acc3, vabsq_f64(vld1q_f64(ptr.add(base + 6))));
     }
 
-    let mut result = hsum_f64x2(acc);
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        result += (*a.get_unchecked(tail + j)).abs();
+    acc0 = vaddq_f64(acc0, acc1);
+    acc2 = vaddq_f64(acc2, acc3);
+    acc0 = vaddq_f64(acc0, acc2);
+    let mut result = hsum_f64x2(acc0);
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        result += (*a.get_unchecked(j)).abs();
     }
     result
 }
@@ -231,21 +446,30 @@ pub(crate) unsafe fn asum_f64_neon(a: &[f64]) -> f64 {
 #[inline]
 pub(crate) unsafe fn min_f64_neon(a: &[f64]) -> f64 {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
-    let mut vmin = vdupq_n_f64(f64::INFINITY);
     let ptr = a.as_ptr();
 
-    for i in 0..chunks {
-        let va = vld1q_f64(ptr.add(i * 2));
-        vmin = vminq_f64(vmin, va);
+    let mut vmin0 = vdupq_n_f64(f64::INFINITY);
+    let mut vmin1 = vdupq_n_f64(f64::INFINITY);
+    let mut vmin2 = vdupq_n_f64(f64::INFINITY);
+    let mut vmin3 = vdupq_n_f64(f64::INFINITY);
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vmin0 = vminq_f64(vmin0, vld1q_f64(ptr.add(base)));
+        vmin1 = vminq_f64(vmin1, vld1q_f64(ptr.add(base + 2)));
+        vmin2 = vminq_f64(vmin2, vld1q_f64(ptr.add(base + 4)));
+        vmin3 = vminq_f64(vmin3, vld1q_f64(ptr.add(base + 6)));
     }
 
-    let mut result = vminvq_f64(vmin);
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        result = result.min(*a.get_unchecked(tail + j));
+    vmin0 = vminq_f64(vmin0, vmin1);
+    vmin2 = vminq_f64(vmin2, vmin3);
+    vmin0 = vminq_f64(vmin0, vmin2);
+    let mut result = vminvq_f64(vmin0);
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        result = result.min(*a.get_unchecked(j));
     }
     result
 }
@@ -257,21 +481,30 @@ pub(crate) unsafe fn min_f64_neon(a: &[f64]) -> f64 {
 #[inline]
 pub(crate) unsafe fn max_f64_neon(a: &[f64]) -> f64 {
     let n = a.len();
-    let chunks = n / 2;
-    let remainder = n % 2;
-
-    let mut vmax = vdupq_n_f64(f64::NEG_INFINITY);
     let ptr = a.as_ptr();
 
-    for i in 0..chunks {
-        let va = vld1q_f64(ptr.add(i * 2));
-        vmax = vmaxq_f64(vmax, va);
+    let mut vmax0 = vdupq_n_f64(f64::NEG_INFINITY);
+    let mut vmax1 = vdupq_n_f64(f64::NEG_INFINITY);
+    let mut vmax2 = vdupq_n_f64(f64::NEG_INFINITY);
+    let mut vmax3 = vdupq_n_f64(f64::NEG_INFINITY);
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vmax0 = vmaxq_f64(vmax0, vld1q_f64(ptr.add(base)));
+        vmax1 = vmaxq_f64(vmax1, vld1q_f64(ptr.add(base + 2)));
+        vmax2 = vmaxq_f64(vmax2, vld1q_f64(ptr.add(base + 4)));
+        vmax3 = vmaxq_f64(vmax3, vld1q_f64(ptr.add(base + 6)));
     }
 
-    let mut result = vmaxvq_f64(vmax);
-    let tail = chunks * 2;
-    for j in 0..remainder {
-        result = result.max(*a.get_unchecked(tail + j));
+    vmax0 = vmaxq_f64(vmax0, vmax1);
+    vmax2 = vmaxq_f64(vmax2, vmax3);
+    vmax0 = vmaxq_f64(vmax0, vmax2);
+    let mut result = vmaxvq_f64(vmax0);
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        result = result.max(*a.get_unchecked(j));
     }
     result
 }
@@ -283,6 +516,45 @@ pub(crate) unsafe fn max_f64_neon(a: &[f64]) -> f64 {
 #[inline]
 pub(crate) unsafe fn mean_f64_neon(a: &[f64]) -> f64 {
     sum_f64_neon(a) / a.len() as f64
+}
+
+/// NEON ReLU (max(0, x)) for f64.
+///
+/// # Safety
+/// Caller must ensure this runs on aarch64 and slices have equal length.
+#[inline]
+pub(crate) unsafe fn relu_f64_neon(a: &[f64], out: &mut [f64]) {
+    let n = a.len();
+    let a_ptr = a.as_ptr();
+    let o_ptr = out.as_mut_ptr();
+    let vzero = vdupq_n_f64(0.0);
+
+    let chunks8 = n / 8;
+    for i in 0..chunks8 {
+        let base = i * 8;
+        vst1q_f64(
+            o_ptr.add(base),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 2),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 2))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 4),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 4))),
+        );
+        vst1q_f64(
+            o_ptr.add(base + 6),
+            vmaxq_f64(vzero, vld1q_f64(a_ptr.add(base + 6))),
+        );
+    }
+
+    let tail = chunks8 * 8;
+    for j in tail..n {
+        let v = *a.get_unchecked(j);
+        *out.get_unchecked_mut(j) = if v > 0.0 { v } else { 0.0 };
+    }
 }
 
 /// NEON 4x4 micro-kernel for GEMM: C[4x4] += alpha * A_panel[4xK] * B_panel[Kx4].
@@ -317,22 +589,20 @@ pub(crate) unsafe fn gemm_4x4_f64_neon(
     c_rs: usize,
 ) {
     // 4x4 accumulator: c[i][j] stored as 4 pairs of float64x2_t (low 2, high 2)
-    let mut c00 = vdupq_n_f64(0.0); // C[0][0..2]
-    let mut c01 = vdupq_n_f64(0.0); // C[0][2..4]
-    let mut c10 = vdupq_n_f64(0.0); // C[1][0..2]
-    let mut c11 = vdupq_n_f64(0.0); // C[1][2..4]
-    let mut c20 = vdupq_n_f64(0.0); // C[2][0..2]
-    let mut c21 = vdupq_n_f64(0.0); // C[2][2..4]
-    let mut c30 = vdupq_n_f64(0.0); // C[3][0..2]
-    let mut c31 = vdupq_n_f64(0.0); // C[3][2..4]
+    let mut c00 = vdupq_n_f64(0.0);
+    let mut c01 = vdupq_n_f64(0.0);
+    let mut c10 = vdupq_n_f64(0.0);
+    let mut c11 = vdupq_n_f64(0.0);
+    let mut c20 = vdupq_n_f64(0.0);
+    let mut c21 = vdupq_n_f64(0.0);
+    let mut c30 = vdupq_n_f64(0.0);
+    let mut c31 = vdupq_n_f64(0.0);
 
     for p in 0..kb {
-        // Load B[p][0..4] as two float64x2_t
         let b_row = b_ptr.add(p * b_rs);
         let b0 = vld1q_f64(b_row);
         let b1 = vld1q_f64(b_row.add(2));
 
-        // Broadcast A[i][p] and FMA into C[i][0..4]
         let a0 = vdupq_n_f64(*a_ptr.add(0 * a_rs + p));
         c00 = vfmaq_f64(c00, a0, b0);
         c01 = vfmaq_f64(c01, a0, b1);
@@ -350,7 +620,6 @@ pub(crate) unsafe fn gemm_4x4_f64_neon(
         c31 = vfmaq_f64(c31, a3, b1);
     }
 
-    // Scale by alpha
     let valpha = vdupq_n_f64(alpha);
     c00 = vmulq_f64(c00, valpha);
     c01 = vmulq_f64(c01, valpha);
@@ -361,7 +630,6 @@ pub(crate) unsafe fn gemm_4x4_f64_neon(
     c30 = vmulq_f64(c30, valpha);
     c31 = vmulq_f64(c31, valpha);
 
-    // Accumulate into C (C += micro-result)
     let c0 = c_ptr;
     let c1 = c_ptr.add(c_rs);
     let c2 = c_ptr.add(2 * c_rs);
@@ -375,4 +643,92 @@ pub(crate) unsafe fn gemm_4x4_f64_neon(
     vst1q_f64(c2.add(2), vaddq_f64(vld1q_f64(c2.add(2)), c21));
     vst1q_f64(c3, vaddq_f64(vld1q_f64(c3), c30));
     vst1q_f64(c3.add(2), vaddq_f64(vld1q_f64(c3.add(2)), c31));
+}
+
+/// NEON 8x4 micro-kernel for f64 GEMM (strided B, no packing).
+///
+/// Computes C[0..8, 0..4] += alpha * A[0..8, 0..kb] * B[0..kb, 0..4]
+/// Uses 16 accumulator registers (8 rows × 2 float64x2_t).
+///
+/// # Safety
+/// Caller must ensure valid pointers and aarch64 target.
+#[inline]
+pub(crate) unsafe fn gemm_8x4_f64_neon(
+    a_ptr: *const f64,
+    b_ptr: *const f64,
+    c_ptr: *mut f64,
+    alpha: f64,
+    kb: usize,
+    a_rs: usize,
+    b_rs: usize,
+    c_rs: usize,
+) {
+    let mut c00 = vdupq_n_f64(0.0);
+    let mut c01 = vdupq_n_f64(0.0);
+    let mut c10 = vdupq_n_f64(0.0);
+    let mut c11 = vdupq_n_f64(0.0);
+    let mut c20 = vdupq_n_f64(0.0);
+    let mut c21 = vdupq_n_f64(0.0);
+    let mut c30 = vdupq_n_f64(0.0);
+    let mut c31 = vdupq_n_f64(0.0);
+    let mut c40 = vdupq_n_f64(0.0);
+    let mut c41 = vdupq_n_f64(0.0);
+    let mut c50 = vdupq_n_f64(0.0);
+    let mut c51 = vdupq_n_f64(0.0);
+    let mut c60 = vdupq_n_f64(0.0);
+    let mut c61 = vdupq_n_f64(0.0);
+    let mut c70 = vdupq_n_f64(0.0);
+    let mut c71 = vdupq_n_f64(0.0);
+
+    for p in 0..kb {
+        let b_row = b_ptr.add(p * b_rs);
+        let b0 = vld1q_f64(b_row);
+        let b1 = vld1q_f64(b_row.add(2));
+
+        let a0 = vdupq_n_f64(*a_ptr.add(0 * a_rs + p));
+        c00 = vfmaq_f64(c00, a0, b0);
+        c01 = vfmaq_f64(c01, a0, b1);
+        let a1 = vdupq_n_f64(*a_ptr.add(1 * a_rs + p));
+        c10 = vfmaq_f64(c10, a1, b0);
+        c11 = vfmaq_f64(c11, a1, b1);
+        let a2 = vdupq_n_f64(*a_ptr.add(2 * a_rs + p));
+        c20 = vfmaq_f64(c20, a2, b0);
+        c21 = vfmaq_f64(c21, a2, b1);
+        let a3 = vdupq_n_f64(*a_ptr.add(3 * a_rs + p));
+        c30 = vfmaq_f64(c30, a3, b0);
+        c31 = vfmaq_f64(c31, a3, b1);
+        let a4 = vdupq_n_f64(*a_ptr.add(4 * a_rs + p));
+        c40 = vfmaq_f64(c40, a4, b0);
+        c41 = vfmaq_f64(c41, a4, b1);
+        let a5 = vdupq_n_f64(*a_ptr.add(5 * a_rs + p));
+        c50 = vfmaq_f64(c50, a5, b0);
+        c51 = vfmaq_f64(c51, a5, b1);
+        let a6 = vdupq_n_f64(*a_ptr.add(6 * a_rs + p));
+        c60 = vfmaq_f64(c60, a6, b0);
+        c61 = vfmaq_f64(c61, a6, b1);
+        let a7 = vdupq_n_f64(*a_ptr.add(7 * a_rs + p));
+        c70 = vfmaq_f64(c70, a7, b0);
+        c71 = vfmaq_f64(c71, a7, b1);
+    }
+
+    let valpha = vdupq_n_f64(alpha);
+
+    macro_rules! store_row {
+        ($row:expr, $lo:ident, $hi:ident) => {{
+            let cp = c_ptr.add($row * c_rs);
+            vst1q_f64(cp, vaddq_f64(vld1q_f64(cp), vmulq_f64($lo, valpha)));
+            vst1q_f64(
+                cp.add(2),
+                vaddq_f64(vld1q_f64(cp.add(2)), vmulq_f64($hi, valpha)),
+            );
+        }};
+    }
+    store_row!(0, c00, c01);
+    store_row!(1, c10, c11);
+    store_row!(2, c20, c21);
+    store_row!(3, c30, c31);
+    store_row!(4, c40, c41);
+    store_row!(5, c50, c51);
+    store_row!(6, c60, c61);
+    store_row!(7, c70, c71);
 }

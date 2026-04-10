@@ -142,10 +142,10 @@ impl<T: Float> Variable<T> {
     /// Accumulate `g` into this node's gradient (summing if one already exists).
     pub(crate) fn acc_grad(&self, g: &Tensor<T>) {
         let mut node = self.inner.borrow_mut();
-        node.grad = Some(match node.grad.take() {
-            Some(existing) => &existing + g,
-            None => g.clone(),
-        });
+        match node.grad.as_mut() {
+            Some(existing) => *existing += g,
+            None => node.grad = Some(g.clone()),
+        }
     }
 
     // ── Backward pass ───────────────────────────────────────────────

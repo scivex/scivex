@@ -14,8 +14,8 @@ categories = ["science", "parser-implementations"]
 workspace = true
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
-scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
+scivex-frame = { version = "0.1.1", path = "../scivex-frame" }
 serde_json = { version = "1", optional = true }
 
 # SQL backends

@@ -14,7 +14,7 @@ categories = ["science", "algorithms"]
 workspace = true
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
 serde = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]

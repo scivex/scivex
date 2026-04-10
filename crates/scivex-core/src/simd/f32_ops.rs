@@ -23,10 +23,24 @@ pub(crate) fn add_f32_scalar(a: &[f32], b: &[f32], out: &mut [f32]) {
     }
 }
 
+/// Scalar element-wise sub for f32.
+pub(crate) fn sub_f32_scalar(a: &[f32], b: &[f32], out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = a[i] - b[i];
+    }
+}
+
 /// Scalar element-wise mul for f32.
 pub(crate) fn mul_f32_scalar(a: &[f32], b: &[f32], out: &mut [f32]) {
     for i in 0..a.len() {
         out[i] = a[i] * b[i];
+    }
+}
+
+/// Scalar element-wise div for f32.
+pub(crate) fn div_f32_scalar(a: &[f32], b: &[f32], out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = a[i] / b[i];
     }
 }
 
@@ -70,6 +84,13 @@ pub(crate) fn mean_f32_scalar(a: &[f32]) -> f32 {
         return 0.0;
     }
     sum_f32_scalar(a) / a.len() as f32
+}
+
+/// Scalar ReLU for f32: `out[i] = max(0, a[i])`.
+pub(crate) fn relu_f32_scalar(a: &[f32], out: &mut [f32]) {
+    for i in 0..a.len() {
+        out[i] = if a[i] > 0.0 { a[i] } else { 0.0 };
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +205,35 @@ mod avx {
         }
     }
 
+    /// AVX element-wise sub for f32.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available and slices have equal length.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn sub_f32_avx(a: &[f32], b: &[f32], out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let remainder = n % 8;
+
+        // SAFETY: AVX available, pointers within bounds.
+        let a_ptr = a.as_ptr();
+        let b_ptr = b.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+
+        for i in 0..chunks {
+            let off = i * 8;
+            let va = _mm256_loadu_ps(a_ptr.add(off));
+            let vb = _mm256_loadu_ps(b_ptr.add(off));
+            _mm256_storeu_ps(o_ptr.add(off), _mm256_sub_ps(va, vb));
+        }
+
+        let tail = chunks * 8;
+        for j in 0..remainder {
+            *out.get_unchecked_mut(tail + j) =
+                *a.get_unchecked(tail + j) - *b.get_unchecked(tail + j);
+        }
+    }
+
     /// AVX element-wise mul for f32.
     ///
     /// # Safety
@@ -210,6 +260,35 @@ mod avx {
         for j in 0..remainder {
             *out.get_unchecked_mut(tail + j) =
                 *a.get_unchecked(tail + j) * *b.get_unchecked(tail + j);
+        }
+    }
+
+    /// AVX element-wise div for f32.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available and slices have equal length.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn div_f32_avx(a: &[f32], b: &[f32], out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let remainder = n % 8;
+
+        // SAFETY: AVX available, pointers within bounds.
+        let a_ptr = a.as_ptr();
+        let b_ptr = b.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+
+        for i in 0..chunks {
+            let off = i * 8;
+            let va = _mm256_loadu_ps(a_ptr.add(off));
+            let vb = _mm256_loadu_ps(b_ptr.add(off));
+            _mm256_storeu_ps(o_ptr.add(off), _mm256_div_ps(va, vb));
+        }
+
+        let tail = chunks * 8;
+        for j in 0..remainder {
+            *out.get_unchecked_mut(tail + j) =
+                *a.get_unchecked(tail + j) / *b.get_unchecked(tail + j);
         }
     }
 
@@ -408,6 +487,30 @@ mod avx {
         }
         result
     }
+
+    /// AVX ReLU for f32: `out[i] = max(0, a[i])`.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn relu_f32_avx(a: &[f32], out: &mut [f32]) {
+        let n = a.len();
+        let chunks = n / 8;
+        let remainder = n % 8;
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        // SAFETY: AVX available, pointers within bounds.
+        let vzero = _mm256_setzero_ps();
+        for i in 0..chunks {
+            let va = _mm256_loadu_ps(a_ptr.add(i * 8));
+            _mm256_storeu_ps(o_ptr.add(i * 8), _mm256_max_ps(vzero, va));
+        }
+        let tail = chunks * 8;
+        for j in 0..remainder {
+            let v = a[tail + j];
+            out[tail + j] = if v > 0.0 { v } else { 0.0 };
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -447,12 +550,36 @@ pub(crate) fn add_f32(a: &[f32], b: &[f32], out: &mut [f32]) {
     );
 }
 
+/// SIMD-accelerated element-wise sub for f32 slices.
+pub(crate) fn sub_f32(a: &[f32], b: &[f32], out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::sub_f32_avx,
+        super::neon_f32_ops::sub_f32_neon,
+        sub_f32_scalar,
+        a,
+        b,
+        out
+    );
+}
+
 /// SIMD-accelerated element-wise mul for f32 slices.
 pub(crate) fn mul_f32(a: &[f32], b: &[f32], out: &mut [f32]) {
     super::dispatch_f32!(
         avx::mul_f32_avx,
         super::neon_f32_ops::mul_f32_neon,
         mul_f32_scalar,
+        a,
+        b,
+        out
+    );
+}
+
+/// SIMD-accelerated element-wise div for f32 slices.
+pub(crate) fn div_f32(a: &[f32], b: &[f32], out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::div_f32_avx,
+        super::neon_f32_ops::div_f32_neon,
+        div_f32_scalar,
         a,
         b,
         out
@@ -530,6 +657,17 @@ pub(crate) fn mean_f32(a: &[f32]) -> f32 {
         mean_f32_scalar,
         a
     )
+}
+
+/// SIMD-accelerated ReLU for f32 slices: `out[i] = max(0, a[i])`.
+pub(crate) fn relu_f32(a: &[f32], out: &mut [f32]) {
+    super::dispatch_f32!(
+        avx::relu_f32_avx,
+        super::neon_f32_ops::relu_f32_neon,
+        relu_f32_scalar,
+        a,
+        out
+    );
 }
 
 #[cfg(test)]

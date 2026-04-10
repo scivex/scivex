@@ -57,25 +57,45 @@ pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<
 
     // Normalize by a[0].
     let a0 = a_raw[0];
-    let bn: Vec<T> = bs.iter().map(|&v| v / a0).collect();
-    let an: Vec<T> = a_raw.iter().map(|&v| v / a0).collect();
+    let mut bn: Vec<T> = bs.iter().map(|&v| v / a0).collect();
+    let mut an: Vec<T> = a_raw.iter().map(|&v| v / a0).collect();
 
     let xs = x.as_slice();
     let n = xs.len();
-    let nb = bn.len();
-    let na = an.len();
-    let order = nb.max(na);
+    let order = bn.len().max(an.len());
 
-    // State vector for direct form II transposed.
-    let mut z = vec![T::zero(); order];
+    // Pad coefficients to `order` length so the inner loop is branchless.
+    bn.resize(order, T::zero());
+    an.resize(order, T::zero());
+
+    // Check if this is a pure FIR filter (a = [1.0], no feedback).
+    let is_fir = an.len() == 1 || an[1..].iter().all(|&v| v == T::zero());
+
     let mut y = vec![T::zero(); n];
 
-    for i in 0..n {
-        y[i] = bn[0] * xs[i] + z[0];
-        for j in 1..order {
-            let b_val = if j < nb { bn[j] } else { T::zero() };
-            let a_val = if j < na { an[j] } else { T::zero() };
-            z[j - 1] = b_val * xs[i] - a_val * y[i] + if j + 1 < order { z[j] } else { T::zero() };
+    if is_fir && order > 1 {
+        // FIR-only fast path using Direct Form II Transposed without feedback.
+        let mut z = vec![T::zero(); order];
+        let b0 = bn[0];
+        for i in 0..n {
+            let xi = xs[i];
+            y[i] = b0 * xi + z[0];
+            // No an[j] * y[i] term since a = [1.0].
+            for j in 1..order - 1 {
+                z[j - 1] = bn[j] * xi + z[j];
+            }
+            if order > 1 {
+                z[order - 2] = bn[order - 1] * xi;
+            }
+        }
+    } else {
+        // General IIR path: Direct Form II Transposed.
+        let mut z = vec![T::zero(); order];
+        for i in 0..n {
+            y[i] = bn[0] * xs[i] + z[0];
+            for j in 1..order {
+                z[j - 1] = bn[j] * xs[i] - an[j] * y[i] + z[j];
+            }
         }
     }
 

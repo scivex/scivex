@@ -5,7 +5,7 @@
 //! - `Tensor<T> op T` (broadcast scalar to every element)
 //! - `Neg` for `Float` tensors
 
-use core::ops::{Add, Div, Mul, Neg, Sub};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use crate::error::CoreError;
 use crate::{Float, Scalar};
@@ -13,11 +13,94 @@ use crate::{Float, Scalar};
 use super::Tensor;
 
 // ======================================================================
+// SIMD-dispatched element-wise binary op helper
+// ======================================================================
+
+/// Apply a SIMD-dispatched element-wise binary operation.
+///
+/// For f64 and f32, delegates to the provided SIMD kernel function.
+/// For other types, falls back to the scalar closure.
+#[cfg(feature = "simd")]
+fn simd_binop<T: Scalar>(
+    a: &[T],
+    b: &[T],
+    f64_kernel: fn(&[f64], &[f64], &mut [f64]),
+    f32_kernel: fn(&[f32], &[f32], &mut [f32]),
+    scalar_op: fn(T, T) -> T,
+) -> Vec<T> {
+    use std::any::TypeId;
+    if TypeId::of::<T>() == TypeId::of::<f64>() {
+        // SAFETY: T is f64 confirmed by TypeId.
+        let a_f64 = unsafe { crate::simd::slice_as_f64(a) };
+        let b_f64 = unsafe { crate::simd::slice_as_f64(b) };
+        // SAFETY: kernel writes every element; skip zero-fill.
+        let mut out = Vec::with_capacity(a.len());
+        unsafe {
+            out.set_len(a.len());
+            f64_kernel(a_f64, b_f64, &mut out);
+        }
+        // SAFETY: T is f64, Vec<f64> and Vec<T> have identical layout.
+        let mut out = core::mem::ManuallyDrop::new(out);
+        unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
+    } else if TypeId::of::<T>() == TypeId::of::<f32>() {
+        // SAFETY: T is f32 confirmed by TypeId.
+        let a_f32 = unsafe { crate::simd::slice_as_f32(a) };
+        let b_f32 = unsafe { crate::simd::slice_as_f32(b) };
+        // SAFETY: kernel writes every element; skip zero-fill.
+        let mut out = Vec::with_capacity(a.len());
+        unsafe {
+            out.set_len(a.len());
+            f32_kernel(a_f32, b_f32, &mut out);
+        }
+        // SAFETY: T is f32, Vec<f32> and Vec<T> have identical layout.
+        let mut out = core::mem::ManuallyDrop::new(out);
+        unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
+    } else {
+        a.iter()
+            .zip(b.iter())
+            .map(|(&x, &y)| scalar_op(x, y))
+            .collect()
+    }
+}
+
+/// Apply a SIMD-dispatched element-wise binary operation in-place on `a`.
+///
+/// The NEON/AVX kernels load each element before writing, so passing `a` as
+/// both input and output is safe (no aliasing issue within a single chunk).
+#[cfg(feature = "simd")]
+fn simd_binop_inplace<T: Scalar>(
+    a: &mut [T],
+    b: &[T],
+    f64_kernel: fn(&[f64], &[f64], &mut [f64]),
+    f32_kernel: fn(&[f32], &[f32], &mut [f32]),
+    scalar_op: fn(T, T) -> T,
+) {
+    use std::any::TypeId;
+    if TypeId::of::<T>() == TypeId::of::<f64>() {
+        let b_f64 = unsafe { crate::simd::slice_as_f64(b) };
+        let a_f64 = unsafe { crate::simd::slice_as_f64_mut(a) };
+        // SAFETY: Kernel reads a[i] into register before writing result to a[i].
+        // We create a non-overlapping "input" view via raw pointer cast.
+        let a_input = unsafe { core::slice::from_raw_parts(a_f64.as_ptr(), a_f64.len()) };
+        f64_kernel(a_input, b_f64, a_f64);
+    } else if TypeId::of::<T>() == TypeId::of::<f32>() {
+        let b_f32 = unsafe { crate::simd::slice_as_f32(b) };
+        let a_f32 = unsafe { crate::simd::slice_as_f32_mut(a) };
+        let a_input = unsafe { core::slice::from_raw_parts(a_f32.as_ptr(), a_f32.len()) };
+        f32_kernel(a_input, b_f32, a_f32);
+    } else {
+        for (x, &y) in a.iter_mut().zip(b.iter()) {
+            *x = scalar_op(*x, y);
+        }
+    }
+}
+
+// ======================================================================
 // Tensor + Tensor  (element-wise, same shape — panics on mismatch)
 // ======================================================================
 
 macro_rules! impl_tensor_binop {
-    ($trait:ident, $method:ident, $op:tt) => {
+    ($trait:ident, $method:ident, $op:tt, $f64_kern:path, $f32_kern:path) => {
         impl<T: Scalar> $trait for Tensor<T> {
             type Output = Tensor<T>;
 
@@ -27,7 +110,14 @@ macro_rules! impl_tensor_binop {
                     "shape mismatch in element-wise {}: {:?} vs {:?}",
                     stringify!($method), self.shape, rhs.shape,
                 );
-                let data = self.data.iter()
+                #[cfg(feature = "simd")]
+                let data = simd_binop(
+                    &self.data, &rhs.data,
+                    $f64_kern, $f32_kern,
+                    |a, b| a $op b,
+                );
+                #[cfg(not(feature = "simd"))]
+                let data: Vec<T> = self.data.iter()
                     .zip(rhs.data.iter())
                     .map(|(&a, &b)| a $op b)
                     .collect();
@@ -48,7 +138,14 @@ macro_rules! impl_tensor_binop {
                     "shape mismatch in element-wise {}: {:?} vs {:?}",
                     stringify!($method), self.shape, rhs.shape,
                 );
-                let data = self.data.iter()
+                #[cfg(feature = "simd")]
+                let data = simd_binop(
+                    &self.data, &rhs.data,
+                    $f64_kern, $f32_kern,
+                    |a, b| a $op b,
+                );
+                #[cfg(not(feature = "simd"))]
+                let data: Vec<T> = self.data.iter()
                     .zip(rhs.data.iter())
                     .map(|(&a, &b)| a $op b)
                     .collect();
@@ -62,10 +159,52 @@ macro_rules! impl_tensor_binop {
     };
 }
 
-impl_tensor_binop!(Add, add, +);
-impl_tensor_binop!(Sub, sub, -);
-impl_tensor_binop!(Mul, mul, *);
-impl_tensor_binop!(Div, div, /);
+impl_tensor_binop!(Add, add, +, crate::simd::f64_ops::add_f64, crate::simd::f32_ops::add_f32);
+impl_tensor_binop!(Sub, sub, -, crate::simd::f64_ops::sub_f64, crate::simd::f32_ops::sub_f32);
+impl_tensor_binop!(Mul, mul, *, crate::simd::f64_ops::mul_f64, crate::simd::f32_ops::mul_f32);
+impl_tensor_binop!(Div, div, /, crate::simd::f64_ops::div_f64, crate::simd::f32_ops::div_f32);
+
+// ======================================================================
+// Compound assignment operators (+=, -=, *=, /=)
+// ======================================================================
+
+macro_rules! impl_tensor_assign_op {
+    ($trait:ident, $method:ident, $op:tt, $f64_kern:path, $f32_kern:path) => {
+        impl<T: Scalar> $trait<&Tensor<T>> for Tensor<T> {
+            fn $method(&mut self, rhs: &Tensor<T>) {
+                assert_eq!(
+                    self.shape, rhs.shape,
+                    "shape mismatch in element-wise {}: {:?} vs {:?}",
+                    stringify!($method), self.shape, rhs.shape,
+                );
+                #[cfg(feature = "simd")]
+                {
+                    simd_binop_inplace(
+                        &mut self.data, &rhs.data,
+                        $f64_kern, $f32_kern,
+                        |a, b| a $op b,
+                    );
+                    return;
+                }
+                #[cfg(not(feature = "simd"))]
+                for (a, &b) in self.data.iter_mut().zip(rhs.data.iter()) {
+                    *a = *a $op b;
+                }
+            }
+        }
+
+        impl<T: Scalar> $trait<Tensor<T>> for Tensor<T> {
+            fn $method(&mut self, rhs: Tensor<T>) {
+                $trait::$method(self, &rhs);
+            }
+        }
+    };
+}
+
+impl_tensor_assign_op!(AddAssign, add_assign, +, crate::simd::f64_ops::add_f64, crate::simd::f32_ops::add_f32);
+impl_tensor_assign_op!(SubAssign, sub_assign, -, crate::simd::f64_ops::sub_f64, crate::simd::f32_ops::sub_f32);
+impl_tensor_assign_op!(MulAssign, mul_assign, *, crate::simd::f64_ops::mul_f64, crate::simd::f32_ops::mul_f32);
+impl_tensor_assign_op!(DivAssign, div_assign, /, crate::simd::f64_ops::div_f64, crate::simd::f32_ops::div_f32);
 
 // SIMD-accelerated overrides for f64 and f32 element-wise add/mul.
 // These override the generic macro implementations for concrete float types.
@@ -479,6 +618,52 @@ impl<T: Float> Tensor<T> {
     pub fn mean(&self) -> T {
         self.sum() / T::from_usize(self.numel())
     }
+
+    /// Element-wise ReLU: `max(0, x)` for each element.
+    pub fn relu(&self) -> Tensor<T> {
+        #[cfg(feature = "simd")]
+        {
+            use crate::simd;
+            use std::any::TypeId;
+            if TypeId::of::<T>() == TypeId::of::<f64>() {
+                // SAFETY: T is f64 confirmed by TypeId.
+                let a = unsafe { simd::slice_as_f64(self.data.as_slice()) };
+                let mut out = Vec::with_capacity(a.len());
+                unsafe { out.set_len(a.len()) };
+                simd::f64_ops::relu_f64(a, &mut out);
+                let data = unsafe { std::mem::transmute::<Vec<f64>, Vec<T>>(out) };
+                return Tensor {
+                    data,
+                    shape: self.shape.clone(),
+                    strides: self.strides.clone(),
+                };
+            }
+            if TypeId::of::<T>() == TypeId::of::<f32>() {
+                // SAFETY: T is f32 confirmed by TypeId.
+                let a = unsafe { simd::slice_as_f32(self.data.as_slice()) };
+                let mut out = Vec::with_capacity(a.len());
+                unsafe { out.set_len(a.len()) };
+                simd::f32_ops::relu_f32(a, &mut out);
+                let data = unsafe { std::mem::transmute::<Vec<f32>, Vec<T>>(out) };
+                return Tensor {
+                    data,
+                    shape: self.shape.clone(),
+                    strides: self.strides.clone(),
+                };
+            }
+        }
+        let zero = T::zero();
+        let data = self
+            .data
+            .iter()
+            .map(|&v| if v > zero { v } else { zero })
+            .collect();
+        Tensor {
+            data,
+            shape: self.shape.clone(),
+            strides: self.strides.clone(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -576,6 +761,38 @@ mod tests {
     fn test_sum_axis_out_of_bounds() {
         let t = Tensor::from_vec(vec![1, 2, 3], vec![3]).unwrap();
         assert!(t.sum_axis(1).is_err());
+    }
+
+    #[test]
+    fn test_add_assign() {
+        let mut a = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        let b = Tensor::from_vec(vec![10.0, 20.0, 30.0], vec![3]).unwrap();
+        a += &b;
+        assert_eq!(a.as_slice(), &[11.0, 22.0, 33.0]);
+    }
+
+    #[test]
+    fn test_sub_assign() {
+        let mut a = Tensor::from_vec(vec![10.0, 20.0, 30.0], vec![3]).unwrap();
+        let b = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        a -= &b;
+        assert_eq!(a.as_slice(), &[9.0, 18.0, 27.0]);
+    }
+
+    #[test]
+    fn test_mul_assign() {
+        let mut a = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        let b = Tensor::from_vec(vec![10.0, 10.0, 10.0], vec![3]).unwrap();
+        a *= &b;
+        assert_eq!(a.as_slice(), &[10.0, 20.0, 30.0]);
+    }
+
+    #[test]
+    fn test_div_assign() {
+        let mut a = Tensor::from_vec(vec![10.0, 20.0, 30.0], vec![3]).unwrap();
+        let b = Tensor::from_vec(vec![10.0, 10.0, 10.0], vec![3]).unwrap();
+        a /= &b;
+        assert_eq!(a.as_slice(), &[1.0, 2.0, 3.0]);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 [package]
 name = "scivex"
 description = "A comprehensive Rust library replacing the Python data science ecosystem"
-version = "0.1.1"
+version = "0.1.2"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -15,21 +15,21 @@ categories = ["science", "mathematics"]
 workspace = true
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../crates/scivex-core" }
-scivex-frame = { version = "0.1.0", path = "../crates/scivex-frame", optional = true }
-scivex-stats = { version = "0.1.0", path = "../crates/scivex-stats", optional = true }
-scivex-io = { version = "0.1.0", path = "../crates/scivex-io", optional = true }
-scivex-optim = { version = "0.1.0", path = "../crates/scivex-optim", optional = true }
-scivex-viz = { version = "0.1.0", path = "../crates/scivex-viz", optional = true }
-scivex-ml = { version = "0.1.0", path = "../crates/scivex-ml", optional = true }
-scivex-nn = { version = "0.1.0", path = "../crates/scivex-nn", optional = true }
-scivex-image = { version = "0.1.0", path = "../crates/scivex-image", optional = true }
-scivex-signal = { version = "0.1.0", path = "../crates/scivex-signal", optional = true }
-scivex-graph = { version = "0.1.0", path = "../crates/scivex-graph", optional = true }
-scivex-nlp = { version = "0.1.0", path = "../crates/scivex-nlp", optional = true }
-scivex-sym = { version = "0.1.0", path = "../crates/scivex-sym", optional = true }
-scivex-gpu = { version = "0.1.0", path = "../crates/scivex-gpu", optional = true }
-scivex-rl = { version = "0.1.0", path = "../crates/scivex-rl", optional = true }
+scivex-core = { version = "0.1.1", path = "../crates/scivex-core" }
+scivex-frame = { version = "0.1.1", path = "../crates/scivex-frame", optional = true }
+scivex-stats = { version = "0.1.1", path = "../crates/scivex-stats", optional = true }
+scivex-io = { version = "0.1.1", path = "../crates/scivex-io", optional = true }
+scivex-optim = { version = "0.1.1", path = "../crates/scivex-optim", optional = true }
+scivex-viz = { version = "0.1.1", path = "../crates/scivex-viz", optional = true }
+scivex-ml = { version = "0.1.1", path = "../crates/scivex-ml", optional = true }
+scivex-nn = { version = "0.1.1", path = "../crates/scivex-nn", optional = true }
+scivex-image = { version = "0.1.1", path = "../crates/scivex-image", optional = true }
+scivex-signal = { version = "0.1.1", path = "../crates/scivex-signal", optional = true }
+scivex-graph = { version = "0.1.1", path = "../crates/scivex-graph", optional = true }
+scivex-nlp = { version = "0.1.1", path = "../crates/scivex-nlp", optional = true }
+scivex-sym = { version = "0.1.1", path = "../crates/scivex-sym", optional = true }
+scivex-gpu = { version = "0.1.1", path = "../crates/scivex-gpu", optional = true }
+scivex-rl = { version = "0.1.1", path = "../crates/scivex-rl", optional = true }
 
 [features]
 default = ["core"]
@@ -69,7 +69,7 @@ serde-support = [
     "scivex-nlp?/serde-support",
     "scivex-sym?/serde-support",
 ]
-full = ["core", "frame", "stats", "io", "optim", "viz", "ml", "nn", "image", "image-png", "image-jpeg", "signal", "graph", "nlp", "sym", "rl"]
+full = ["core", "frame", "stats", "io", "optim", "viz", "ml", "nn", "image", "image-png", "image-jpeg", "signal", "graph", "nlp", "sym", "rl", "simd", "parallel"]
 
 [package.metadata.docs.rs]
 all-features = true

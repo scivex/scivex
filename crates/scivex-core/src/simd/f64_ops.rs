@@ -23,10 +23,24 @@ pub(crate) fn add_f64_scalar(a: &[f64], b: &[f64], out: &mut [f64]) {
     }
 }
 
+/// Scalar element-wise sub: `out[i] = a[i] - b[i]`.
+pub(crate) fn sub_f64_scalar(a: &[f64], b: &[f64], out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = a[i] - b[i];
+    }
+}
+
 /// Scalar element-wise mul: `out[i] = a[i] * b[i]`.
 pub(crate) fn mul_f64_scalar(a: &[f64], b: &[f64], out: &mut [f64]) {
     for i in 0..a.len() {
         out[i] = a[i] * b[i];
+    }
+}
+
+/// Scalar element-wise div: `out[i] = a[i] / b[i]`.
+pub(crate) fn div_f64_scalar(a: &[f64], b: &[f64], out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = a[i] / b[i];
     }
 }
 
@@ -70,6 +84,13 @@ pub(crate) fn mean_f64_scalar(a: &[f64]) -> f64 {
         return 0.0;
     }
     sum_f64_scalar(a) / a.len() as f64
+}
+
+/// Scalar ReLU: `out[i] = max(0, a[i])`.
+pub(crate) fn relu_f64_scalar(a: &[f64], out: &mut [f64]) {
+    for i in 0..a.len() {
+        out[i] = if a[i] > 0.0 { a[i] } else { 0.0 };
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -183,6 +204,35 @@ mod avx {
         }
     }
 
+    /// AVX element-wise sub.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available and all slices have equal length.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn sub_f64_avx(a: &[f64], b: &[f64], out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let remainder = n % 4;
+
+        // SAFETY: AVX available, all pointers within bounds.
+        let a_ptr = a.as_ptr();
+        let b_ptr = b.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+
+        for i in 0..chunks {
+            let off = i * 4;
+            let va = _mm256_loadu_pd(a_ptr.add(off));
+            let vb = _mm256_loadu_pd(b_ptr.add(off));
+            _mm256_storeu_pd(o_ptr.add(off), _mm256_sub_pd(va, vb));
+        }
+
+        let tail = chunks * 4;
+        for j in 0..remainder {
+            *out.get_unchecked_mut(tail + j) =
+                *a.get_unchecked(tail + j) - *b.get_unchecked(tail + j);
+        }
+    }
+
     /// AVX element-wise mul.
     ///
     /// # Safety
@@ -209,6 +259,35 @@ mod avx {
         for j in 0..remainder {
             *out.get_unchecked_mut(tail + j) =
                 *a.get_unchecked(tail + j) * *b.get_unchecked(tail + j);
+        }
+    }
+
+    /// AVX element-wise div.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available and all slices have equal length.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn div_f64_avx(a: &[f64], b: &[f64], out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let remainder = n % 4;
+
+        // SAFETY: AVX available, all pointers within bounds.
+        let a_ptr = a.as_ptr();
+        let b_ptr = b.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+
+        for i in 0..chunks {
+            let off = i * 4;
+            let va = _mm256_loadu_pd(a_ptr.add(off));
+            let vb = _mm256_loadu_pd(b_ptr.add(off));
+            _mm256_storeu_pd(o_ptr.add(off), _mm256_div_pd(va, vb));
+        }
+
+        let tail = chunks * 4;
+        for j in 0..remainder {
+            *out.get_unchecked_mut(tail + j) =
+                *a.get_unchecked(tail + j) / *b.get_unchecked(tail + j);
         }
     }
 
@@ -403,6 +482,30 @@ mod avx {
         }
         result
     }
+
+    /// AVX ReLU: `out[i] = max(0, a[i])`.
+    ///
+    /// # Safety
+    /// Caller must ensure AVX is available.
+    #[target_feature(enable = "avx")]
+    pub(crate) unsafe fn relu_f64_avx(a: &[f64], out: &mut [f64]) {
+        let n = a.len();
+        let chunks = n / 4;
+        let remainder = n % 4;
+        let a_ptr = a.as_ptr();
+        let o_ptr = out.as_mut_ptr();
+        // SAFETY: AVX available, pointers within bounds.
+        let vzero = _mm256_setzero_pd();
+        for i in 0..chunks {
+            let va = _mm256_loadu_pd(a_ptr.add(i * 4));
+            _mm256_storeu_pd(o_ptr.add(i * 4), _mm256_max_pd(vzero, va));
+        }
+        let tail = chunks * 4;
+        for j in 0..remainder {
+            let v = a[tail + j];
+            out[tail + j] = if v > 0.0 { v } else { 0.0 };
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -442,12 +545,36 @@ pub(crate) fn add_f64(a: &[f64], b: &[f64], out: &mut [f64]) {
     );
 }
 
+/// SIMD-accelerated element-wise sub for f64 slices.
+pub(crate) fn sub_f64(a: &[f64], b: &[f64], out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::sub_f64_avx,
+        super::neon_f64_ops::sub_f64_neon,
+        sub_f64_scalar,
+        a,
+        b,
+        out
+    );
+}
+
 /// SIMD-accelerated element-wise mul for f64 slices.
 pub(crate) fn mul_f64(a: &[f64], b: &[f64], out: &mut [f64]) {
     super::dispatch_f64!(
         avx::mul_f64_avx,
         super::neon_f64_ops::mul_f64_neon,
         mul_f64_scalar,
+        a,
+        b,
+        out
+    );
+}
+
+/// SIMD-accelerated element-wise div for f64 slices.
+pub(crate) fn div_f64(a: &[f64], b: &[f64], out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::div_f64_avx,
+        super::neon_f64_ops::div_f64_neon,
+        div_f64_scalar,
         a,
         b,
         out
@@ -525,6 +652,17 @@ pub(crate) fn mean_f64(a: &[f64]) -> f64 {
         mean_f64_scalar,
         a
     )
+}
+
+/// SIMD-accelerated ReLU for f64 slices: `out[i] = max(0, a[i])`.
+pub(crate) fn relu_f64(a: &[f64], out: &mut [f64]) {
+    super::dispatch_f64!(
+        avx::relu_f64_avx,
+        super::neon_f64_ops::relu_f64_neon,
+        relu_f64_scalar,
+        a,
+        out
+    );
 }
 
 #[cfg(test)]

@@ -16,21 +16,21 @@ name = "pyscivex"
 crate-type = ["cdylib"]
 
 [dependencies]
-scivex-core = { version = "0.1.0", path = "../scivex-core" }
-scivex-frame = { version = "0.1.0", path = "../scivex-frame" }
-scivex-stats = { version = "0.1.0", path = "../scivex-stats" }
-scivex-ml = { version = "0.1.0", path = "../scivex-ml" }
-scivex-viz = { version = "0.1.0", path = "../scivex-viz" }
-scivex-io = { version = "0.1.0", path = "../scivex-io", features = ["csv", "json", "parquet", "excel", "sqlite", "arrow", "npy", "hdf5", "orc", "avro"] }
-scivex-optim = { version = "0.1.0", path = "../scivex-optim" }
-scivex-nn = { version = "0.1.0", path = "../scivex-nn" }
-scivex-signal = { version = "0.1.0", path = "../scivex-signal" }
-scivex-image = { version = "0.1.0", path = "../scivex-image" }
-scivex-nlp = { version = "0.1.0", path = "../scivex-nlp" }
-scivex-graph = { version = "0.1.0", path = "../scivex-graph" }
-scivex-sym = { version = "0.1.0", path = "../scivex-sym" }
-scivex-rl = { version = "0.1.0", path = "../scivex-rl" }
-scivex-gpu = { version = "0.1.0", path = "../scivex-gpu" }
+scivex-core = { version = "0.1.1", path = "../scivex-core" }
+scivex-frame = { version = "0.1.1", path = "../scivex-frame" }
+scivex-stats = { version = "0.1.1", path = "../scivex-stats" }
+scivex-ml = { version = "0.1.1", path = "../scivex-ml" }
+scivex-viz = { version = "0.1.1", path = "../scivex-viz" }
+scivex-io = { version = "0.1.1", path = "../scivex-io", features = ["csv", "json", "parquet", "excel", "sqlite", "arrow", "npy", "hdf5", "orc", "avro"] }
+scivex-optim = { version = "0.1.1", path = "../scivex-optim" }
+scivex-nn = { version = "0.1.1", path = "../scivex-nn" }
+scivex-signal = { version = "0.1.1", path = "../scivex-signal" }
+scivex-image = { version = "0.1.1", path = "../scivex-image" }
+scivex-nlp = { version = "0.1.1", path = "../scivex-nlp" }
+scivex-graph = { version = "0.1.1", path = "../scivex-graph" }
+scivex-sym = { version = "0.1.1", path = "../scivex-sym" }
+scivex-rl = { version = "0.1.1", path = "../scivex-rl" }
+scivex-gpu = { version = "0.1.1", path = "../scivex-gpu" }
 pyo3 = { version = "0.25", features = ["extension-module"] }
 
 [features]

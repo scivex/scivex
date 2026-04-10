@@ -1404,6 +1404,24 @@ impl AnySeries for DateTimeSeries {
             null_mask: if has_nulls { Some(nulls) } else { None },
         })
     }
+
+    fn compare_at(&self, a: usize, b: usize) -> std::cmp::Ordering {
+        let a_null = self.is_null_at(a);
+        let b_null = self.is_null_at(b);
+        match (a_null, b_null) {
+            (true, true) => std::cmp::Ordering::Equal,
+            (true, false) => std::cmp::Ordering::Greater,
+            (false, true) => std::cmp::Ordering::Less,
+            (false, false) => self.data[a].cmp(&self.data[b]),
+        }
+    }
+
+    fn sort_indices(&self, indices: &mut [usize], ascending: bool) {
+        indices.sort_unstable_by(|&a, &b| {
+            let cmp = self.compare_at(a, b);
+            if ascending { cmp } else { cmp.reverse() }
+        });
+    }
 }
 
 // ---------------------------------------------------------------------------

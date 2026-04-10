@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pyscivex"
-version = "0.1.0"
+version = "0.1.1"
 description = "The complete data science toolkit — powered by Rust"
 readme = "README_PY.md"
 license = { text = "MIT" }

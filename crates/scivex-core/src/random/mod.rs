@@ -51,6 +51,7 @@ fn splitmix64(state: &mut u64) -> u64 {
 pub struct Rng {
     s: [u64; 4],
     /// Cached spare normal value from Box-Muller (None when empty).
+    #[allow(dead_code)]
     spare_normal: Option<f64>,
 }
 
@@ -140,10 +141,10 @@ impl Rng {
         (self.next_u64() >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
     }
 
-    /// Generate a standard normal (N(0,1)) `f64` via the Box-Muller transform.
+    /// Generate a standard normal (N(0,1)) `f64` via the Ziggurat algorithm.
     ///
-    /// Internally caches the spare value so every other call is essentially
-    /// free.
+    /// ~97% of samples require only a multiply and comparison (no
+    /// transcendentals), making this much faster than Box-Muller.
     ///
     /// # Examples
     ///
@@ -155,24 +156,89 @@ impl Rng {
     /// assert!(mean.abs() < 0.2);
     /// ```
     pub fn next_normal_f64(&mut self) -> f64 {
-        if let Some(spare) = self.spare_normal.take() {
-            return spare;
+        ziggurat_normal(self)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Ziggurat algorithm for normal distribution
+// ---------------------------------------------------------------------------
+
+/// Number of rectangles in the Ziggurat decomposition.
+const ZIG_N: usize = 128;
+/// Right-most x of the base rectangle.
+const ZIG_R: f64 = 3.442_619_855_899;
+/// Area of each rectangle (= area of the tail).
+const ZIG_V: f64 = 9.912_563_035_262_17e-3;
+
+/// Precomputed Ziggurat table: x-coordinates of rectangle right edges.
+/// `YTAB[i] = f(XTAB[i])` where `f(x) = exp(-x*x/2)`.
+fn zig_tables() -> ([f64; ZIG_N + 1], [f64; ZIG_N + 1]) {
+    let mut xtab = [0.0f64; ZIG_N + 1];
+    let mut ytab = [0.0f64; ZIG_N + 1];
+
+    let f = |x: f64| (-0.5 * x * x).exp();
+
+    xtab[ZIG_N] = ZIG_V / f(ZIG_R);
+    xtab[ZIG_N - 1] = ZIG_R;
+    ytab[ZIG_N] = 0.0;
+    ytab[ZIG_N - 1] = f(xtab[ZIG_N - 1]);
+
+    let mut i = ZIG_N - 2;
+    loop {
+        xtab[i] = (-2.0 * (ZIG_V / xtab[i + 1] + f(xtab[i + 1])).ln()).sqrt();
+        ytab[i] = f(xtab[i]);
+        if i == 0 {
+            break;
+        }
+        i -= 1;
+    }
+    // xtab[0] is the top (smallest x); ytab[0] = f(xtab[0]) ≈ 1.
+    (xtab, ytab)
+}
+
+/// Sample from the tail of the normal distribution (|x| > R).
+fn zig_tail(rng: &mut Rng, positive: bool) -> f64 {
+    loop {
+        let x = -rng.next_f64().ln() / ZIG_R; // exponential with rate R
+        let y = -rng.next_f64().ln();
+        if 2.0 * y >= x * x {
+            return if positive { ZIG_R + x } else { -(ZIG_R + x) };
+        }
+    }
+}
+
+/// Ziggurat normal: O(1) expected time, ~97% fast-path.
+fn ziggurat_normal(rng: &mut Rng) -> f64 {
+    // We compute tables once per call. In a tight loop the compiler will
+    // usually const-fold or cache these, but for absolute best perf we use
+    // a static lazy init.
+    use std::sync::OnceLock;
+    static TABLES: OnceLock<([f64; ZIG_N + 1], [f64; ZIG_N + 1])> = OnceLock::new();
+    let (xtab, ytab) = TABLES.get_or_init(zig_tables);
+
+    loop {
+        let u = rng.next_u64();
+        let i = (u & 0x7F) as usize; // bottom 7 bits → layer index [0, 127]
+        let sign = if u & 0x80 != 0 { 1.0 } else { -1.0 };
+        // Use remaining bits for a uniform float in [0, 1).
+        let u_float = (u >> 8) as f64 / ((1u64 << 56) as f64);
+        let x = u_float * xtab[i];
+
+        // Fast accept: x falls strictly inside rectangle i.
+        if x < xtab[i + 1] {
+            return sign * x;
         }
 
-        loop {
-            let u1 = self.next_f64();
-            let u2 = self.next_f64();
+        // Bottom layer includes the tail.
+        if i == 0 {
+            return zig_tail(rng, sign > 0.0);
+        }
 
-            // Reject exact zero for the log argument.
-            if u1 <= f64::MIN_POSITIVE {
-                continue;
-            }
-
-            let mag = (-2.0 * u1.ln()).sqrt();
-            let angle = 2.0 * std::f64::consts::PI * u2;
-
-            self.spare_normal = Some(mag * angle.sin());
-            return mag * angle.cos();
+        // Slow accept: sample within the wedge between rectangles.
+        let y = ytab[i + 1] + (ytab[i] - ytab[i + 1]) * rng.next_f64();
+        if y < (-0.5 * x * x).exp() {
+            return sign * x;
         }
     }
 }
@@ -295,18 +361,11 @@ pub fn randint<T: Integer>(rng: &mut Rng, shape: Vec<usize>, low: T, high: T) ->
 }
 
 /// Compute the number of integers in [low, high) as a `usize`.
-///
-/// Counts up from 0 until `T::from_usize(n) == high - low`. Since this is
 /// used for random integer generation where ranges are typically small, the
 /// linear scan is acceptable. For large ranges a binary search on `from_usize`
 /// is unsafe because signed types wrap on overflow.
 fn int_range_as_usize<T: Integer>(low: T, high: T) -> usize {
-    let diff = high - low;
-    let mut n: usize = 0;
-    while T::from_usize(n) < diff {
-        n += 1;
-    }
-    n
+    (high - low).to_usize()
 }
 
 /// Create a tensor of Bernoulli random variables (0 or 1) with probability `p`.
