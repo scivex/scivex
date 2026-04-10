@@ -96,6 +96,7 @@ macro_rules! impl_tensor_binop {
         impl<T: Scalar> $trait for Tensor<T> {
             type Output = Tensor<T>;
 
+            #[allow(clippy::assign_op_pattern)]
             fn $method(mut self, rhs: Tensor<T>) -> Tensor<T> {
                 assert_eq!(
                     self.shape, rhs.shape,
@@ -172,6 +173,7 @@ impl_tensor_binop!(Div, div, /, crate::simd::f64_ops::div_f64, crate::simd::f32_
 macro_rules! impl_tensor_assign_op {
     ($trait:ident, $method:ident, $op:tt, $f64_kern:path, $f32_kern:path) => {
         impl<T: Scalar> $trait<&Tensor<T>> for Tensor<T> {
+            #[allow(clippy::assign_op_pattern)]
             fn $method(&mut self, rhs: &Tensor<T>) {
                 assert_eq!(
                     self.shape, rhs.shape,
@@ -368,6 +370,7 @@ macro_rules! impl_scalar_binop {
         impl<T: Scalar> $trait<T> for Tensor<T> {
             type Output = Tensor<T>;
 
+            #[allow(clippy::assign_op_pattern)]
             fn $method(mut self, rhs: T) -> Tensor<T> {
                 #[cfg(feature = "simd")]
                 {
