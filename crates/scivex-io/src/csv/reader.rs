@@ -240,10 +240,18 @@ impl CsvReaderBuilder {
             *column_names = (0..ncols).map(|i| format!("column_{i}")).collect();
         }
 
-        let mut columns: Vec<Vec<String>> = vec![Vec::with_capacity(records.len()); ncols];
+        // Build columns directly (row→column transpose) with null replacement inline.
+        let nrows = records.len();
+        let has_null_values = !self.null_values.is_empty();
+        let mut columns: Vec<Vec<String>> = vec![Vec::with_capacity(nrows); ncols];
         for record in records {
             for (col_idx, col) in columns.iter_mut().enumerate() {
-                col.push(record.get(col_idx).cloned().unwrap_or_default());
+                let val = record.get(col_idx).map_or("", String::as_str);
+                if has_null_values && self.null_values.iter().any(|n| n == val) {
+                    col.push(String::new());
+                } else {
+                    col.push(val.to_string());
+                }
             }
         }
 
@@ -256,16 +264,6 @@ impl CsvReaderBuilder {
         let mut series_vec: Vec<Box<dyn scivex_frame::AnySeries>> = Vec::with_capacity(ncols);
         for (col_idx, col_data) in columns.iter().enumerate() {
             let col_name = &column_names[col_idx];
-            let col_data: Vec<String> = col_data
-                .iter()
-                .map(|v| {
-                    if self.null_values.iter().any(|n| n == v) {
-                        String::new()
-                    } else {
-                        v.clone()
-                    }
-                })
-                .collect();
 
             let dtype = if let Some(&forced) = type_overrides.get(col_name.as_str()) {
                 forced
@@ -277,7 +275,7 @@ impl CsvReaderBuilder {
                     .collect();
                 infer_column_type(&sample)
             };
-            series_vec.push(build_series_from_strings(col_name, &col_data, dtype)?);
+            series_vec.push(build_series_from_strings(col_name, col_data, dtype)?);
         }
 
         Ok(DataFrame::new(series_vec)?)

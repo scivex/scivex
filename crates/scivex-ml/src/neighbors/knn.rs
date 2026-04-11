@@ -79,11 +79,14 @@ impl<T: Float> Predictor<T> for KNNClassifier<T> {
             let query = &data[i * p..(i + 1) * p];
             let mut dists: Vec<(T, T)> = (0..self.n_train)
                 .map(|j| {
-                    let d = euclidean_dist(query, &x_tr[j * p..(j + 1) * p]);
+                    let d = sq_euclidean_dist(query, &x_tr[j * p..(j + 1) * p]);
                     (d, y_tr[j])
                 })
                 .collect();
-            dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+            // Partial sort: only need the k smallest, O(n) average vs O(n log n).
+            dists.select_nth_unstable_by(k - 1, |a, b| {
+                a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal)
+            });
 
             // Majority vote among k nearest
             out[i] = majority_vote_knn(&dists[..k]);
@@ -166,11 +169,14 @@ impl<T: Float> Predictor<T> for KNNRegressor<T> {
             let query = &data[i * p..(i + 1) * p];
             let mut dists: Vec<(T, T)> = (0..self.n_train)
                 .map(|j| {
-                    let d = euclidean_dist(query, &x_tr[j * p..(j + 1) * p]);
+                    let d = sq_euclidean_dist(query, &x_tr[j * p..(j + 1) * p]);
                     (d, y_tr[j])
                 })
                 .collect();
-            dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+            // Partial sort: only need the k smallest, O(n) average vs O(n log n).
+            dists.select_nth_unstable_by(k - 1, |a, b| {
+                a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal)
+            });
 
             // Average of k nearest
             let sum = dists[..k]
@@ -183,7 +189,15 @@ impl<T: Float> Predictor<T> for KNNRegressor<T> {
     }
 }
 
-fn euclidean_dist<T: Float>(a: &[T], b: &[T]) -> T {
+/// Squared Euclidean distance (avoids sqrt since we only need ordering).
+fn sq_euclidean_dist<T: Float>(a: &[T], b: &[T]) -> T {
+    // Fast path for f64: 4-way accumulator for ILP.
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        let a_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(a) as *const [f64]) };
+        let b_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(b) as *const [f64]) };
+        let result = sq_dist_f64_fast(a_f64, b_f64);
+        return unsafe { core::mem::transmute_copy(&result) };
+    }
     a.iter()
         .zip(b)
         .map(|(&x, &y)| {
@@ -191,7 +205,33 @@ fn euclidean_dist<T: Float>(a: &[T], b: &[T]) -> T {
             d * d
         })
         .fold(T::zero(), |acc, v| acc + v)
-        .sqrt()
+}
+
+fn sq_dist_f64_fast(a: &[f64], b: &[f64]) -> f64 {
+    let mut acc = [0.0f64; 4];
+    let n = a.len();
+    let chunks = n / 4;
+    let remainder = n % 4;
+
+    for i in 0..chunks {
+        let base = i * 4;
+        let d0 = a[base] - b[base];
+        let d1 = a[base + 1] - b[base + 1];
+        let d2 = a[base + 2] - b[base + 2];
+        let d3 = a[base + 3] - b[base + 3];
+        acc[0] += d0 * d0;
+        acc[1] += d1 * d1;
+        acc[2] += d2 * d2;
+        acc[3] += d3 * d3;
+    }
+
+    let tail = chunks * 4;
+    for i in 0..remainder {
+        let d = a[tail + i] - b[tail + i];
+        acc[i % 4] += d * d;
+    }
+
+    (acc[0] + acc[1]) + (acc[2] + acc[3])
 }
 
 fn majority_vote_knn<T: Float>(nearest: &[(T, T)]) -> T {
