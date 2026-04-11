@@ -205,17 +205,49 @@ fn nearest_centroid<T: Float>(point: &[T], centroids: &[T], k: usize, p: usize) 
     let mut best = 0;
     let mut best_dist = T::infinity();
     for c in 0..k {
-        let mut dist = T::zero();
-        for j in 0..p {
-            let d = point[j] - centroids[c * p + j];
-            dist += d * d;
-        }
+        let dist = sq_dist(point, &centroids[c * p..(c + 1) * p]);
         if dist < best_dist {
             best_dist = dist;
             best = c;
         }
     }
     best
+}
+
+/// Squared Euclidean distance with 4-way accumulator for f64.
+fn sq_dist<T: Float>(a: &[T], b: &[T]) -> T {
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        let a_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(a) as *const [f64]) };
+        let b_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(b) as *const [f64]) };
+        let mut acc = [0.0f64; 4];
+        let chunks = a_f64.len() / 4;
+        let rem = a_f64.len() % 4;
+        for i in 0..chunks {
+            let base = i * 4;
+            let d0 = a_f64[base] - b_f64[base];
+            let d1 = a_f64[base + 1] - b_f64[base + 1];
+            let d2 = a_f64[base + 2] - b_f64[base + 2];
+            let d3 = a_f64[base + 3] - b_f64[base + 3];
+            acc[0] += d0 * d0;
+            acc[1] += d1 * d1;
+            acc[2] += d2 * d2;
+            acc[3] += d3 * d3;
+        }
+        let tail = chunks * 4;
+        for i in 0..rem {
+            let d = a_f64[tail + i] - b_f64[tail + i];
+            acc[i % 4] += d * d;
+        }
+        let result = (acc[0] + acc[1]) + (acc[2] + acc[3]);
+        return unsafe { core::mem::transmute_copy(&result) };
+    }
+    a.iter()
+        .zip(b)
+        .map(|(&x, &y)| {
+            let d = x - y;
+            d * d
+        })
+        .fold(T::zero(), |s, v| s + v)
 }
 
 fn matrix_shape<T: Float>(x: &Tensor<T>) -> Result<(usize, usize)> {
