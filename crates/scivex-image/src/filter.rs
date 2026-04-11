@@ -368,11 +368,7 @@ pub fn sharpen(img: &Image<f32>) -> Result<Image<f32>> {
 ///
 /// Both kernels must have odd length.
 #[allow(clippy::needless_range_loop, clippy::cast_possible_wrap)]
-fn separable_convolve(
-    img: &Image<f32>,
-    v_kernel: &[f32],
-    h_kernel: &[f32],
-) -> Result<Image<f32>> {
+fn separable_convolve(img: &Image<f32>, v_kernel: &[f32], h_kernel: &[f32]) -> Result<Image<f32>> {
     let (w, h) = img.dimensions();
     let c = img.channels();
     let src = img.as_slice();

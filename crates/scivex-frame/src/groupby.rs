@@ -113,10 +113,7 @@ impl<'a> GroupBy<'a> {
 
     /// Fast grouping via integer category codes.
     /// Returns (groups, group_ids, num_groups).
-    fn group_by_codes(
-        nrows: usize,
-        cat_cols: &[&CategoricalSeries],
-    ) -> GroupResult {
+    fn group_by_codes(nrows: usize, cat_cols: &[&CategoricalSeries]) -> GroupResult {
         let mut map: HashMap<Vec<u32>, u32> = HashMap::new();
         let mut first_rows: Vec<usize> = Vec::new();
         let mut code_keys: Vec<Vec<u32>> = Vec::new();
@@ -159,11 +156,7 @@ impl<'a> GroupBy<'a> {
 
     /// Fallback grouping using hash-based keys (avoids string formatting for numeric types).
     /// Returns (groups, group_ids, num_groups).
-    fn group_by_strings(
-        df: &DataFrame,
-        cols: &[&str],
-        nrows: usize,
-    ) -> GroupResult {
+    fn group_by_strings(df: &DataFrame, cols: &[&str], nrows: usize) -> GroupResult {
         // Resolve column references once.
         let series: Vec<&dyn AnySeries> = cols
             .iter()
