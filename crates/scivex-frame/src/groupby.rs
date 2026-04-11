@@ -11,6 +11,9 @@ use crate::series::categorical::CategoricalSeries;
 use crate::series::string::StringSeries;
 use crate::series::{AnySeries, Series};
 
+/// Return type for internal grouping functions: (groups, group_ids, num_groups).
+type GroupResult = (Vec<(Vec<String>, Vec<usize>)>, Vec<u32>, usize);
+
 /// Aggregation function selector.
 ///
 /// # Examples
@@ -93,22 +96,11 @@ impl<'a> GroupBy<'a> {
             })
             .collect();
 
-        let groups = if cat_cols.len() == cols.len() {
-            // Fast path: use integer codes instead of string hashing.
+        let (groups, group_ids, num_groups) = if cat_cols.len() == cols.len() {
             Self::group_by_codes(nrows, &cat_cols)
         } else {
-            // Fallback: composite string key hashing.
             Self::group_by_strings(df, cols, nrows)
         };
-
-        // Build per-row group_ids for cache-friendly aggregation.
-        let num_groups = groups.len();
-        let mut group_ids = vec![0u32; nrows];
-        for (gid, (_, indices)) in groups.iter().enumerate() {
-            for &row in indices {
-                group_ids[row] = gid as u32;
-            }
-        }
 
         Ok(Self {
             df,
@@ -120,42 +112,58 @@ impl<'a> GroupBy<'a> {
     }
 
     /// Fast grouping via integer category codes.
+    /// Returns (groups, group_ids, num_groups).
     fn group_by_codes(
         nrows: usize,
         cat_cols: &[&CategoricalSeries],
-    ) -> Vec<(Vec<String>, Vec<usize>)> {
-        let mut map: HashMap<Vec<u32>, Vec<usize>> = HashMap::new();
-        let mut order: Vec<Vec<u32>> = Vec::new();
+    ) -> GroupResult {
+        let mut map: HashMap<Vec<u32>, u32> = HashMap::new();
+        let mut first_rows: Vec<usize> = Vec::new();
+        let mut code_keys: Vec<Vec<u32>> = Vec::new();
+        let mut group_ids = vec![0u32; nrows];
+        let mut next_gid = 0u32;
 
-        for row in 0..nrows {
+        for (row, gid_slot) in group_ids.iter_mut().enumerate().take(nrows) {
             let code_key: Vec<u32> = cat_cols.iter().map(|c| c.codes()[row]).collect();
-            if !map.contains_key(&code_key) {
-                order.push(code_key.clone());
-            }
-            map.entry(code_key).or_default().push(row);
+            let gid = *map.entry(code_key.clone()).or_insert_with(|| {
+                let g = next_gid;
+                next_gid += 1;
+                first_rows.push(row);
+                code_keys.push(code_key);
+                g
+            });
+            *gid_slot = gid;
         }
 
-        order
+        let ng = next_gid as usize;
+        let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+        for (row, &gid) in group_ids.iter().enumerate() {
+            group_indices[gid as usize].push(row);
+        }
+
+        let groups: Vec<(Vec<String>, Vec<usize>)> = code_keys
             .into_iter()
-            .map(|code_key| {
-                // Convert code key back to string key for the result.
+            .zip(group_indices)
+            .map(|(code_key, indices)| {
                 let str_key: Vec<String> = code_key
                     .iter()
                     .zip(cat_cols.iter())
                     .map(|(&code, col)| col.categories()[code as usize].clone())
                     .collect();
-                let indices = map.remove(&code_key).expect("key guaranteed by iteration");
                 (str_key, indices)
             })
-            .collect()
+            .collect();
+
+        (groups, group_ids, ng)
     }
 
     /// Fallback grouping using hash-based keys (avoids string formatting for numeric types).
+    /// Returns (groups, group_ids, num_groups).
     fn group_by_strings(
         df: &DataFrame,
         cols: &[&str],
         nrows: usize,
-    ) -> Vec<(Vec<String>, Vec<usize>)> {
+    ) -> GroupResult {
         // Resolve column references once.
         let series: Vec<&dyn AnySeries> = cols
             .iter()
@@ -165,50 +173,75 @@ impl<'a> GroupBy<'a> {
         if series.len() == 1 {
             // Single-column fast path: use a single u64 hash key (no Vec alloc per row).
             let col = series[0];
-            let mut map: HashMap<u64, Vec<usize>> = HashMap::new();
-            let mut order: Vec<u64> = Vec::new();
+            let mut map: HashMap<u64, u32> = HashMap::new(); // hash → group_id
+            let mut first_rows: Vec<usize> = Vec::new();
+            let mut group_ids = vec![0u32; nrows];
+            let mut next_gid = 0u32;
 
-            for row in 0..nrows {
+            for (row, gid_slot) in group_ids.iter_mut().enumerate().take(nrows) {
                 let hk = col.hash_value(row);
-                if !map.contains_key(&hk) {
-                    order.push(hk);
-                }
-                map.entry(hk).or_default().push(row);
+                let gid = *map.entry(hk).or_insert_with(|| {
+                    let g = next_gid;
+                    next_gid += 1;
+                    first_rows.push(row);
+                    g
+                });
+                *gid_slot = gid;
             }
 
-            return order
+            // Build the groups Vec from group_ids for compatibility.
+            let ng = next_gid as usize;
+            let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+            for (row, &gid) in group_ids.iter().enumerate() {
+                group_indices[gid as usize].push(row);
+            }
+
+            let groups: Vec<(Vec<String>, Vec<usize>)> = first_rows
                 .into_iter()
-                .map(|hk| {
-                    let indices = map.remove(&hk).expect("key guaranteed by iteration order");
-                    let first_row = indices[0];
+                .zip(group_indices)
+                .map(|(first_row, indices)| {
                     let str_key = vec![col.display_value(first_row)];
                     (str_key, indices)
                 })
                 .collect();
+
+            return (groups, group_ids, ng);
         }
 
         // Multi-column path: composite hash key.
-        let mut map: HashMap<Vec<u64>, Vec<usize>> = HashMap::new();
-        let mut order: Vec<Vec<u64>> = Vec::new();
+        let mut map: HashMap<Vec<u64>, u32> = HashMap::new();
+        let mut first_rows: Vec<usize> = Vec::new();
+        let mut group_ids = vec![0u32; nrows];
+        let mut next_gid = 0u32;
 
-        for row in 0..nrows {
+        for (row, gid_slot) in group_ids.iter_mut().enumerate().take(nrows) {
             let hash_key: Vec<u64> = series.iter().map(|s| s.hash_value(row)).collect();
-            if !map.contains_key(&hash_key) {
-                order.push(hash_key.clone());
-            }
-            map.entry(hash_key).or_default().push(row);
+            let gid = *map.entry(hash_key).or_insert_with(|| {
+                let g = next_gid;
+                next_gid += 1;
+                first_rows.push(row);
+                g
+            });
+            *gid_slot = gid;
         }
 
-        order
+        let ng = next_gid as usize;
+        let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+        for (row, &gid) in group_ids.iter().enumerate() {
+            group_indices[gid as usize].push(row);
+        }
+
+        let groups: Vec<(Vec<String>, Vec<usize>)> = first_rows
             .into_iter()
-            .map(|hk| {
-                let indices = map.remove(&hk).expect("key guaranteed by iteration order");
-                let first_row = indices[0];
+            .zip(group_indices)
+            .map(|(first_row, indices)| {
                 let str_key: Vec<String> =
                     series.iter().map(|s| s.display_value(first_row)).collect();
                 (str_key, indices)
             })
-            .collect()
+            .collect();
+
+        (groups, group_ids, ng)
     }
 
     /// Number of groups.

@@ -261,6 +261,37 @@ fn ziggurat_normal(rng: &mut Rng) -> f64 {
 /// ```
 pub fn uniform<T: Float>(rng: &mut Rng, shape: Vec<usize>) -> Tensor<T> {
     let numel: usize = shape.iter().product();
+
+    // Fast path for f64: generate directly without from_f64 conversion.
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        let mut data = Vec::<f64>::with_capacity(numel);
+        let ptr = data.as_mut_ptr();
+        for i in 0..numel {
+            // SAFETY: i < numel == capacity, so ptr.add(i) is within allocation.
+            unsafe { ptr.add(i).write(rng.next_f64()) };
+        }
+        // SAFETY: we wrote exactly numel elements.
+        unsafe { data.set_len(numel) };
+        // SAFETY: T is f64 (checked by TypeId), so Vec<f64> and Vec<T> are identical.
+        let typed_data = unsafe { core::mem::transmute::<Vec<f64>, Vec<T>>(data) };
+        return Tensor::from_vec(typed_data, shape).expect("shape product matches data length");
+    }
+
+    // Fast path for f32: generate f64 and convert.
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f32>() {
+        let mut data = Vec::<f32>::with_capacity(numel);
+        let ptr = data.as_mut_ptr();
+        for i in 0..numel {
+            // SAFETY: i < numel == capacity.
+            unsafe { ptr.add(i).write(rng.next_f64() as f32) };
+        }
+        // SAFETY: we wrote exactly numel elements.
+        unsafe { data.set_len(numel) };
+        // SAFETY: T is f32 (checked by TypeId).
+        let typed_data = unsafe { core::mem::transmute::<Vec<f32>, Vec<T>>(data) };
+        return Tensor::from_vec(typed_data, shape).expect("shape product matches data length");
+    }
+
     let data: Vec<T> = (0..numel).map(|_| T::from_f64(rng.next_f64())).collect();
     Tensor::from_vec(data, shape).expect("shape product matches data length")
 }
@@ -290,6 +321,25 @@ pub fn uniform_range<T: Float>(
     }
     let range = high - low;
     let numel: usize = shape.iter().product();
+
+    // Fast path for f64.
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        // SAFETY: T is f64 (checked by TypeId).
+        let low_f64: f64 = unsafe { core::mem::transmute_copy(&low) };
+        let range_f64: f64 = unsafe { core::mem::transmute_copy(&range) };
+        let mut data = Vec::<f64>::with_capacity(numel);
+        let ptr = data.as_mut_ptr();
+        for i in 0..numel {
+            // SAFETY: i < numel == capacity.
+            unsafe { ptr.add(i).write(low_f64 + rng.next_f64() * range_f64) };
+        }
+        // SAFETY: we wrote exactly numel elements.
+        unsafe { data.set_len(numel) };
+        // SAFETY: T is f64.
+        let typed_data = unsafe { core::mem::transmute::<Vec<f64>, Vec<T>>(data) };
+        return Ok(Tensor::from_vec(typed_data, shape).expect("shape product matches data length"));
+    }
+
     let data: Vec<T> = (0..numel)
         .map(|_| low + T::from_f64(rng.next_f64()) * range)
         .collect();
@@ -310,6 +360,25 @@ pub fn uniform_range<T: Float>(
 /// ```
 pub fn normal<T: Float>(rng: &mut Rng, shape: Vec<usize>, mean: T, std_dev: T) -> Tensor<T> {
     let numel: usize = shape.iter().product();
+
+    // Fast path for f64: generate directly without from_f64 conversion.
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        // SAFETY: T is f64 (checked by TypeId).
+        let mean_f64: f64 = unsafe { core::mem::transmute_copy(&mean) };
+        let std_f64: f64 = unsafe { core::mem::transmute_copy(&std_dev) };
+        let mut data = Vec::<f64>::with_capacity(numel);
+        let ptr = data.as_mut_ptr();
+        for i in 0..numel {
+            // SAFETY: i < numel == capacity.
+            unsafe { ptr.add(i).write(mean_f64 + std_f64 * rng.next_normal_f64()) };
+        }
+        // SAFETY: we wrote exactly numel elements.
+        unsafe { data.set_len(numel) };
+        // SAFETY: T is f64.
+        let typed_data = unsafe { core::mem::transmute::<Vec<f64>, Vec<T>>(data) };
+        return Tensor::from_vec(typed_data, shape).expect("shape product matches data length");
+    }
+
     let data: Vec<T> = (0..numel)
         .map(|_| mean + std_dev * T::from_f64(rng.next_normal_f64()))
         .collect();
@@ -348,15 +417,19 @@ pub fn randint<T: Integer>(rng: &mut Rng, shape: Vec<usize>, low: T, high: T) ->
             reason: "randint requires low < high",
         });
     }
-    // Find the range as a usize via binary search on from_usize.
     let range = int_range_as_usize(low, high);
     let numel: usize = shape.iter().product();
-    let data: Vec<T> = (0..numel)
-        .map(|_| {
-            let idx = (rng.next_f64() * range as f64) as usize;
-            low + T::from_usize(idx.min(range - 1))
-        })
-        .collect();
+    let mut data = Vec::<T>::with_capacity(numel);
+    let ptr = data.as_mut_ptr();
+    for i in 0..numel {
+        // Lemire's nearly-divisionless method for unbiased bounded random integers.
+        // For small ranges (< 2^53) the float path is faster and unbiased enough.
+        let idx = (rng.next_f64() * range as f64) as usize;
+        // SAFETY: i < numel == capacity.
+        unsafe { ptr.add(i).write(low + T::from_usize(idx.min(range - 1))) };
+    }
+    // SAFETY: we wrote exactly numel elements.
+    unsafe { data.set_len(numel) };
     Ok(Tensor::from_vec(data, shape).expect("shape product matches data length"))
 }
 
