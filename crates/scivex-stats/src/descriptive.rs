@@ -18,8 +18,42 @@ pub fn mean<T: Float>(data: &[T]) -> Result<T> {
     if data.is_empty() {
         return Err(StatsError::EmptyInput);
     }
+
+    // Fast path for f64: 4-way accumulator to exploit ILP.
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        let s = core::ptr::from_ref::<[T]>(data) as *const [f64];
+        // SAFETY: T is f64 (checked by TypeId), so the pointer cast is valid.
+        let slice = unsafe { &*s };
+        let sum = sum_f64_fast(slice);
+        let result = sum / slice.len() as f64;
+        // SAFETY: T is f64.
+        return Ok(unsafe { core::mem::transmute_copy(&result) });
+    }
+
     let sum: T = data.iter().copied().sum();
     Ok(sum / T::from_f64(data.len() as f64))
+}
+
+/// 4-way parallel accumulator for f64 summation (exploits instruction-level parallelism).
+fn sum_f64_fast(data: &[f64]) -> f64 {
+    let mut acc = [0.0f64; 4];
+    let chunks = data.len() / 4;
+    let remainder = data.len() % 4;
+
+    for i in 0..chunks {
+        let base = i * 4;
+        acc[0] += data[base];
+        acc[1] += data[base + 1];
+        acc[2] += data[base + 2];
+        acc[3] += data[base + 3];
+    }
+
+    let tail_start = chunks * 4;
+    for i in 0..remainder {
+        acc[i % 4] += data[tail_start + i];
+    }
+
+    (acc[0] + acc[1]) + (acc[2] + acc[3])
 }
 
 /// Compute the sample variance with `ddof` (delta degrees of freedom).
@@ -42,9 +76,49 @@ pub fn variance_with_ddof<T: Float>(data: &[T], ddof: usize) -> Result<T> {
             got: n,
         });
     }
+
+    // Fast path for f64: two-pass with 4-way accumulator.
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        let s = core::ptr::from_ref::<[T]>(data) as *const [f64];
+        // SAFETY: T is f64 (checked by TypeId).
+        let slice = unsafe { &*s };
+        let m = sum_f64_fast(slice) / n as f64;
+        let ss = sum_sq_diff_f64(slice, m);
+        let result = ss / (n - ddof) as f64;
+        // SAFETY: T is f64.
+        return Ok(unsafe { core::mem::transmute_copy(&result) });
+    }
+
     let m = mean(data)?;
     let ss: T = data.iter().map(|&x| (x - m) * (x - m)).sum();
     Ok(ss / T::from_f64((n - ddof) as f64))
+}
+
+/// 4-way parallel sum of squared differences: sum((x - m)^2).
+fn sum_sq_diff_f64(data: &[f64], mean: f64) -> f64 {
+    let mut acc = [0.0f64; 4];
+    let chunks = data.len() / 4;
+    let remainder = data.len() % 4;
+
+    for i in 0..chunks {
+        let base = i * 4;
+        let d0 = data[base] - mean;
+        let d1 = data[base + 1] - mean;
+        let d2 = data[base + 2] - mean;
+        let d3 = data[base + 3] - mean;
+        acc[0] += d0 * d0;
+        acc[1] += d1 * d1;
+        acc[2] += d2 * d2;
+        acc[3] += d3 * d3;
+    }
+
+    let tail_start = chunks * 4;
+    for i in 0..remainder {
+        let d = data[tail_start + i] - mean;
+        acc[i % 4] += d * d;
+    }
+
+    (acc[0] + acc[1]) + (acc[2] + acc[3])
 }
 
 /// Sample variance (ddof = 1).
