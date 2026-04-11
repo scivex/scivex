@@ -65,6 +65,12 @@ impl<T: Float> QrDecomposition<T> {
     ///     assert!((a - b).abs() < 1e-10);
     /// }
     /// ```
+    /// Block size for the blocked Householder QR algorithm.
+    /// Columns are processed in panels of this width; the accumulated
+    /// block reflector is then applied to the trailing matrix using
+    /// matrix-matrix operations (BLAS-3) for better cache utilization.
+    const BLOCK_SIZE: usize = 32;
+
     pub fn decompose(a: &Tensor<T>) -> Result<Self> {
         if a.ndim() != 2 {
             return Err(CoreError::InvalidArgument {
@@ -81,48 +87,164 @@ impl<T: Float> QrDecomposition<T> {
 
         let mut qr: Vec<T> = a.as_slice().to_vec();
         let mut r_diag = vec![T::zero(); n];
+        let nb = Self::BLOCK_SIZE.min(n);
 
-        for k in 0..n {
-            // Compute the norm of the k-th column below the diagonal
-            let mut norm_sq = T::zero();
-            for i in k..m {
-                norm_sq += qr[i * n + k] * qr[i * n + k];
-            }
-            let mut norm = norm_sq.sqrt();
+        // Process columns in panels of width `nb`.
+        let mut k0 = 0;
+        while k0 < n {
+            let k_end = (k0 + nb).min(n);
+            let panel_width = k_end - k0;
 
-            if norm.abs() < T::epsilon() * T::from_f64(1e3) {
-                r_diag[k] = T::zero();
-                continue;
-            }
+            // tau[j] = qr[(k0+j)*n + (k0+j)] after reflection setup.
+            let mut tau = vec![T::zero(); panel_width];
 
-            // Choose sign to avoid cancellation
-            if qr[k * n + k] > T::zero() {
-                norm = T::zero() - norm; // negate
-            }
-
-            // Scale the Householder vector
-            for i in k..m {
-                qr[i * n + k] /= T::zero() - norm;
-            }
-            qr[k * n + k] += T::one();
-
-            // Apply the Householder reflection to remaining columns
-            for j in (k + 1)..n {
-                let mut s = T::zero();
+            // --- Panel factorization: column-by-column within the panel ---
+            for (jj, tau_val) in tau.iter_mut().enumerate().take(panel_width) {
+                let k = k0 + jj;
+                // Compute norm of column k below the diagonal.
+                let mut norm_sq = T::zero();
                 for i in k..m {
-                    s += qr[i * n + k] * qr[i * n + j];
+                    norm_sq += qr[i * n + k] * qr[i * n + k];
                 }
-                s = T::zero() - s / qr[k * n + k];
+                let mut norm = norm_sq.sqrt();
+
+                if norm.abs() < T::epsilon() * T::from_f64(1e3) {
+                    r_diag[k] = T::zero();
+                    *tau_val = T::zero();
+                    continue;
+                }
+
+                // Choose sign to avoid cancellation.
+                if qr[k * n + k] > T::zero() {
+                    norm = T::zero() - norm;
+                }
+
+                // Scale the Householder vector.
                 for i in k..m {
-                    let v = qr[i * n + k];
-                    qr[i * n + j] += s * v;
+                    qr[i * n + k] /= T::zero() - norm;
                 }
+                qr[k * n + k] += T::one();
+                *tau_val = qr[k * n + k];
+
+                // Apply reflector to remaining columns *within the panel only*.
+                for j in (k + 1)..k_end {
+                    let mut s = T::zero();
+                    for i in k..m {
+                        s += qr[i * n + k] * qr[i * n + j];
+                    }
+                    s = T::zero() - s / qr[k * n + k];
+                    for i in k..m {
+                        let v = qr[i * n + k];
+                        qr[i * n + j] += s * v;
+                    }
+                }
+
+                r_diag[k] = norm;
             }
 
-            r_diag[k] = norm;
+            // Apply accumulated block reflector to trailing columns.
+            let trailing_cols = n - k_end;
+            if trailing_cols > 0 && panel_width > 0 {
+                Self::apply_block_reflector(&mut qr, &tau, m, n, k0, k_end, trailing_cols);
+            }
+
+            k0 = k_end;
         }
 
         Ok(Self { qr, r_diag, m, n })
+    }
+
+    /// Apply the block Householder reflector (compact WY form) to the trailing
+    /// submatrix. This replaces per-column rank-1 updates with BLAS-3-style
+    /// matrix-matrix operations for better cache utilization.
+    #[allow(clippy::needless_range_loop)]
+    fn apply_block_reflector(
+        qr: &mut [T],
+        tau: &[T],
+        m: usize,
+        n: usize,
+        k0: usize,
+        k_end: usize,
+        trailing_cols: usize,
+    ) {
+        let pw = k_end - k0;
+
+        // Build T (pw x pw upper triangular) for the compact WY representation:
+        // Q_block = I - V T V^T
+        let mut t_mat = vec![T::zero(); pw * pw];
+
+        for j in 0..pw {
+            let tauj = tau[j];
+            if tauj.abs() < T::epsilon() {
+                continue;
+            }
+            t_mat[j * pw + j] = tauj;
+            let col_j = k0 + j;
+
+            // w = V[:, 0..j]^T * v_j
+            let mut w = vec![T::zero(); j];
+            for (jj2, w_val) in w.iter_mut().enumerate() {
+                let col_jj2 = k0 + jj2;
+                let mut dot = T::zero();
+                for i in col_j..m {
+                    dot += qr[i * n + col_jj2] * qr[i * n + col_j];
+                }
+                *w_val = dot;
+            }
+
+            // T[0..j, j] = -tau[j] * T[0..j, 0..j] * w
+            let mut temp = vec![T::zero(); j];
+            for r in 0..j {
+                let mut s = T::zero();
+                for c in r..j {
+                    s += t_mat[r * pw + c] * w[c];
+                }
+                temp[r] = s;
+            }
+            for r in 0..j {
+                t_mat[r * pw + j] = T::zero() - tauj * temp[r];
+            }
+        }
+
+        // Apply: A_trail -= V * T * (V^T * A_trail)
+
+        // Step 1: vta = V^T * A_trail  (pw x trailing_cols)
+        let mut vta = vec![T::zero(); pw * trailing_cols];
+        for jj in 0..pw {
+            let col_v = k0 + jj;
+            for tc in 0..trailing_cols {
+                let col_a = k_end + tc;
+                let mut dot = T::zero();
+                for i in col_v..m {
+                    dot += qr[i * n + col_v] * qr[i * n + col_a];
+                }
+                vta[jj * trailing_cols + tc] = dot;
+            }
+        }
+
+        // Step 2: tw = T * vta  (pw x trailing_cols)
+        let mut tw = vec![T::zero(); pw * trailing_cols];
+        for r in 0..pw {
+            for tc in 0..trailing_cols {
+                let mut s = T::zero();
+                for c in r..pw {
+                    s += t_mat[r * pw + c] * vta[c * trailing_cols + tc];
+                }
+                tw[r * trailing_cols + tc] = s;
+            }
+        }
+
+        // Step 3: A_trail -= V * tw
+        for jj in 0..pw {
+            let col_v = k0 + jj;
+            for i in col_v..m {
+                let vi = qr[i * n + col_v];
+                for tc in 0..trailing_cols {
+                    let col_a = k_end + tc;
+                    qr[i * n + col_a] -= vi * tw[jj * trailing_cols + tc];
+                }
+            }
+        }
     }
 
     /// Whether the matrix has full column rank.
