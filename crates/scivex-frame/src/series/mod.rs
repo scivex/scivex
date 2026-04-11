@@ -374,21 +374,27 @@ impl<T: Scalar + HasDType + 'static> AnySeries for Series<T> {
     }
 
     fn hash_value(&self, index: usize) -> u64 {
-        use std::hash::{Hash, Hasher};
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
         if self.is_null_at(index) {
-            u64::MAX.hash(&mut hasher);
-        } else if index < self.data.len() {
-            // Hash the raw bytes of the value — no string conversion.
-            let bytes = unsafe {
-                core::slice::from_raw_parts(
-                    (&raw const self.data[index]).cast::<u8>(),
-                    core::mem::size_of::<T>(),
-                )
-            };
-            bytes.hash(&mut hasher);
+            return u64::MAX;
         }
-        hasher.finish()
+        if index >= self.data.len() {
+            return 0;
+        }
+        // Read raw bytes of the value as u64 directly — avoids allocating
+        // a DefaultHasher per call. For types <= 8 bytes this is an identity
+        // hash which is fine since HashMap already applies SipHash internally.
+        let size = core::mem::size_of::<T>();
+        let mut bits = 0u64;
+        // SAFETY: index is within bounds, and we only read `size` bytes which
+        // is the size of T (guaranteed <= 8 for all Scalar types we support).
+        unsafe {
+            core::ptr::copy_nonoverlapping(
+                (&raw const self.data[index]).cast::<u8>(),
+                (&raw mut bits).cast::<u8>(),
+                size,
+            );
+        }
+        bits
     }
 
     fn filter_mask(&self, mask: &[bool]) -> Box<dyn AnySeries> {

@@ -11,6 +11,9 @@ use crate::series::categorical::CategoricalSeries;
 use crate::series::string::StringSeries;
 use crate::series::{AnySeries, Series};
 
+/// Return type for internal grouping functions: (groups, group_ids, num_groups).
+type GroupResult = (Vec<(Vec<String>, Vec<usize>)>, Vec<u32>, usize);
+
 /// Aggregation function selector.
 ///
 /// # Examples
@@ -62,6 +65,10 @@ pub struct GroupBy<'a> {
     group_columns: Vec<String>,
     /// Maps composite key → row indices in the original `DataFrame`.
     groups: Vec<(Vec<String>, Vec<usize>)>,
+    /// Per-row group id for cache-friendly aggregation (group_ids[row] = group index).
+    group_ids: Vec<u32>,
+    /// Number of groups.
+    num_groups: usize,
 }
 
 impl<'a> GroupBy<'a> {
@@ -89,11 +96,9 @@ impl<'a> GroupBy<'a> {
             })
             .collect();
 
-        let groups = if cat_cols.len() == cols.len() {
-            // Fast path: use integer codes instead of string hashing.
+        let (groups, group_ids, num_groups) = if cat_cols.len() == cols.len() {
             Self::group_by_codes(nrows, &cat_cols)
         } else {
-            // Fallback: composite string key hashing.
             Self::group_by_strings(df, cols, nrows)
         };
 
@@ -101,76 +106,135 @@ impl<'a> GroupBy<'a> {
             df,
             group_columns,
             groups,
+            group_ids,
+            num_groups,
         })
     }
 
     /// Fast grouping via integer category codes.
-    fn group_by_codes(
-        nrows: usize,
-        cat_cols: &[&CategoricalSeries],
-    ) -> Vec<(Vec<String>, Vec<usize>)> {
-        let mut map: HashMap<Vec<u32>, Vec<usize>> = HashMap::new();
-        let mut order: Vec<Vec<u32>> = Vec::new();
+    /// Returns (groups, group_ids, num_groups).
+    fn group_by_codes(nrows: usize, cat_cols: &[&CategoricalSeries]) -> GroupResult {
+        let mut map: HashMap<Vec<u32>, u32> = HashMap::new();
+        let mut first_rows: Vec<usize> = Vec::new();
+        let mut code_keys: Vec<Vec<u32>> = Vec::new();
+        let mut group_ids = vec![0u32; nrows];
+        let mut next_gid = 0u32;
 
-        for row in 0..nrows {
+        for (row, gid_slot) in group_ids.iter_mut().enumerate().take(nrows) {
             let code_key: Vec<u32> = cat_cols.iter().map(|c| c.codes()[row]).collect();
-            if !map.contains_key(&code_key) {
-                order.push(code_key.clone());
-            }
-            map.entry(code_key).or_default().push(row);
+            let gid = *map.entry(code_key.clone()).or_insert_with(|| {
+                let g = next_gid;
+                next_gid += 1;
+                first_rows.push(row);
+                code_keys.push(code_key);
+                g
+            });
+            *gid_slot = gid;
         }
 
-        order
+        let ng = next_gid as usize;
+        let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+        for (row, &gid) in group_ids.iter().enumerate() {
+            group_indices[gid as usize].push(row);
+        }
+
+        let groups: Vec<(Vec<String>, Vec<usize>)> = code_keys
             .into_iter()
-            .map(|code_key| {
-                // Convert code key back to string key for the result.
+            .zip(group_indices)
+            .map(|(code_key, indices)| {
                 let str_key: Vec<String> = code_key
                     .iter()
                     .zip(cat_cols.iter())
                     .map(|(&code, col)| col.categories()[code as usize].clone())
                     .collect();
-                let indices = map.remove(&code_key).expect("key guaranteed by iteration");
                 (str_key, indices)
             })
-            .collect()
+            .collect();
+
+        (groups, group_ids, ng)
     }
 
     /// Fallback grouping using hash-based keys (avoids string formatting for numeric types).
-    fn group_by_strings(
-        df: &DataFrame,
-        cols: &[&str],
-        nrows: usize,
-    ) -> Vec<(Vec<String>, Vec<usize>)> {
+    /// Returns (groups, group_ids, num_groups).
+    fn group_by_strings(df: &DataFrame, cols: &[&str], nrows: usize) -> GroupResult {
         // Resolve column references once.
         let series: Vec<&dyn AnySeries> = cols
             .iter()
             .map(|&c| df.column(c).expect("groupby column exists"))
             .collect();
 
-        // Use composite hash key (Vec<u64>) instead of Vec<String> for the map.
-        let mut map: HashMap<Vec<u64>, Vec<usize>> = HashMap::new();
-        let mut order: Vec<Vec<u64>> = Vec::new();
+        if series.len() == 1 {
+            // Single-column fast path: use a single u64 hash key (no Vec alloc per row).
+            let col = series[0];
+            let mut map: HashMap<u64, u32> = HashMap::new(); // hash → group_id
+            let mut first_rows: Vec<usize> = Vec::new();
+            let mut group_ids = vec![0u32; nrows];
+            let mut next_gid = 0u32;
 
-        for row in 0..nrows {
-            let hash_key: Vec<u64> = series.iter().map(|s| s.hash_value(row)).collect();
-            if !map.contains_key(&hash_key) {
-                order.push(hash_key.clone());
+            for (row, gid_slot) in group_ids.iter_mut().enumerate().take(nrows) {
+                let hk = col.hash_value(row);
+                let gid = *map.entry(hk).or_insert_with(|| {
+                    let g = next_gid;
+                    next_gid += 1;
+                    first_rows.push(row);
+                    g
+                });
+                *gid_slot = gid;
             }
-            map.entry(hash_key).or_default().push(row);
+
+            // Build the groups Vec from group_ids for compatibility.
+            let ng = next_gid as usize;
+            let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+            for (row, &gid) in group_ids.iter().enumerate() {
+                group_indices[gid as usize].push(row);
+            }
+
+            let groups: Vec<(Vec<String>, Vec<usize>)> = first_rows
+                .into_iter()
+                .zip(group_indices)
+                .map(|(first_row, indices)| {
+                    let str_key = vec![col.display_value(first_row)];
+                    (str_key, indices)
+                })
+                .collect();
+
+            return (groups, group_ids, ng);
         }
 
-        // Convert hash keys back to display strings for the result.
-        order
+        // Multi-column path: composite hash key.
+        let mut map: HashMap<Vec<u64>, u32> = HashMap::new();
+        let mut first_rows: Vec<usize> = Vec::new();
+        let mut group_ids = vec![0u32; nrows];
+        let mut next_gid = 0u32;
+
+        for (row, gid_slot) in group_ids.iter_mut().enumerate().take(nrows) {
+            let hash_key: Vec<u64> = series.iter().map(|s| s.hash_value(row)).collect();
+            let gid = *map.entry(hash_key).or_insert_with(|| {
+                let g = next_gid;
+                next_gid += 1;
+                first_rows.push(row);
+                g
+            });
+            *gid_slot = gid;
+        }
+
+        let ng = next_gid as usize;
+        let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+        for (row, &gid) in group_ids.iter().enumerate() {
+            group_indices[gid as usize].push(row);
+        }
+
+        let groups: Vec<(Vec<String>, Vec<usize>)> = first_rows
             .into_iter()
-            .map(|hk| {
-                let indices = map.remove(&hk).expect("key guaranteed by iteration order");
-                // Use the first row in the group to get display values.
-                let first_row = indices[0];
+            .zip(group_indices)
+            .map(|(first_row, indices)| {
                 let str_key: Vec<String> =
                     series.iter().map(|s| s.display_value(first_row)).collect();
                 (str_key, indices)
             })
-            .collect()
+            .collect();
+
+        (groups, group_ids, ng)
     }
 
     /// Number of groups.
@@ -446,6 +510,10 @@ impl<'a> GroupBy<'a> {
     }
 
     /// Typed aggregation helper for Scalar types.
+    ///
+    /// Uses a single sequential scan over the data with `group_ids` lookup
+    /// into per-group accumulators, which is much more cache-friendly than
+    /// random-access gather per group.
     fn agg_typed<T: Scalar + HasDType + 'static>(
         &self,
         col: &Series<T>,
@@ -453,60 +521,56 @@ impl<'a> GroupBy<'a> {
     ) -> Result<Box<dyn AnySeries>> {
         let name = col.name().to_string();
         let slice = col.as_slice();
+        let ng = self.num_groups;
 
         match func {
             AggFunc::Sum => {
-                let data: Vec<T> = self
-                    .groups
-                    .iter()
-                    .map(|(_, indices)| indices.iter().fold(T::zero(), |acc, &i| acc + slice[i]))
-                    .collect();
-                Ok(Box::new(Series::new(name, data)))
+                let mut acc = vec![T::zero(); ng];
+                for (row, &val) in slice.iter().enumerate() {
+                    acc[self.group_ids[row] as usize] += val;
+                }
+                Ok(Box::new(Series::new(name, acc)))
             }
             AggFunc::Min => {
-                let data: Vec<T> = self
-                    .groups
-                    .iter()
-                    .map(|(_, indices)| {
-                        indices
-                            .iter()
-                            .map(|&i| slice[i])
-                            .reduce(|a, b| if b < a { b } else { a })
-                            .unwrap_or_else(T::zero)
-                    })
-                    .collect();
-                Ok(Box::new(Series::new(name, data)))
+                let mut acc = vec![T::zero(); ng];
+                let mut init = vec![false; ng];
+                for (row, &val) in slice.iter().enumerate() {
+                    let g = self.group_ids[row] as usize;
+                    if !init[g] || val < acc[g] {
+                        acc[g] = val;
+                        init[g] = true;
+                    }
+                }
+                Ok(Box::new(Series::new(name, acc)))
             }
             AggFunc::Max => {
-                let data: Vec<T> = self
-                    .groups
-                    .iter()
-                    .map(|(_, indices)| {
-                        indices
-                            .iter()
-                            .map(|&i| slice[i])
-                            .reduce(|a, b| if b > a { b } else { a })
-                            .unwrap_or_else(T::zero)
-                    })
-                    .collect();
-                Ok(Box::new(Series::new(name, data)))
+                let mut acc = vec![T::zero(); ng];
+                let mut init = vec![false; ng];
+                for (row, &val) in slice.iter().enumerate() {
+                    let g = self.group_ids[row] as usize;
+                    if !init[g] || val > acc[g] {
+                        acc[g] = val;
+                        init[g] = true;
+                    }
+                }
+                Ok(Box::new(Series::new(name, acc)))
             }
             AggFunc::Mean => {
-                // Mean only makes sense for Float types. We'll compute as
-                // sum / count using Scalar arithmetic (works for floats; for
-                // integers it gives integer division which is acceptable MVP).
-                let data: Vec<T> = self
-                    .groups
-                    .iter()
-                    .map(|(_, indices)| {
-                        let sum = indices.iter().fold(T::zero(), |acc, &i| acc + slice[i]);
-                        sum / T::from_usize(indices.len())
-                    })
+                let mut sums = vec![T::zero(); ng];
+                let mut counts = vec![0usize; ng];
+                for (row, &val) in slice.iter().enumerate() {
+                    let g = self.group_ids[row] as usize;
+                    sums[g] += val;
+                    counts[g] += 1;
+                }
+                let data: Vec<T> = sums
+                    .into_iter()
+                    .zip(counts)
+                    .map(|(s, c)| s / T::from_usize(c))
                     .collect();
                 Ok(Box::new(Series::new(name, data)))
             }
             AggFunc::Count | AggFunc::First | AggFunc::Last => {
-                // Already handled in aggregate_column.
                 unreachable!()
             }
         }

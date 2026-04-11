@@ -54,6 +54,7 @@ image-png = ["image", "scivex-image/png"]
 image-jpeg = ["image", "scivex-image/jpeg"]
 simd = ["scivex-core/simd"]
 parallel = ["scivex-core/parallel"]
+blas-backend = ["scivex-core/blas-backend"]
 serde-support = [
     "scivex-core/serde-support",
     "scivex-frame?/serde-support",

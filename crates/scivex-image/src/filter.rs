@@ -284,11 +284,62 @@ pub fn box_blur(img: &Image<f32>, radius: usize) -> Result<Image<f32>> {
         });
     }
 
+    let (w, h) = img.dimensions();
+    let c = img.channels();
+    let src = img.as_slice();
     let size = 2 * radius + 1;
-    let val = 1.0 / (size * size) as f32;
-    let kernel_data = vec![val; size * size];
-    let kernel = Tensor::from_vec(kernel_data, vec![size, size])?;
-    convolve2d(img, &kernel)
+    let inv = 1.0 / size as f32;
+
+    // Horizontal pass: running sum per row.
+    let mut tmp = vec![0.0f32; h * w * c];
+    for row in 0..h {
+        for ch in 0..c {
+            // Build initial window sum for col=0.
+            let mut sum = 0.0f32;
+            for ki in 0..=radius.min(w - 1) {
+                sum += src[(row * w + ki) * c + ch];
+            }
+            tmp[row * w * c + ch] = sum * inv;
+
+            for col in 1..w {
+                // Add the new right pixel entering the window.
+                let add_col = col + radius;
+                if add_col < w {
+                    sum += src[(row * w + add_col) * c + ch];
+                }
+                // Remove the old left pixel leaving the window.
+                if col > radius {
+                    sum -= src[(row * w + col - radius - 1) * c + ch];
+                }
+                tmp[(row * w + col) * c + ch] = sum * inv;
+            }
+        }
+    }
+
+    // Vertical pass: running sum per column.
+    let mut out = vec![0.0f32; h * w * c];
+    for col in 0..w {
+        for ch in 0..c {
+            let mut sum = 0.0f32;
+            for ki in 0..=radius.min(h - 1) {
+                sum += tmp[(ki * w + col) * c + ch];
+            }
+            out[col * c + ch] = sum * inv;
+
+            for row in 1..h {
+                let add_row = row + radius;
+                if add_row < h {
+                    sum += tmp[(add_row * w + col) * c + ch];
+                }
+                if row > radius {
+                    sum -= tmp[((row - radius - 1) * w + col) * c + ch];
+                }
+                out[(row * w + col) * c + ch] = sum * inv;
+            }
+        }
+    }
+
+    Image::from_raw(out, w, h, img.format())
 }
 
 /// Apply a sharpening filter (Laplacian-based).
@@ -313,6 +364,87 @@ pub fn sharpen(img: &Image<f32>) -> Result<Image<f32>> {
     convolve2d(img, &kernel)
 }
 
+/// Apply separable convolution: first convolve rows with `h_kernel`, then columns with `v_kernel`.
+///
+/// Both kernels must have odd length.
+#[allow(clippy::needless_range_loop, clippy::cast_possible_wrap)]
+fn separable_convolve(img: &Image<f32>, v_kernel: &[f32], h_kernel: &[f32]) -> Result<Image<f32>> {
+    let (w, h) = img.dimensions();
+    let c = img.channels();
+    let src = img.as_slice();
+    let h_rad = h_kernel.len() / 2;
+    let v_rad = v_kernel.len() / 2;
+
+    // Horizontal pass.
+    let mut tmp = vec![0.0f32; h * w * c];
+    for row in 0..h {
+        let row_off = row * w;
+        // Branchless middle.
+        let mid_start = h_rad;
+        let mid_end = w.saturating_sub(h_rad);
+        for col in mid_start..mid_end {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                let base = row_off + col - h_rad;
+                for ki in 0..h_kernel.len() {
+                    acc += unsafe { *src.get_unchecked((base + ki) * c + ch) } * h_kernel[ki];
+                }
+                tmp[(row_off + col) * c + ch] = acc;
+            }
+        }
+        // Edges with bounds checks.
+        let edge_cols = (0..mid_start).chain(mid_end..w);
+        for col in edge_cols {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                for ki in 0..h_kernel.len() {
+                    let sx = col as isize + ki as isize - h_rad as isize;
+                    if sx >= 0 && sx < w as isize {
+                        acc += src[(row_off + sx as usize) * c + ch] * h_kernel[ki];
+                    }
+                }
+                tmp[(row_off + col) * c + ch] = acc;
+            }
+        }
+    }
+
+    // Vertical pass.
+    let mut out = vec![0.0f32; h * w * c];
+    let mid_start = v_rad;
+    let mid_end = h.saturating_sub(v_rad);
+    for row in mid_start..mid_end {
+        for col in 0..w {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                let base_row = row - v_rad;
+                for ki in 0..v_kernel.len() {
+                    acc += unsafe { *tmp.get_unchecked(((base_row + ki) * w + col) * c + ch) }
+                        * v_kernel[ki];
+                }
+                out[(row * w + col) * c + ch] = acc;
+            }
+        }
+    }
+    // Edge rows.
+    let edge_rows = (0..mid_start).chain(mid_end..h);
+    for row in edge_rows {
+        for col in 0..w {
+            for ch in 0..c {
+                let mut acc = 0.0f32;
+                for ki in 0..v_kernel.len() {
+                    let sy = row as isize + ki as isize - v_rad as isize;
+                    if sy >= 0 && sy < h as isize {
+                        acc += tmp[(sy as usize * w + col) * c + ch] * v_kernel[ki];
+                    }
+                }
+                out[(row * w + col) * c + ch] = acc;
+            }
+        }
+    }
+
+    Image::from_raw(out, w, h, img.format())
+}
+
 /// Sobel edge detection in the X direction.
 ///
 /// # Examples
@@ -325,14 +457,8 @@ pub fn sharpen(img: &Image<f32>) -> Result<Image<f32>> {
 /// assert_eq!(gx.dimensions(), (3, 3));
 /// ```
 pub fn sobel_x(img: &Image<f32>) -> Result<Image<f32>> {
-    #[rustfmt::skip]
-    let kernel_data = vec![
-        -1.0, 0.0, 1.0,
-        -2.0, 0.0, 2.0,
-        -1.0, 0.0, 1.0,
-    ];
-    let kernel = Tensor::from_vec(kernel_data, vec![3, 3])?;
-    convolve2d(img, &kernel)
+    // Separable: Sobel X = [1, 2, 1]^T * [-1, 0, 1]
+    separable_convolve(img, &[1.0, 2.0, 1.0], &[-1.0, 0.0, 1.0])
 }
 
 /// Sobel edge detection in the Y direction.
@@ -347,14 +473,8 @@ pub fn sobel_x(img: &Image<f32>) -> Result<Image<f32>> {
 /// assert_eq!(gy.dimensions(), (3, 3));
 /// ```
 pub fn sobel_y(img: &Image<f32>) -> Result<Image<f32>> {
-    #[rustfmt::skip]
-    let kernel_data = vec![
-        -1.0, -2.0, -1.0,
-         0.0,  0.0,  0.0,
-         1.0,  2.0,  1.0,
-    ];
-    let kernel = Tensor::from_vec(kernel_data, vec![3, 3])?;
-    convolve2d(img, &kernel)
+    // Separable: Sobel Y = [-1, 0, 1]^T * [1, 2, 1]
+    separable_convolve(img, &[-1.0, 0.0, 1.0], &[1.0, 2.0, 1.0])
 }
 
 /// Sobel edge detection: magnitude of X and Y gradients.

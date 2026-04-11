@@ -34,62 +34,86 @@
 
 Priority: operations where Rust is **slower** than Python.
 
-### 1.1 Core Element-wise Ops (add, mul, scalar_mul) — 0.1x
+### 1.1 Core Element-wise Ops (add, mul, scalar_mul) — ~~0.1x~~ FIXED
 
-**Root cause:** For large arrays (100K+), SIMD dispatch overhead + memory bandwidth saturation means we match but don't beat numpy's optimized C + MKL backend. At small sizes (1K), we're already 2.3x faster.
+**Status:** SIMD wired into `+`/`-`/`*`/`/` operators via TypeId dispatch (PR #24). In-place `AddAssign`/`SubAssign`/`MulAssign`/`DivAssign` with SIMD dispatch added. At small N (1K): 2.3x. At large N (100K+): 0.8-0.9x (memory bandwidth parity with numpy's MKL backend).
 
-**Actions:**
-- [ ] Add in-place `AddAssign`/`MulAssign` operators to eliminate allocation
-- [ ] Implement tiled/blocked element-wise ops for cache friendliness at large N
-- [ ] Benchmark against numpy without MKL to isolate the gap
-- [ ] Consider BLAS-backed `scal`/`axpy` for scalar-vector ops
+**Done:**
+- [x] Wire SIMD kernels into standard operators via TypeId dispatch
+- [x] Add in-place `AddAssign`/`MulAssign` operators to eliminate allocation
+- [x] Add SIMD f32 kernels (add, sub, mul, div)
+- [x] Add missing f64 SIMD kernels (sub, div)
 
-### 1.2 Core GEMM — 0.1x
+**Remaining (Phase 2):**
+- [ ] Tiled/blocked element-wise ops for cache friendliness at large N
 
-**Root cause:** Naive 3-loop matmul vs numpy's BLAS (Accelerate/MKL). Our 4-way unrolled micro-kernel helps but doesn't match vendor-tuned libraries.
+### 1.2 Core GEMM — ~~0.1x~~ FIXED
 
-**Actions:**
-- [ ] Implement Goto-style GEMM: MC×KC×NC blocking, pack A/B into contiguous panels
-- [ ] Add register-level micro-kernel with full NEON/AVX utilization (6×16 for f64 NEON)
-- [ ] Feature-gate optional linking to system BLAS via `blas-backend` feature
-- [ ] Target: ≥0.5x vs numpy for n≥128, ≥1x for n≤64
+**Status:** Optional `blas-backend` feature links to system BLAS (Accelerate on macOS, OpenBLAS on Linux) via CBLAS FFI. TypeId dispatch routes f64/f32 GEMM/GEMV to vendor-tuned libraries. Without blas-backend, our hand-tuned blocked GEMM is competitive at small N.
 
-### 1.3 Signal Filter — 0.01x
+**Done:**
+- [x] Feature-gate optional linking to system BLAS via `blas-backend` feature
+- [x] CBLAS FFI for dgemm/sgemm/dgemv/sgemv
+- [x] TypeId dispatch in `gemm`/`gemv` to system BLAS
 
-**Root cause:** SciPy uses optimized C + potentially FFT-based convolution for large filters. Our Direct Form II implementation is correct but slow.
+**Remaining (Phase 2):**
+- [ ] Implement Goto-style GEMM for non-BLAS path
+- [ ] Register-level micro-kernel with full NEON/AVX utilization
 
-**Actions:**
-- [ ] Implement FFT-based convolution path for large filter orders (n > 64)
-- [ ] SIMD-accelerate the inner FIR loop (vectorized multiply-accumulate)
-- [ ] Add `sosfilt` (second-order sections) which is numerically better for high-order filters
+### 1.3 Signal Filter — ~~0.01x~~ ~0.76x (benchmark mismatch)
 
-### 1.4 Image Filter — 0.5x
+**Status:** Original "0.01x" was a benchmark parameter mismatch, not a real regression. Our Direct Form II Transposed implementation with unsafe indexing runs at ~0.76x vs SciPy. Direct convolution was tested but is slower for large filter orders due to cache locality of DF2T state vector.
 
-**Root cause:** Naive 5-nested-loop convolution vs OpenCV/Pillow optimized backends.
+**Remaining (Phase 2):**
+- [ ] FFT-based convolution path for large filter orders (n > 64)
+- [ ] SIMD-accelerate the inner FIR loop
 
-**Actions:**
-- [ ] Complete separable convolution for Gaussian/Sobel (currently partial)
-- [ ] Add integral image optimization for box filters
+### 1.4 Image Filter — ~~0.5x~~ IMPROVED
+
+**Status:** Gaussian blur already used separable convolution. Sobel X/Y now use separable 1D passes instead of general 2D convolution. Box blur uses O(1)-per-pixel running sum approach.
+
+**Done:**
+- [x] Separable convolution for Sobel (two 1D passes)
+- [x] Running-sum box blur (O(1) per pixel, radius-independent)
+- [x] Branchless interior + bounds-checked border split in convolve2d
+
+**Remaining (Phase 2):**
 - [ ] SIMD-accelerate convolution inner loop
 
-### 1.5 NN Autograd Overhead — 0.0x-0.1x
+### 1.5 NN Autograd Overhead — ~~0.0x-0.1x~~ IMPROVED
 
-**Root cause:** PyTorch uses C++/CUDA backend. Our autograd allocates tensors per-op and the gradient accumulation path allocates new tensors via `&*existing + g`.
+**Status:** Gradient accumulation now uses in-place SIMD-accelerated `AddAssign`. Forward/backward pass GEMM benefits from blas-backend. Remaining gap is autograd overhead (tensor allocation per op, graph traversal).
 
-**Actions:**
-- [ ] In-place gradient accumulation with `AddAssign`
+**Done:**
+- [x] In-place gradient accumulation with SIMD-backed `AddAssign`
+- [x] GEMM acceleration via blas-backend
+
+**Remaining (Phase 2):**
 - [ ] Arena allocator for forward-pass temporaries
-- [ ] Fused backward kernels (e.g., fused relu_backward + add_backward)
-- [ ] Consider computation graph optimization (op fusion, dead node elimination)
+- [ ] Fused backward kernels
+- [ ] Computation graph optimization
 
-### 1.6 Frame GroupBy — 0.1x
+### 1.6 Frame GroupBy — ~~0.1x~~ IMPROVED
 
-**Root cause:** String-based group keys. Every numeric value gets formatted to string for hashing.
+**Status:** Replaced string-based hashing with raw bytes identity hash for numeric columns. Cache-friendly sequential scan with `group_ids: Vec<u32>` for aggregation (Sum/Min/Max/Mean). Group IDs built directly during grouping phase.
 
-**Actions:**
-- [ ] Hash raw numeric bits (`u64::from_ne_bytes`) for numeric columns
+**Done:**
+- [x] Hash raw numeric bits (identity hash) for numeric columns
+- [x] Cache-friendly aggregation via sequential `group_ids` scan
+- [x] Direct group_id building during grouping (no post-hoc reconstruction)
+- [x] Single-column fast path (u64 hash key, no Vec alloc per row)
+
+**Remaining (Phase 2):**
 - [ ] Pre-sort + run-length encoding path for sorted groups
 - [ ] Parallel groupby with per-thread hash maps + merge
+
+### 1.7 RNG (uniform/normal/randint) — IMPROVED
+
+**Status:** TypeId dispatch for f64/f32 fast paths eliminates per-element `from_f64` conversion. Pre-allocated buffers with unsafe `set_len` instead of iterator collect.
+
+**Done:**
+- [x] Direct f64/f32 generation without type conversion overhead
+- [x] Pre-allocated buffer with unsafe set_len
 
 ---
 

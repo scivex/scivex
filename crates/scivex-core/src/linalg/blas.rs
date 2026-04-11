@@ -2,10 +2,92 @@
 //!
 //! All functions operate on tensors and validate shapes, returning
 //! [`Result`] on dimension mismatches.
+//!
+//! When the `blas-backend` feature is enabled, GEMM dispatches to the
+//! system BLAS (Accelerate on macOS, OpenBLAS on Linux) for f64/f32.
 
 use crate::error::{CoreError, Result};
 use crate::tensor::Tensor;
 use crate::{Float, Scalar};
+
+// ======================================================================
+// System BLAS FFI (behind blas-backend feature)
+// ======================================================================
+
+#[cfg(feature = "blas-backend")]
+mod blas_ffi {
+    use libc::c_int;
+
+    // CBLAS row-major enum value
+    pub const CBLAS_ROW_MAJOR: c_int = 101;
+    pub const CBLAS_NO_TRANS: c_int = 111;
+
+    unsafe extern "C" {
+        pub fn cblas_dgemm(
+            order: c_int,
+            transa: c_int,
+            transb: c_int,
+            m: c_int,
+            n: c_int,
+            k: c_int,
+            alpha: f64,
+            a: *const f64,
+            lda: c_int,
+            b: *const f64,
+            ldb: c_int,
+            beta: f64,
+            c: *mut f64,
+            ldc: c_int,
+        );
+
+        pub fn cblas_sgemm(
+            order: c_int,
+            transa: c_int,
+            transb: c_int,
+            m: c_int,
+            n: c_int,
+            k: c_int,
+            alpha: f32,
+            a: *const f32,
+            lda: c_int,
+            b: *const f32,
+            ldb: c_int,
+            beta: f32,
+            c: *mut f32,
+            ldc: c_int,
+        );
+
+        pub fn cblas_dgemv(
+            order: c_int,
+            trans: c_int,
+            m: c_int,
+            n: c_int,
+            alpha: f64,
+            a: *const f64,
+            lda: c_int,
+            x: *const f64,
+            incx: c_int,
+            beta: f64,
+            y: *mut f64,
+            incy: c_int,
+        );
+
+        pub fn cblas_sgemv(
+            order: c_int,
+            trans: c_int,
+            m: c_int,
+            n: c_int,
+            alpha: f32,
+            a: *const f32,
+            lda: c_int,
+            x: *const f32,
+            incx: c_int,
+            beta: f32,
+            y: *mut f32,
+            incy: c_int,
+        );
+    }
+}
 
 // ======================================================================
 // BLAS Level 1 — vector operations, O(n)
@@ -257,7 +339,7 @@ pub fn iamax<T: Float>(x: &Tensor<T>) -> Result<Option<usize>> {
 /// gemv(1.0, &a, &x, 0.0, &mut y).unwrap();
 /// assert_eq!(y.as_slice(), &[17.0, 39.0]);
 /// ```
-#[allow(clippy::many_single_char_names)]
+#[allow(clippy::many_single_char_names, clippy::cast_possible_wrap)]
 pub fn gemv<T: Scalar>(
     alpha: T,
     a: &Tensor<T>,
@@ -297,6 +379,54 @@ pub fn gemv<T: Scalar>(
         });
     }
 
+    // Dispatch to system BLAS when available.
+    #[cfg(feature = "blas-backend")]
+    {
+        use std::any::TypeId;
+        if TypeId::of::<T>() == TypeId::of::<f64>() {
+            unsafe {
+                let alpha_f64: f64 = core::mem::transmute_copy(&alpha);
+                let beta_f64: f64 = core::mem::transmute_copy(&beta);
+                blas_ffi::cblas_dgemv(
+                    blas_ffi::CBLAS_ROW_MAJOR,
+                    blas_ffi::CBLAS_NO_TRANS,
+                    m as libc::c_int,
+                    n as libc::c_int,
+                    alpha_f64,
+                    a.as_slice().as_ptr().cast::<f64>(),
+                    n as libc::c_int,
+                    x.as_slice().as_ptr().cast::<f64>(),
+                    1,
+                    beta_f64,
+                    y.as_mut_slice().as_mut_ptr().cast::<f64>(),
+                    1,
+                );
+            }
+            return Ok(());
+        }
+        if TypeId::of::<T>() == TypeId::of::<f32>() {
+            unsafe {
+                let alpha_f32: f32 = core::mem::transmute_copy(&alpha);
+                let beta_f32: f32 = core::mem::transmute_copy(&beta);
+                blas_ffi::cblas_sgemv(
+                    blas_ffi::CBLAS_ROW_MAJOR,
+                    blas_ffi::CBLAS_NO_TRANS,
+                    m as libc::c_int,
+                    n as libc::c_int,
+                    alpha_f32,
+                    a.as_slice().as_ptr().cast::<f32>(),
+                    n as libc::c_int,
+                    x.as_slice().as_ptr().cast::<f32>(),
+                    1,
+                    beta_f32,
+                    y.as_mut_slice().as_mut_ptr().cast::<f32>(),
+                    1,
+                );
+            }
+            return Ok(());
+        }
+    }
+
     let a_data = a.as_slice();
     let x_data = x.as_slice();
     let y_data = y.as_mut_slice();
@@ -332,7 +462,11 @@ pub fn gemv<T: Scalar>(
 /// gemm(1.0, &a, &b, 0.0, &mut c).unwrap();
 /// assert_eq!(c.as_slice(), &[19.0, 22.0, 43.0, 50.0]);
 /// ```
-#[allow(clippy::many_single_char_names, clippy::too_many_lines)]
+#[allow(
+    clippy::many_single_char_names,
+    clippy::too_many_lines,
+    clippy::cast_possible_wrap
+)]
 pub fn gemm<T: Scalar>(
     alpha: T,
     a: &Tensor<T>,
@@ -366,6 +500,60 @@ pub fn gemm<T: Scalar>(
             expected: vec![m, n],
             got: c.shape().to_vec(),
         });
+    }
+
+    // Dispatch to system BLAS when available (Accelerate/MKL/OpenBLAS).
+    #[cfg(feature = "blas-backend")]
+    {
+        use std::any::TypeId;
+        if TypeId::of::<T>() == TypeId::of::<f64>() {
+            // SAFETY: T is f64 confirmed by TypeId; transmute alpha/beta, cast pointers.
+            unsafe {
+                let alpha_f64: f64 = core::mem::transmute_copy(&alpha);
+                let beta_f64: f64 = core::mem::transmute_copy(&beta);
+                blas_ffi::cblas_dgemm(
+                    blas_ffi::CBLAS_ROW_MAJOR,
+                    blas_ffi::CBLAS_NO_TRANS,
+                    blas_ffi::CBLAS_NO_TRANS,
+                    m as libc::c_int,
+                    n as libc::c_int,
+                    k as libc::c_int,
+                    alpha_f64,
+                    a.as_slice().as_ptr().cast::<f64>(),
+                    k as libc::c_int,
+                    b.as_slice().as_ptr().cast::<f64>(),
+                    n as libc::c_int,
+                    beta_f64,
+                    c.as_mut_slice().as_mut_ptr().cast::<f64>(),
+                    n as libc::c_int,
+                );
+            }
+            return Ok(());
+        }
+        if TypeId::of::<T>() == TypeId::of::<f32>() {
+            unsafe {
+                let alpha_f32: f32 = core::mem::transmute_copy(&alpha);
+                let beta_f32: f32 = core::mem::transmute_copy(&beta);
+                blas_ffi::cblas_sgemm(
+                    blas_ffi::CBLAS_ROW_MAJOR,
+                    blas_ffi::CBLAS_NO_TRANS,
+                    blas_ffi::CBLAS_NO_TRANS,
+                    m as libc::c_int,
+                    n as libc::c_int,
+                    k as libc::c_int,
+                    alpha_f32,
+                    a.as_slice().as_ptr().cast::<f32>(),
+                    k as libc::c_int,
+                    b.as_slice().as_ptr().cast::<f32>(),
+                    n as libc::c_int,
+                    beta_f32,
+                    c.as_mut_slice().as_mut_ptr().cast::<f32>(),
+                    n as libc::c_int,
+                );
+            }
+            return Ok(());
+        }
+        // Non-float types fall through to the manual implementation.
     }
 
     let a_data = a.as_slice();
