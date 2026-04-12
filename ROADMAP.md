@@ -66,7 +66,8 @@ Priority: operations where Rust is **slower** than Python.
 
 **Remaining (Phase 2):**
 - [ ] FFT-based convolution path for large filter orders (n > 64)
-- [ ] SIMD-accelerate the inner FIR loop
+- [x] f64 fast path with fused multiply-add for FIR/IIR inner loops
+- [x] f64 fast path with 4-way FMA unrolling for 1D convolution
 
 ### 1.4 Image Filter — ~~0.5x~~ IMPROVED
 
@@ -123,20 +124,20 @@ Modules already faster than Python but with room to grow.
 
 ### 2.1 Core Decompositions
 
-- [ ] Blocked Householder QR (currently column-by-column, 0.7x)
+- [x] Blocked Householder QR (compact WY representation, BLOCK_SIZE=32)
 - [ ] Divide-and-conquer SVD (currently one-sided Jacobi, already 11.4x)
 - [ ] Parallel eigendecomposition for large matrices
 
 ### 2.2 Stats Module
 
-- [ ] SIMD-accelerated descriptive stats (variance, skewness, kurtosis)
+- [x] SIMD-accelerated descriptive stats (4-way f64 accumulators for mean, variance)
 - [ ] Parallel hypothesis testing for multiple-comparison scenarios
-- [ ] Online/streaming statistics algorithms
+- [x] Online/streaming statistics (Welford's algorithm with Terriberry extensions for skewness/kurtosis, Chan's parallel merge)
 
 ### 2.3 ML Module
 
-- [ ] Parallel tree construction (currently single-threaded)
-- [ ] SIMD-accelerated distance computations for KNN/clustering
+- [x] Sorted-scan split finding for decision trees (O(n log n) vs O(n²) per feature)
+- [x] SIMD-accelerated distance computations for KNN/clustering (4-way f64 accumulators)
 - [ ] Ensemble parallel fitting (random forest trees in parallel)
 
 ### 2.4 IO Module

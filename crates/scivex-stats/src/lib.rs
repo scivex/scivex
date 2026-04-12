@@ -62,6 +62,8 @@ pub mod hypothesis;
 pub mod kalman;
 /// Linear Mixed-Effects Models (LMM).
 pub mod mixed_effects;
+/// Online (streaming) statistics using Welford's algorithm.
+pub mod online;
 /// Prophet-style additive decomposable time series forecasting.
 pub mod prophet;
 /// Ordinary least-squares regression.
@@ -102,6 +104,7 @@ pub use hypothesis::{
 };
 pub use kalman::KalmanFilter;
 pub use mixed_effects::{LmmResult, lmm};
+pub use online::OnlineStats;
 pub use prophet::{Prophet, ProphetConfig, ProphetForecast};
 pub use regression::{OlsResult, ols};
 pub use survival::{
@@ -151,6 +154,7 @@ pub mod prelude {
     };
     pub use crate::kalman::KalmanFilter;
     pub use crate::mixed_effects::{LmmResult, lmm};
+    pub use crate::online::OnlineStats;
     pub use crate::prophet::{Prophet, ProphetConfig, ProphetForecast};
     pub use crate::regression::{OlsResult, ols};
     pub use crate::survival::{
