@@ -6,7 +6,7 @@ use std::path::Path;
 use scivex_frame::DataFrame;
 
 use super::parser::RecordParser;
-use crate::common::{InferredType, build_series_from_strings, infer_column_type};
+use crate::common::{InferredType, build_series_from_records, infer_column_type_from_records};
 use crate::error::{IoError, Result};
 
 /// Builder for reading CSV data into a [`DataFrame`].
@@ -240,42 +240,32 @@ impl CsvReaderBuilder {
             *column_names = (0..ncols).map(|i| format!("column_{i}")).collect();
         }
 
-        // Build columns directly (row→column transpose) with null replacement inline.
-        let nrows = records.len();
-        let has_null_values = !self.null_values.is_empty();
-        let mut columns: Vec<Vec<String>> = vec![Vec::with_capacity(nrows); ncols];
-        for record in records {
-            for (col_idx, col) in columns.iter_mut().enumerate() {
-                let val = record.get(col_idx).map_or("", String::as_str);
-                if has_null_values && self.null_values.iter().any(|n| n == val) {
-                    col.push(String::new());
-                } else {
-                    col.push(val.to_string());
-                }
-            }
-        }
-
         let type_overrides: std::collections::HashMap<&str, InferredType> = self
             .column_types
             .iter()
             .map(|(name, ty)| (name.as_str(), *ty))
             .collect();
 
+        // Build series directly from row-oriented records — no column transpose copy.
         let mut series_vec: Vec<Box<dyn scivex_frame::AnySeries>> = Vec::with_capacity(ncols);
-        for (col_idx, col_data) in columns.iter().enumerate() {
-            let col_name = &column_names[col_idx];
-
+        for (col_idx, col_name) in column_names.iter().enumerate().take(ncols) {
             let dtype = if let Some(&forced) = type_overrides.get(col_name.as_str()) {
                 forced
             } else {
-                let sample: Vec<&str> = col_data
-                    .iter()
-                    .map(String::as_str)
-                    .take(self.infer_sample_size)
-                    .collect();
-                infer_column_type(&sample)
+                infer_column_type_from_records(
+                    records,
+                    col_idx,
+                    self.infer_sample_size,
+                    &self.null_values,
+                )
             };
-            series_vec.push(build_series_from_strings(col_name, col_data, dtype)?);
+            series_vec.push(build_series_from_records(
+                col_name,
+                records,
+                col_idx,
+                dtype,
+                &self.null_values,
+            )?);
         }
 
         Ok(DataFrame::new(series_vec)?)

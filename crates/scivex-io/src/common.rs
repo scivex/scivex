@@ -268,6 +268,188 @@ fn build_bool_series(name: &str, values: &[String]) -> Result<Box<dyn AnySeries>
     }
 }
 
+/// Build a typed series by extracting column `col_idx` from row-oriented records.
+///
+/// Avoids the intermediate `Vec<String>` column copy: reads each cell by reference,
+/// applies null replacement inline, then parses directly into the typed series.
+pub fn build_series_from_records(
+    name: &str,
+    records: &[Vec<String>],
+    col_idx: usize,
+    dtype: InferredType,
+    null_values: &[String],
+) -> Result<Box<dyn AnySeries>> {
+    match dtype {
+        InferredType::I64 => build_i64_from_records(name, records, col_idx, null_values),
+        InferredType::F64 => build_f64_from_records(name, records, col_idx, null_values),
+        InferredType::Bool => build_bool_from_records(name, records, col_idx, null_values),
+        InferredType::Str => build_str_from_records(name, records, col_idx, null_values),
+    }
+}
+
+/// Resolve a cell value, applying custom null replacement.
+#[inline]
+fn resolve_cell<'a>(
+    record: &'a [String],
+    col_idx: usize,
+    null_values: &[String],
+    has_custom_nulls: bool,
+) -> &'a str {
+    let raw = record.get(col_idx).map_or("", String::as_str);
+    if has_custom_nulls && null_values.iter().any(|n| n == raw) {
+        ""
+    } else {
+        raw
+    }
+}
+
+fn build_i64_from_records(
+    name: &str,
+    records: &[Vec<String>],
+    col_idx: usize,
+    null_values: &[String],
+) -> Result<Box<dyn AnySeries>> {
+    let has_custom_nulls = !null_values.is_empty();
+    let mut data = Vec::with_capacity(records.len());
+    let mut nulls = Vec::with_capacity(records.len());
+    let mut has_nulls = false;
+    for record in records {
+        let val = resolve_cell(record, col_idx, null_values, has_custom_nulls);
+        if is_null_sentinel(val) {
+            data.push(0_i64);
+            nulls.push(true);
+            has_nulls = true;
+        } else if let Some(parsed) = try_parse_i64(val) {
+            data.push(parsed);
+            nulls.push(false);
+        } else {
+            data.push(0);
+            nulls.push(true);
+            has_nulls = true;
+        }
+    }
+    if has_nulls {
+        Ok(Box::new(Series::with_nulls(name, data, nulls)?))
+    } else {
+        Ok(Box::new(Series::new(name, data)))
+    }
+}
+
+fn build_f64_from_records(
+    name: &str,
+    records: &[Vec<String>],
+    col_idx: usize,
+    null_values: &[String],
+) -> Result<Box<dyn AnySeries>> {
+    let has_custom_nulls = !null_values.is_empty();
+    let mut data = Vec::with_capacity(records.len());
+    let mut nulls = Vec::with_capacity(records.len());
+    let mut has_nulls = false;
+    for record in records {
+        let val = resolve_cell(record, col_idx, null_values, has_custom_nulls);
+        if is_null_sentinel(val) {
+            data.push(0.0_f64);
+            nulls.push(true);
+            has_nulls = true;
+        } else if let Some(parsed) = try_parse_f64(val) {
+            data.push(parsed);
+            nulls.push(false);
+        } else {
+            data.push(0.0);
+            nulls.push(true);
+            has_nulls = true;
+        }
+    }
+    if has_nulls {
+        Ok(Box::new(Series::with_nulls(name, data, nulls)?))
+    } else {
+        Ok(Box::new(Series::new(name, data)))
+    }
+}
+
+fn build_bool_from_records(
+    name: &str,
+    records: &[Vec<String>],
+    col_idx: usize,
+    null_values: &[String],
+) -> Result<Box<dyn AnySeries>> {
+    let has_custom_nulls = !null_values.is_empty();
+    let mut data = Vec::with_capacity(records.len());
+    let mut nulls = Vec::with_capacity(records.len());
+    let mut has_nulls = false;
+    for record in records {
+        let val = resolve_cell(record, col_idx, null_values, has_custom_nulls);
+        if is_null_sentinel(val) {
+            data.push(0_u8);
+            nulls.push(true);
+            has_nulls = true;
+        } else if let Some(parsed) = try_parse_bool(val) {
+            data.push(u8::from(parsed));
+            nulls.push(false);
+        } else {
+            data.push(0);
+            nulls.push(true);
+            has_nulls = true;
+        }
+    }
+    if has_nulls {
+        Ok(Box::new(Series::with_nulls(name, data, nulls)?))
+    } else {
+        Ok(Box::new(Series::new(name, data)))
+    }
+}
+
+fn build_str_from_records(
+    name: &str,
+    records: &[Vec<String>],
+    col_idx: usize,
+    null_values: &[String],
+) -> Result<Box<dyn AnySeries>> {
+    let has_custom_nulls = !null_values.is_empty();
+    let mut data = Vec::with_capacity(records.len());
+    let mut nulls = Vec::with_capacity(records.len());
+    let mut has_nulls = false;
+    for record in records {
+        let val = resolve_cell(record, col_idx, null_values, has_custom_nulls);
+        if is_null_sentinel(val) {
+            data.push(String::new());
+            nulls.push(true);
+            has_nulls = true;
+        } else {
+            data.push(val.to_string());
+            nulls.push(false);
+        }
+    }
+    if has_nulls {
+        Ok(Box::new(StringSeries::with_nulls(name, data, nulls)?))
+    } else {
+        Ok(Box::new(StringSeries::new(name, data)))
+    }
+}
+
+/// Infer column type by sampling directly from row-oriented records.
+pub fn infer_column_type_from_records(
+    records: &[Vec<String>],
+    col_idx: usize,
+    sample_size: usize,
+    null_values: &[String],
+) -> InferredType {
+    let has_custom_nulls = !null_values.is_empty();
+    let sample: Vec<&str> = records
+        .iter()
+        .take(sample_size)
+        .map(|r| {
+            let raw = r.get(col_idx).map_or("", String::as_str);
+            if has_custom_nulls && null_values.iter().any(|n| n == raw) {
+                ""
+            } else {
+                raw
+            }
+        })
+        .collect();
+    infer_column_type(&sample)
+}
+
 fn build_string_series(name: &str, values: &[String]) -> Result<Box<dyn AnySeries>> {
     let mut data = Vec::with_capacity(values.len());
     let mut nulls = Vec::with_capacity(values.len());
