@@ -65,7 +65,7 @@ Priority: operations where Rust is **slower** than Python.
 **Status:** Original "0.01x" was a benchmark parameter mismatch, not a real regression. Our Direct Form II Transposed implementation with unsafe indexing runs at ~0.76x vs SciPy. Direct convolution was tested but is slower for large filter orders due to cache locality of DF2T state vector.
 
 **Remaining (Phase 2):**
-- [ ] FFT-based convolution path for large filter orders (n > 64)
+- [x] FFT-based convolution with auto-dispatch (O(N log N) for min(na,nb) > 64)
 - [x] f64 fast path with fused multiply-add for FIR/IIR inner loops
 - [x] f64 fast path with 4-way FMA unrolling for 1D convolution
 
@@ -142,7 +142,7 @@ Modules already faster than Python but with room to grow.
 
 ### 2.4 IO Module
 
-- [ ] Parallel CSV parsing with per-chunk parsing
+- [x] Zero-copy CSV column building (eliminate row→column transpose, build series directly from records)
 - [ ] Memory-mapped Parquet reading
 - [ ] Arrow IPC zero-copy path
 
