@@ -168,45 +168,57 @@ impl<T: Float> DecisionTreeClassifier<T> {
             return Node::Leaf { value: first_class };
         }
 
-        // Find best split
+        // Find best split using sorted scan (O(n log n) per feature instead of O(n²))
         let mut best_gain = T::neg_infinity();
         let mut best_feature = 0;
         let mut best_threshold = T::zero();
 
         let parent_counts = count_classes(y, indices, classes);
         let parent_gini: T = gini(&parent_counts, indices.len());
+        let n_total = T::from_usize(indices.len());
+
+        // Pre-compute class indices for all samples in this node
+        let class_indices: Vec<usize> = indices
+            .iter()
+            .map(|&i| class_index(classes, y[i]))
+            .collect();
+
+        // Reusable buffer for sorted indices
+        let mut sorted: Vec<(T, usize)> = Vec::with_capacity(indices.len());
 
         for feat in 0..p {
-            // Collect and sort unique thresholds
-            let mut vals: Vec<T> = indices.iter().map(|&i| x[i * p + feat]).collect();
-            vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            vals.dedup();
+            // Sort indices by feature value
+            sorted.clear();
+            sorted.extend(
+                indices
+                    .iter()
+                    .enumerate()
+                    .map(|(local, &i)| (x[i * p + feat], local)),
+            );
+            sorted.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
-            if vals.len() <= 1 {
-                continue;
-            }
+            // Start with everything in right, scan left-to-right moving to left
+            let mut left_counts = vec![0usize; n_classes];
+            let mut right_counts = parent_counts.clone();
+            let mut n_left = 0usize;
+            let mut n_right = indices.len();
 
-            for w in vals.windows(2) {
-                let threshold = (w[0] + w[1]) / T::from_usize(2);
-                let (mut left_counts, mut right_counts) =
-                    (vec![0usize; n_classes], vec![0usize; n_classes]);
-                let (mut n_left, mut n_right) = (0usize, 0usize);
-                for &i in indices {
-                    let ci = class_index(classes, y[i]);
-                    if x[i * p + feat] <= threshold {
-                        left_counts[ci] += 1;
-                        n_left += 1;
-                    } else {
-                        right_counts[ci] += 1;
-                        n_right += 1;
-                    }
-                }
-                if n_left == 0 || n_right == 0 {
+            for w in sorted.windows(2) {
+                let (_, local_idx) = w[0];
+                let ci = class_indices[local_idx];
+                left_counts[ci] += 1;
+                right_counts[ci] -= 1;
+                n_left += 1;
+                n_right -= 1;
+
+                // Only evaluate split when feature value changes
+                if (w[0].0 - w[1].0).abs() < T::epsilon() {
                     continue;
                 }
+
+                let threshold = (w[0].0 + w[1].0) / T::from_usize(2);
                 let left_gini: T = gini(&left_counts, n_left);
                 let right_gini: T = gini(&right_counts, n_right);
-                let n_total = T::from_usize(indices.len());
                 let weighted = T::from_usize(n_left) / n_total * left_gini
                     + T::from_usize(n_right) / n_total * right_gini;
                 let gain = parent_gini - weighted;
@@ -323,32 +335,56 @@ impl<T: Float> DecisionTreeRegressor<T> {
         let mut best_reduction = T::neg_infinity();
         let mut best_feature = 0;
         let mut best_threshold = T::zero();
+        let n_total = T::from_usize(indices.len());
+
+        // Reusable buffer for sorted (feature_value, y_value) pairs
+        let mut sorted: Vec<(T, T)> = Vec::with_capacity(indices.len());
 
         for feat in 0..p {
-            let mut vals: Vec<T> = indices.iter().map(|&i| x[i * p + feat]).collect();
-            vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            vals.dedup();
-            if vals.len() <= 1 {
-                continue;
-            }
+            // Sort by feature value, carry y along
+            sorted.clear();
+            sorted.extend(indices.iter().map(|&i| (x[i * p + feat], y[i])));
+            sorted.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
-            for w in vals.windows(2) {
-                let threshold = (w[0] + w[1]) / T::from_usize(2);
-                let (left, right): (Vec<usize>, Vec<usize>) =
-                    indices.iter().partition(|&&i| x[i * p + feat] <= threshold);
-                if left.is_empty() || right.is_empty() {
+            // Running sums for incremental MSE: MSE = sum_sq/n - (sum/n)²
+            let total_sum = sorted
+                .iter()
+                .map(|&(_, yv)| yv)
+                .fold(T::zero(), |a, b| a + b);
+            let total_sum_sq = sorted
+                .iter()
+                .map(|&(_, yv)| yv * yv)
+                .fold(T::zero(), |a, b| a + b);
+            let mut left_sum = T::zero();
+            let mut left_sum_sq = T::zero();
+            let mut n_left = 0usize;
+
+            for w in sorted.windows(2) {
+                let yv = w[0].1;
+                left_sum += yv;
+                left_sum_sq += yv * yv;
+                n_left += 1;
+                let n_right = indices.len() - n_left;
+
+                // Only evaluate when feature value changes
+                if (w[0].0 - w[1].0).abs() < T::epsilon() {
                     continue;
                 }
-                let left_vals: Vec<T> = left.iter().map(|&i| y[i]).collect();
-                let right_vals: Vec<T> = right.iter().map(|&i| y[i]).collect();
-                let n_total = T::from_usize(indices.len());
-                let weighted = T::from_usize(left.len()) / n_total * mse_impurity(&left_vals)
-                    + T::from_usize(right.len()) / n_total * mse_impurity(&right_vals);
+
+                let nl = T::from_usize(n_left);
+                let nr = T::from_usize(n_right);
+                let right_sum = total_sum - left_sum;
+                let right_sum_sq = total_sum_sq - left_sum_sq;
+
+                // MSE = E[X²] - E[X]² = sum_sq/n - (sum/n)²
+                let left_mse = left_sum_sq / nl - (left_sum / nl) * (left_sum / nl);
+                let right_mse = right_sum_sq / nr - (right_sum / nr) * (right_sum / nr);
+                let weighted = nl / n_total * left_mse + nr / n_total * right_mse;
                 let reduction = parent_mse - weighted;
                 if reduction > best_reduction {
                     best_reduction = reduction;
                     best_feature = feat;
-                    best_threshold = threshold;
+                    best_threshold = (w[0].0 + w[1].0) / T::from_usize(2);
                 }
             }
         }

@@ -74,12 +74,47 @@ pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<
     let mut y = vec![T::zero(); n];
 
     if is_fir && order > 1 {
-        // FIR-only fast path using Direct Form II Transposed without feedback.
-        // Uses unsafe indexing to eliminate bounds checks in the hot loop.
+        apply_fir(&bn, xs, &mut y, order);
+    } else if is_fir {
+        let b0 = bn[0];
+        for i in 0..n {
+            y[i] = b0 * xs[i];
+        }
+    } else {
+        apply_iir(&bn, &an, xs, &mut y, order);
+    }
+
+    Ok(Tensor::from_vec(y, vec![n])?)
+}
+
+/// FIR-only Direct Form II Transposed (no feedback coefficients).
+fn apply_fir<T: Float>(bn: &[T], xs: &[T], y: &mut [T], order: usize) {
+    let n = xs.len();
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        // f64 fast path with fused multiply-add.
+        // SAFETY: T is f64, pointer casts are valid. All indices bounded by n/order.
+        let xs_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(xs) as *const [f64]) };
+        let bn_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(bn) as *const [f64]) };
+        let y_f64 = unsafe { &mut *(core::ptr::from_mut::<[T]>(y) as *mut [f64]) };
+        let mut z = vec![0.0f64; order];
+        let b0 = bn_f64[0];
+        let ord_m1 = order - 1;
+        unsafe {
+            for i in 0..n {
+                let xi = *xs_f64.get_unchecked(i);
+                *y_f64.get_unchecked_mut(i) = b0.mul_add(xi, *z.get_unchecked(0));
+                for j in 1..ord_m1 {
+                    *z.get_unchecked_mut(j - 1) =
+                        (*bn_f64.get_unchecked(j)).mul_add(xi, *z.get_unchecked(j));
+                }
+                *z.get_unchecked_mut(ord_m1 - 1) = *bn_f64.get_unchecked(ord_m1) * xi;
+            }
+        }
+    } else {
         let mut z = vec![T::zero(); order];
         let b0 = bn[0];
         let ord_m1 = order - 1;
-        // SAFETY: all indices are within bounds (i < n, j < order-1, order-2 < order).
+        // SAFETY: all indices within bounds (i < n, j < order-1).
         unsafe {
             for i in 0..n {
                 let xi = *xs.get_unchecked(i);
@@ -90,18 +125,38 @@ pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<
                 *z.get_unchecked_mut(ord_m1 - 1) = *bn.get_unchecked(ord_m1) * xi;
             }
         }
-    } else if is_fir {
-        // Single-tap FIR: y[i] = b[0] * x[i].
-        let b0 = bn[0];
-        for i in 0..n {
-            y[i] = b0 * xs[i];
+    }
+}
+
+/// General IIR Direct Form II Transposed.
+fn apply_iir<T: Float>(bn: &[T], an: &[T], xs: &[T], y: &mut [T], order: usize) {
+    let n = xs.len();
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        // f64 fast path with fused multiply-add.
+        // SAFETY: T is f64, pointer casts are valid.
+        let xs_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(xs) as *const [f64]) };
+        let bn_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(bn) as *const [f64]) };
+        let an_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(an) as *const [f64]) };
+        let y_f64 = unsafe { &mut *(core::ptr::from_mut::<[T]>(y) as *mut [f64]) };
+        let mut z = vec![0.0f64; order];
+        let b0 = bn_f64[0];
+        unsafe {
+            for i in 0..n {
+                let xi = *xs_f64.get_unchecked(i);
+                let yi = b0.mul_add(xi, *z.get_unchecked(0));
+                *y_f64.get_unchecked_mut(i) = yi;
+                for j in 1..order {
+                    *z.get_unchecked_mut(j - 1) = (*bn_f64.get_unchecked(j)).mul_add(
+                        xi,
+                        (-*an_f64.get_unchecked(j)).mul_add(yi, *z.get_unchecked(j)),
+                    );
+                }
+            }
         }
     } else {
-        // General IIR path: Direct Form II Transposed.
-        // Uses unsafe indexing to eliminate bounds checks in the hot loop.
         let mut z = vec![T::zero(); order];
         let b0 = bn[0];
-        // SAFETY: all indices are within bounds (i < n, j < order).
+        // SAFETY: all indices within bounds (i < n, j < order).
         unsafe {
             for i in 0..n {
                 let xi = *xs.get_unchecked(i);
@@ -114,8 +169,6 @@ pub fn lfilter<T: Float>(b: &Tensor<T>, a: &Tensor<T>, x: &Tensor<T>) -> Result<
             }
         }
     }
-
-    Ok(Tensor::from_vec(y, vec![n])?)
 }
 
 /// Zero-phase digital filtering (forward-backward).

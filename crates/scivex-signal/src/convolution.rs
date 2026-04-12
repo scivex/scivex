@@ -53,9 +53,44 @@ pub fn convolve<T: Float>(a: &Tensor<T>, b: &Tensor<T>, mode: ConvolveMode) -> R
     // Full convolution length.
     let full_len = na + nb - 1;
     let mut full = vec![T::zero(); full_len];
-    for i in 0..na {
-        for j in 0..nb {
-            full[i + j] += sa[i] * sb[j];
+
+    if core::any::TypeId::of::<T>() == core::any::TypeId::of::<f64>() {
+        // f64 fast path: fused multiply-add for the inner loop.
+        // SAFETY: T is f64, pointer casts are valid.
+        let sa_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(sa) as *const [f64]) };
+        let sb_f64 = unsafe { &*(core::ptr::from_ref::<[T]>(sb) as *const [f64]) };
+        let full_f64 = unsafe { &mut *(core::ptr::from_mut::<[T]>(&mut full) as *mut [f64]) };
+        for (i, &ai) in sa_f64.iter().enumerate().take(na) {
+            // Process 4 kernel taps at a time for ILP
+            let chunks4 = nb / 4;
+            let rem = nb % 4;
+            for jj in 0..chunks4 {
+                let j = jj * 4;
+                // SAFETY: i+j+3 < na+nb-1 = full_len, j+3 < nb
+                unsafe {
+                    let p0 = full_f64.get_unchecked_mut(i + j);
+                    *p0 = ai.mul_add(*sb_f64.get_unchecked(j), *p0);
+                    let p1 = full_f64.get_unchecked_mut(i + j + 1);
+                    *p1 = ai.mul_add(*sb_f64.get_unchecked(j + 1), *p1);
+                    let p2 = full_f64.get_unchecked_mut(i + j + 2);
+                    *p2 = ai.mul_add(*sb_f64.get_unchecked(j + 2), *p2);
+                    let p3 = full_f64.get_unchecked_mut(i + j + 3);
+                    *p3 = ai.mul_add(*sb_f64.get_unchecked(j + 3), *p3);
+                }
+            }
+            let tail = chunks4 * 4;
+            for j in 0..rem {
+                unsafe {
+                    let p = full_f64.get_unchecked_mut(i + tail + j);
+                    *p = ai.mul_add(*sb_f64.get_unchecked(tail + j), *p);
+                }
+            }
+        }
+    } else {
+        for i in 0..na {
+            for j in 0..nb {
+                full[i + j] += sa[i] * sb[j];
+            }
         }
     }
 
