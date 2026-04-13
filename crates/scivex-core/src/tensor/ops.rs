@@ -348,14 +348,20 @@ fn simd_scalar_op<T: Scalar>(
         let a_f64 = unsafe { crate::simd::slice_as_f64(a) };
         let s_f64 = unsafe { crate::simd::t_to_f64(s) };
         let mut out = vec![0.0f64; a.len()];
-        f64_kernel(a_f64, s_f64, &mut out);
+        for start in (0..a.len()).step_by(TILE_F64) {
+            let end = (start + TILE_F64).min(a.len());
+            f64_kernel(&a_f64[start..end], s_f64, &mut out[start..end]);
+        }
         let mut out = core::mem::ManuallyDrop::new(out);
         unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
     } else if TypeId::of::<T>() == TypeId::of::<f32>() {
         let a_f32 = unsafe { crate::simd::slice_as_f32(a) };
         let s_f32 = unsafe { crate::simd::t_to_f32(s) };
         let mut out = vec![0.0f32; a.len()];
-        f32_kernel(a_f32, s_f32, &mut out);
+        for start in (0..a.len()).step_by(TILE_F32) {
+            let end = (start + TILE_F32).min(a.len());
+            f32_kernel(&a_f32[start..end], s_f32, &mut out[start..end]);
+        }
         let mut out = core::mem::ManuallyDrop::new(out);
         unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
     } else {
@@ -374,15 +380,25 @@ fn simd_scalar_op_inplace<T: Scalar>(
 ) {
     use std::any::TypeId;
     if TypeId::of::<T>() == TypeId::of::<f64>() {
+        let n = a.len();
         let s_f64 = unsafe { crate::simd::t_to_f64(s) };
         let a_f64 = unsafe { crate::simd::slice_as_f64_mut(a) };
-        let a_input = unsafe { core::slice::from_raw_parts(a_f64.as_ptr(), a_f64.len()) };
-        f64_kernel(a_input, s_f64, a_f64);
+        for start in (0..n).step_by(TILE_F64) {
+            let end = (start + TILE_F64).min(n);
+            let a_input =
+                unsafe { core::slice::from_raw_parts(a_f64[start..end].as_ptr(), end - start) };
+            f64_kernel(a_input, s_f64, &mut a_f64[start..end]);
+        }
     } else if TypeId::of::<T>() == TypeId::of::<f32>() {
+        let n = a.len();
         let s_f32 = unsafe { crate::simd::t_to_f32(s) };
         let a_f32 = unsafe { crate::simd::slice_as_f32_mut(a) };
-        let a_input = unsafe { core::slice::from_raw_parts(a_f32.as_ptr(), a_f32.len()) };
-        f32_kernel(a_input, s_f32, a_f32);
+        for start in (0..n).step_by(TILE_F32) {
+            let end = (start + TILE_F32).min(n);
+            let a_input =
+                unsafe { core::slice::from_raw_parts(a_f32[start..end].as_ptr(), end - start) };
+            f32_kernel(a_input, s_f32, &mut a_f32[start..end]);
+        }
     } else {
         for x in a.iter_mut() {
             *x = scalar_op(*x, s);
