@@ -57,8 +57,8 @@ Priority: operations where Rust is **slower** than Python.
 - [x] TypeId dispatch in `gemm`/`gemv` to system BLAS
 
 **Remaining (Phase 2):**
-- [ ] Implement Goto-style GEMM for non-BLAS path
-- [ ] Register-level micro-kernel with full NEON/AVX utilization
+- [x] NEON micro-kernels with panel packing (8x4 + 4x4 for f64 and f32)
+- [ ] AVX micro-kernels for x86_64 non-BLAS path
 
 ### 1.3 Signal Filter — ~~0.01x~~ ~0.76x (benchmark mismatch)
 
@@ -88,6 +88,9 @@ Priority: operations where Rust is **slower** than Python.
 **Done:**
 - [x] In-place gradient accumulation with SIMD-backed `AddAssign`
 - [x] GEMM acceleration via blas-backend
+- [x] Eliminate redundant weight transpose in Linear::forward
+- [x] Zero-copy backward pass: take() intermediate gradients instead of clone()
+- [x] NEON f32 GEMM micro-kernels (8x4 + 4x4) with panel packing
 
 **Remaining (Phase 2):**
 - [ ] Arena allocator for forward-pass temporaries
