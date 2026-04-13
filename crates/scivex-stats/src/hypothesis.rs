@@ -419,6 +419,92 @@ pub fn mann_whitney_u<T: Float>(x: &[T], y: &[T]) -> Result<TestResult<T>> {
 }
 
 // ===========================================================================
+// Batch hypothesis testing
+// ===========================================================================
+
+/// Run one-sample t-tests on many features (columns) against `mu_0`.
+///
+/// Given a matrix of `n_samples × n_features`, this performs a t-test on each
+/// column. With the `parallel` feature, tests run on multiple threads.
+///
+/// Returns a vector of [`TestResult`] — one per feature.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::batch_t_test_one_sample;
+/// let features: Vec<Vec<f64>> = vec![
+///     vec![5.0, 5.1, 4.9, 5.2, 4.8],
+///     vec![0.0, 0.1, -0.1, 0.2, -0.2],
+/// ];
+/// let results = batch_t_test_one_sample(&features, 0.0).unwrap();
+/// assert!(results[0].p_value < 0.01); // mean ≈ 5, far from 0
+/// assert!(results[1].p_value > 0.05); // mean ≈ 0
+/// ```
+pub fn batch_t_test_one_sample<T: Float>(
+    features: &[Vec<T>],
+    mu_0: T,
+) -> Result<Vec<TestResult<T>>> {
+    if features.is_empty() {
+        return Err(StatsError::EmptyInput);
+    }
+    #[cfg(feature = "parallel")]
+    {
+        use rayon::prelude::*;
+        features
+            .par_iter()
+            .map(|col| t_test_one_sample(col, mu_0))
+            .collect()
+    }
+    #[cfg(not(feature = "parallel"))]
+    {
+        features
+            .iter()
+            .map(|col| t_test_one_sample(col, mu_0))
+            .collect()
+    }
+}
+
+/// Run two-sample t-tests on many paired feature vectors.
+///
+/// `pairs` is a slice of `(group_a, group_b)` for each feature.
+/// With the `parallel` feature, tests run on multiple threads.
+///
+/// # Examples
+///
+/// ```
+/// # use scivex_stats::hypothesis::batch_t_test_two_sample;
+/// let pairs: Vec<(Vec<f64>, Vec<f64>)> = vec![
+///     (vec![10.0, 10.5, 9.8], vec![5.0, 5.2, 4.9]),
+///     (vec![1.0, 1.1, 0.9], vec![1.0, 1.0, 1.0]),
+/// ];
+/// let results = batch_t_test_two_sample(&pairs).unwrap();
+/// assert!(results[0].p_value < 0.05);
+/// ```
+pub fn batch_t_test_two_sample<T: Float>(
+    pairs: &[(Vec<T>, Vec<T>)],
+) -> Result<Vec<TestResult<T>>> {
+    if pairs.is_empty() {
+        return Err(StatsError::EmptyInput);
+    }
+    #[cfg(feature = "parallel")]
+    {
+        use rayon::prelude::*;
+        pairs
+            .par_iter()
+            .map(|(a, b)| t_test_two_sample(a, b))
+            .collect()
+    }
+    #[cfg(not(feature = "parallel"))]
+    {
+        pairs
+            .iter()
+            .map(|(a, b)| t_test_two_sample(a, b))
+            .collect()
+    }
+}
+
+// ===========================================================================
 // Tests
 // ===========================================================================
 
@@ -475,5 +561,41 @@ mod tests {
         let g3 = [20.0, 21.0, 22.0, 21.0, 20.0];
         let result = anova_oneway(&[&g1, &g2, &g3]).unwrap();
         assert!(result.p_value < 0.001);
+    }
+
+    #[test]
+    fn test_batch_t_test_one_sample() {
+        let features: Vec<Vec<f64>> = vec![
+            vec![5.0, 5.1, 4.9, 5.2, 4.8],
+            vec![0.0, 0.1, -0.1, 0.2, -0.2],
+        ];
+        let results = batch_t_test_one_sample(&features, 0.0).unwrap();
+        assert_eq!(results.len(), 2);
+        assert!(results[0].p_value < 0.01);
+        assert!(results[1].p_value > 0.05);
+    }
+
+    #[test]
+    fn test_batch_t_test_two_sample() {
+        let pairs: Vec<(Vec<f64>, Vec<f64>)> = vec![
+            (
+                vec![10.0, 10.5, 9.8, 10.2, 10.1],
+                vec![5.0, 5.2, 4.9, 5.1, 5.3],
+            ),
+            (
+                vec![1.0, 1.1, 0.9, 1.0, 1.0],
+                vec![1.0, 1.0, 1.1, 0.9, 1.0],
+            ),
+        ];
+        let results = batch_t_test_two_sample(&pairs).unwrap();
+        assert_eq!(results.len(), 2);
+        assert!(results[0].p_value < 0.001);
+        assert!(results[1].p_value > 0.05);
+    }
+
+    #[test]
+    fn test_batch_empty() {
+        assert!(batch_t_test_one_sample::<f64>(&[], 0.0).is_err());
+        assert!(batch_t_test_two_sample::<f64>(&[]).is_err());
     }
 }

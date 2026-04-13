@@ -99,8 +99,8 @@ pub use error::{Result, StatsError};
 pub use garch::Garch;
 pub use glm::{Family, GlmResult, LinkFunction, glm};
 pub use hypothesis::{
-    TestResult, anova_oneway, chi_square_test, ks_test_two_sample, mann_whitney_u,
-    t_test_one_sample, t_test_two_sample,
+    TestResult, anova_oneway, batch_t_test_one_sample, batch_t_test_two_sample, chi_square_test,
+    ks_test_two_sample, mann_whitney_u, t_test_one_sample, t_test_two_sample,
 };
 pub use kalman::KalmanFilter;
 pub use mixed_effects::{LmmResult, lmm};
@@ -149,8 +149,8 @@ pub mod prelude {
     pub use crate::garch::Garch;
     pub use crate::glm::{Family, GlmResult, LinkFunction, glm};
     pub use crate::hypothesis::{
-        TestResult, anova_oneway, chi_square_test, ks_test_two_sample, mann_whitney_u,
-        t_test_one_sample, t_test_two_sample,
+        TestResult, anova_oneway, batch_t_test_one_sample, batch_t_test_two_sample,
+        chi_square_test, ks_test_two_sample, mann_whitney_u, t_test_one_sample, t_test_two_sample,
     };
     pub use crate::kalman::KalmanFilter;
     pub use crate::mixed_effects::{LmmResult, lmm};

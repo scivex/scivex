@@ -19,64 +19,83 @@ use crate::image::Image;
 /// let out = filter::convolve2d(&img, &kernel).unwrap();
 /// assert!((out.get_pixel(1, 1).unwrap()[0] - 1.0).abs() < 1e-5);
 /// ```
-#[allow(clippy::cast_possible_wrap)]
-pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> {
-    let kshape = kernel.shape();
-    if kshape.len() != 2 {
-        return Err(ImageError::InvalidKernel {
-            reason: "kernel must be 2D",
-        });
-    }
-    let kh = kshape[0];
-    let kw = kshape[1];
-    #[allow(clippy::manual_is_multiple_of)]
-    if kh % 2 == 0 || kw % 2 == 0 {
-        return Err(ImageError::InvalidKernel {
-            reason: "kernel dimensions must be odd",
-        });
-    }
-
-    let (w, h) = img.dimensions();
-    let c = img.channels();
-    let src = img.as_slice();
-    let k = kernel.as_slice();
-    let pad_y = kh / 2;
-    let pad_x = kw / 2;
-
-    let mut out = vec![0.0f32; h * w * c];
-
-    // Split into interior (no bounds checks) and border regions.
-    // Interior: rows [pad_y..h-pad_y), cols [pad_x..w-pad_x).
-    let row_start = pad_y;
-    let row_end = h.saturating_sub(pad_y);
-    let col_start = pad_x;
-    let col_end = w.saturating_sub(pad_x);
-
-    // Interior: all kernel taps are in-bounds — use unsafe indexing.
-    for row in row_start..row_end {
-        for col in col_start..col_end {
+/// Interior 2D convolution with FMA-accelerated 4-way unrolling.
+///
+/// All kernel taps are guaranteed in-bounds — no boundary checks.
+#[allow(clippy::too_many_arguments)]
+fn convolve2d_interior(
+    src: &[f32],
+    k: &[f32],
+    out: &mut [f32],
+    w: usize,
+    c: usize,
+    kh: usize,
+    kw: usize,
+    pad_y: usize,
+    pad_x: usize,
+    row_range: std::ops::Range<usize>,
+    col_range: std::ops::Range<usize>,
+) {
+    let chunks4 = kw / 4;
+    let rem = kw % 4;
+    for row in row_range {
+        for col in col_range.clone() {
             for ch in 0..c {
                 let mut sum = 0.0f32;
                 // SAFETY: row-pad_y..row+pad_y+1 is within [0,h),
                 //         col-pad_x..col+pad_x+1 is within [0,w).
                 unsafe {
                     for ky in 0..kh {
-                        let sy = row + ky - pad_y;
-                        let row_base = sy * w;
+                        let row_base = ((row + ky - pad_y) * w + col - pad_x) * c + ch;
                         let k_row = ky * kw;
-                        for kx in 0..kw {
-                            let sx = col + kx - pad_x;
-                            sum += *src.get_unchecked((row_base + sx) * c + ch)
-                                * *k.get_unchecked(k_row + kx);
+                        let mut a0 = 0.0f32;
+                        let mut a1 = 0.0f32;
+                        let mut a2 = 0.0f32;
+                        let mut a3 = 0.0f32;
+                        for jj in 0..chunks4 {
+                            let kx = jj * 4;
+                            a0 = (*src.get_unchecked(row_base + kx * c))
+                                .mul_add(*k.get_unchecked(k_row + kx), a0);
+                            a1 = (*src.get_unchecked(row_base + (kx + 1) * c))
+                                .mul_add(*k.get_unchecked(k_row + kx + 1), a1);
+                            a2 = (*src.get_unchecked(row_base + (kx + 2) * c))
+                                .mul_add(*k.get_unchecked(k_row + kx + 2), a2);
+                            a3 = (*src.get_unchecked(row_base + (kx + 3) * c))
+                                .mul_add(*k.get_unchecked(k_row + kx + 3), a3);
                         }
+                        let tail = chunks4 * 4;
+                        for kx in 0..rem {
+                            a0 = (*src.get_unchecked(row_base + (tail + kx) * c))
+                                .mul_add(*k.get_unchecked(k_row + tail + kx), a0);
+                        }
+                        sum += (a0 + a1) + (a2 + a3);
                     }
                     *out.get_unchecked_mut((row * w + col) * c + ch) = sum;
                 }
             }
         }
     }
+}
 
-    // Border rows (top and bottom) — need bounds checks.
+/// Border 2D convolution with bounds checks.
+#[allow(clippy::cast_possible_wrap, clippy::too_many_arguments)]
+fn convolve2d_border(
+    src: &[f32],
+    k: &[f32],
+    out: &mut [f32],
+    w: usize,
+    h: usize,
+    c: usize,
+    kh: usize,
+    kw: usize,
+    pad_y: usize,
+    pad_x: usize,
+    row_start: usize,
+    row_end: usize,
+    col_start: usize,
+    col_end: usize,
+) {
+    // Border rows (top and bottom).
     let border_rows = (0..row_start).chain(row_end..h);
     for row in border_rows {
         for col in 0..w {
@@ -118,6 +137,47 @@ pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> 
             }
         }
     }
+}
+
+#[allow(clippy::cast_possible_wrap)]
+pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> {
+    let kshape = kernel.shape();
+    if kshape.len() != 2 {
+        return Err(ImageError::InvalidKernel {
+            reason: "kernel must be 2D",
+        });
+    }
+    let kh = kshape[0];
+    let kw = kshape[1];
+    #[allow(clippy::manual_is_multiple_of)]
+    if kh % 2 == 0 || kw % 2 == 0 {
+        return Err(ImageError::InvalidKernel {
+            reason: "kernel dimensions must be odd",
+        });
+    }
+
+    let (w, h) = img.dimensions();
+    let c = img.channels();
+    let src = img.as_slice();
+    let k = kernel.as_slice();
+    let pad_y = kh / 2;
+    let pad_x = kw / 2;
+
+    let mut out = vec![0.0f32; h * w * c];
+
+    let row_start = pad_y;
+    let row_end = h.saturating_sub(pad_y);
+    let col_start = pad_x;
+    let col_end = w.saturating_sub(pad_x);
+
+    convolve2d_interior(
+        src, k, &mut out, w, c, kh, kw, pad_y, pad_x,
+        row_start..row_end, col_start..col_end,
+    );
+    convolve2d_border(
+        src, k, &mut out, w, h, c, kh, kw, pad_y, pad_x,
+        row_start, row_end, col_start, col_end,
+    );
 
     Image::from_raw(out, w, h, img.format())
 }
@@ -133,11 +193,7 @@ pub fn convolve2d(img: &Image<f32>, kernel: &Tensor<f32>) -> Result<Image<f32>> 
 /// let blurred = filter::gaussian_blur(&img, 1.0).unwrap();
 /// assert_eq!(blurred.dimensions(), (5, 5));
 /// ```
-#[allow(
-    clippy::needless_range_loop,
-    clippy::manual_range_contains,
-    clippy::too_many_lines
-)]
+#[allow(clippy::needless_range_loop, clippy::manual_range_contains)]
 pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
     if sigma <= 0.0 {
         return Err(ImageError::InvalidParameter {
@@ -166,39 +222,16 @@ pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
     let c = img.channels();
     let src = img.as_slice();
 
-    // Horizontal pass: convolve each row with the 1-D kernel.
-    // Split into: left edge, branchless middle, right edge.
+    // Horizontal pass: FMA middle + bounds-checked edges.
     let mut tmp = vec![0.0f32; h * w * c];
+    let mid_start = radius;
+    let mid_end = w.saturating_sub(radius);
     for row in 0..h {
         let row_off = row * w;
-        // Left edge: col < radius
-        for col in 0..radius.min(w) {
-            for ch in 0..c {
-                let mut acc = 0.0f32;
-                for ki in 0..size {
-                    let sx = col + ki;
-                    if sx >= radius && sx < w + radius {
-                        acc += src[(row_off + sx - radius) * c + ch] * k1d[ki];
-                    }
-                }
-                tmp[(row_off + col) * c + ch] = acc;
-            }
-        }
-        // Middle: no boundary checks needed.
-        let mid_start = radius;
-        let mid_end = w.saturating_sub(radius);
-        for col in mid_start..mid_end {
-            for ch in 0..c {
-                let mut acc = 0.0f32;
-                let base = row_off + col - radius;
-                for ki in 0..size {
-                    acc += unsafe { *src.get_unchecked((base + ki) * c + ch) } * k1d[ki];
-                }
-                tmp[(row_off + col) * c + ch] = acc;
-            }
-        }
-        // Right edge: col >= w - radius
-        for col in mid_end.max(radius)..w {
+        sep_h_middle(src, &mut tmp, &k1d, c, row_off, mid_start..mid_end);
+        // Left + right edges with bounds checks.
+        let edge_cols = (0..radius.min(w)).chain(mid_end.max(radius)..w);
+        for col in edge_cols {
             for ch in 0..c {
                 let mut acc = 0.0f32;
                 for ki in 0..size {
@@ -212,42 +245,12 @@ pub fn gaussian_blur(img: &Image<f32>, sigma: f32) -> Result<Image<f32>> {
         }
     }
 
-    // Vertical pass: convolve each column with the 1-D kernel.
-    // Same split: top edge, branchless middle, bottom edge.
+    // Vertical pass: FMA middle + bounds-checked edges.
     let mut out = vec![0.0f32; h * w * c];
-    // Top edge: row < radius
-    for row in 0..radius.min(h) {
-        for col in 0..w {
-            for ch in 0..c {
-                let mut acc = 0.0f32;
-                for ki in 0..size {
-                    let sy = row + ki;
-                    if sy >= radius && sy < h + radius {
-                        acc += tmp[((sy - radius) * w + col) * c + ch] * k1d[ki];
-                    }
-                }
-                out[(row * w + col) * c + ch] = acc;
-            }
-        }
-    }
-    // Middle: no boundary checks needed.
-    let mid_start = radius;
-    let mid_end = h.saturating_sub(radius);
-    for row in mid_start..mid_end {
-        for col in 0..w {
-            for ch in 0..c {
-                let mut acc = 0.0f32;
-                let base_row = row - radius;
-                for ki in 0..size {
-                    acc += unsafe { *tmp.get_unchecked(((base_row + ki) * w + col) * c + ch) }
-                        * k1d[ki];
-                }
-                out[(row * w + col) * c + ch] = acc;
-            }
-        }
-    }
-    // Bottom edge: row >= h - radius
-    for row in mid_end.max(radius)..h {
+    sep_v_middle(&tmp, &mut out, &k1d, w, h, c);
+    // Top + bottom edges.
+    let edge_rows = (0..radius.min(h)).chain(h.saturating_sub(radius).max(radius)..h);
+    for row in edge_rows {
         for col in 0..w {
             for ch in 0..c {
                 let mut acc = 0.0f32;
@@ -364,6 +367,76 @@ pub fn sharpen(img: &Image<f32>) -> Result<Image<f32>> {
     convolve2d(img, &kernel)
 }
 
+/// FMA-accelerated 1D horizontal convolution pass (middle region, no bounds checks).
+fn sep_h_middle(src: &[f32], tmp: &mut [f32], kernel: &[f32], c: usize, row_off: usize, col_range: std::ops::Range<usize>) {
+    let klen = kernel.len();
+    let rad = klen / 2;
+    let chunks4 = klen / 4;
+    let rem = klen % 4;
+    for col in col_range {
+        for ch in 0..c {
+            let base = (row_off + col - rad) * c + ch;
+            let mut a0 = 0.0f32;
+            let mut a1 = 0.0f32;
+            let mut a2 = 0.0f32;
+            let mut a3 = 0.0f32;
+            unsafe {
+                for jj in 0..chunks4 {
+                    let ki = jj * 4;
+                    a0 = (*src.get_unchecked(base + ki * c)).mul_add(*kernel.get_unchecked(ki), a0);
+                    a1 = (*src.get_unchecked(base + (ki + 1) * c)).mul_add(*kernel.get_unchecked(ki + 1), a1);
+                    a2 = (*src.get_unchecked(base + (ki + 2) * c)).mul_add(*kernel.get_unchecked(ki + 2), a2);
+                    a3 = (*src.get_unchecked(base + (ki + 3) * c)).mul_add(*kernel.get_unchecked(ki + 3), a3);
+                }
+                let tail = chunks4 * 4;
+                for ki in 0..rem {
+                    a0 = (*src.get_unchecked(base + (tail + ki) * c)).mul_add(*kernel.get_unchecked(tail + ki), a0);
+                }
+            }
+            tmp[(row_off + col) * c + ch] = (a0 + a1) + (a2 + a3);
+        }
+    }
+}
+
+/// FMA-accelerated 1D vertical convolution pass (middle region, no bounds checks).
+fn sep_v_middle(tmp: &[f32], out: &mut [f32], kernel: &[f32], w: usize, h: usize, c: usize) {
+    let klen = kernel.len();
+    let rad = klen / 2;
+    let chunks4 = klen / 4;
+    let rem = klen % 4;
+    let stride = w * c;
+    let mid_start = rad;
+    let mid_end = h.saturating_sub(rad);
+    for row in mid_start..mid_end {
+        for col in 0..w {
+            for ch in 0..c {
+                let base_row = row - rad;
+                let col_off = col * c + ch;
+                let mut a0 = 0.0f32;
+                let mut a1 = 0.0f32;
+                let mut a2 = 0.0f32;
+                let mut a3 = 0.0f32;
+                unsafe {
+                    for jj in 0..chunks4 {
+                        let ki = jj * 4;
+                        let b = (base_row + ki) * stride + col_off;
+                        a0 = (*tmp.get_unchecked(b)).mul_add(*kernel.get_unchecked(ki), a0);
+                        a1 = (*tmp.get_unchecked(b + stride)).mul_add(*kernel.get_unchecked(ki + 1), a1);
+                        a2 = (*tmp.get_unchecked(b + 2 * stride)).mul_add(*kernel.get_unchecked(ki + 2), a2);
+                        a3 = (*tmp.get_unchecked(b + 3 * stride)).mul_add(*kernel.get_unchecked(ki + 3), a3);
+                    }
+                    let tail = chunks4 * 4;
+                    for ki in 0..rem {
+                        a0 = (*tmp.get_unchecked((base_row + tail + ki) * stride + col_off))
+                            .mul_add(*kernel.get_unchecked(tail + ki), a0);
+                    }
+                }
+                out[(row * w + col) * c + ch] = (a0 + a1) + (a2 + a3);
+            }
+        }
+    }
+}
+
 /// Apply separable convolution: first convolve rows with `h_kernel`, then columns with `v_kernel`.
 ///
 /// Both kernels must have odd length.
@@ -377,21 +450,11 @@ fn separable_convolve(img: &Image<f32>, v_kernel: &[f32], h_kernel: &[f32]) -> R
 
     // Horizontal pass.
     let mut tmp = vec![0.0f32; h * w * c];
+    let mid_start = h_rad;
+    let mid_end = w.saturating_sub(h_rad);
     for row in 0..h {
         let row_off = row * w;
-        // Branchless middle.
-        let mid_start = h_rad;
-        let mid_end = w.saturating_sub(h_rad);
-        for col in mid_start..mid_end {
-            for ch in 0..c {
-                let mut acc = 0.0f32;
-                let base = row_off + col - h_rad;
-                for ki in 0..h_kernel.len() {
-                    acc += unsafe { *src.get_unchecked((base + ki) * c + ch) } * h_kernel[ki];
-                }
-                tmp[(row_off + col) * c + ch] = acc;
-            }
-        }
+        sep_h_middle(src, &mut tmp, h_kernel, c, row_off, mid_start..mid_end);
         // Edges with bounds checks.
         let edge_cols = (0..mid_start).chain(mid_end..w);
         for col in edge_cols {
@@ -410,23 +473,9 @@ fn separable_convolve(img: &Image<f32>, v_kernel: &[f32], h_kernel: &[f32]) -> R
 
     // Vertical pass.
     let mut out = vec![0.0f32; h * w * c];
-    let mid_start = v_rad;
-    let mid_end = h.saturating_sub(v_rad);
-    for row in mid_start..mid_end {
-        for col in 0..w {
-            for ch in 0..c {
-                let mut acc = 0.0f32;
-                let base_row = row - v_rad;
-                for ki in 0..v_kernel.len() {
-                    acc += unsafe { *tmp.get_unchecked(((base_row + ki) * w + col) * c + ch) }
-                        * v_kernel[ki];
-                }
-                out[(row * w + col) * c + ch] = acc;
-            }
-        }
-    }
+    sep_v_middle(&tmp, &mut out, v_kernel, w, h, c);
     // Edge rows.
-    let edge_rows = (0..mid_start).chain(mid_end..h);
+    let edge_rows = (0..v_rad).chain(h.saturating_sub(v_rad)..h);
     for row in edge_rows {
         for col in 0..w {
             for ch in 0..c {

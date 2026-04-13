@@ -78,8 +78,8 @@ Priority: operations where Rust is **slower** than Python.
 - [x] Running-sum box blur (O(1) per pixel, radius-independent)
 - [x] Branchless interior + bounds-checked border split in convolve2d
 
-**Remaining (Phase 2):**
-- [ ] SIMD-accelerate convolution inner loop
+**Done (Phase 2):**
+- [x] FMA-accelerated convolution inner loops (4-way ILP unrolling in convolve2d, gaussian_blur, separable_convolve)
 
 ### 1.5 NN Autograd Overhead — ~~0.0x-0.1x~~ IMPROVED
 
@@ -131,14 +131,14 @@ Modules already faster than Python but with room to grow.
 ### 2.2 Stats Module
 
 - [x] SIMD-accelerated descriptive stats (4-way f64 accumulators for mean, variance)
-- [ ] Parallel hypothesis testing for multiple-comparison scenarios
+- [x] Parallel hypothesis testing (`batch_t_test_one_sample`, `batch_t_test_two_sample` with Rayon `parallel` feature)
 - [x] Online/streaming statistics (Welford's algorithm with Terriberry extensions for skewness/kurtosis, Chan's parallel merge)
 
 ### 2.3 ML Module
 
 - [x] Sorted-scan split finding for decision trees (O(n log n) vs O(n²) per feature)
 - [x] SIMD-accelerated distance computations for KNN/clustering (4-way f64 accumulators)
-- [ ] Ensemble parallel fitting (random forest trees in parallel)
+- [x] Ensemble parallel fitting (random forest `fit()` auto-dispatches to `par_fit()` with `parallel` feature)
 
 ### 2.4 IO Module
 

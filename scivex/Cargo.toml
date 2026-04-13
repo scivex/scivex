@@ -53,7 +53,7 @@ frame-regex = ["frame", "scivex-frame/regex"]
 image-png = ["image", "scivex-image/png"]
 image-jpeg = ["image", "scivex-image/jpeg"]
 simd = ["scivex-core/simd"]
-parallel = ["scivex-core/parallel"]
+parallel = ["scivex-core/parallel", "scivex-stats?/parallel", "scivex-ml?/parallel"]
 blas-backend = ["scivex-core/blas-backend"]
 serde-support = [
     "scivex-core/serde-support",

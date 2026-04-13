@@ -94,26 +94,31 @@ impl<T: Float> RandomForestClassifier<T> {
 
 impl<T: Float> Predictor<T> for RandomForestClassifier<T> {
     fn fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
-        let (n, p) = matrix_shape(x)?;
-        check_y(y, n)?;
-        let max_feat = self.max_features.unwrap_or(float_sqrt(p));
-        let mut rng = Rng::new(self.seed);
-        let mut trees = Vec::with_capacity(self.n_trees);
-
-        for _ in 0..self.n_trees {
-            // Bootstrap sample
-            let (bx, by) = bootstrap_sample(x, y, n, p, &mut rng)?;
-            // Feature subset
-            let (sx, feat_count) = select_features(&bx, n, p, max_feat, &mut rng);
-
-            let mut tree = DecisionTreeClassifier::new(self.max_depth, self.min_samples_split);
-            let sx_tensor = Tensor::from_vec(sx, vec![n, feat_count])?;
-            tree.fit(&sx_tensor, &by)?;
-            trees.push(tree);
+        #[cfg(feature = "parallel")]
+        {
+            return self.par_fit(x, y);
         }
+        #[cfg(not(feature = "parallel"))]
+        {
+            let (n, p) = matrix_shape(x)?;
+            check_y(y, n)?;
+            let max_feat = self.max_features.unwrap_or(float_sqrt(p));
+            let mut rng = Rng::new(self.seed);
+            let mut trees = Vec::with_capacity(self.n_trees);
 
-        self.trees = Some(trees);
-        Ok(())
+            for _ in 0..self.n_trees {
+                let (bx, by) = bootstrap_sample(x, y, n, p, &mut rng)?;
+                let (sx, feat_count) = select_features(&bx, n, p, max_feat, &mut rng);
+
+                let mut tree = DecisionTreeClassifier::new(self.max_depth, self.min_samples_split);
+                let sx_tensor = Tensor::from_vec(sx, vec![n, feat_count])?;
+                tree.fit(&sx_tensor, &by)?;
+                trees.push(tree);
+            }
+
+            self.trees = Some(trees);
+            Ok(())
+        }
     }
 
     fn predict(&self, x: &Tensor<T>) -> Result<Tensor<T>> {
@@ -224,22 +229,29 @@ impl<T: Float> RandomForestRegressor<T> {
 
 impl<T: Float> Predictor<T> for RandomForestRegressor<T> {
     fn fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
-        let (n, p) = matrix_shape(x)?;
-        check_y(y, n)?;
-        let _max_feat = self.max_features.unwrap_or(p / 3);
-        let mut rng = Rng::new(self.seed);
-        let mut trees = Vec::with_capacity(self.n_trees);
-
-        for _ in 0..self.n_trees {
-            let (bx, by) = bootstrap_sample(x, y, n, p, &mut rng)?;
-            let mut tree = DecisionTreeRegressor::new(self.max_depth, self.min_samples_split);
-            let bx_tensor = Tensor::from_vec(bx, vec![n, p])?;
-            tree.fit(&bx_tensor, &by)?;
-            trees.push(tree);
+        #[cfg(feature = "parallel")]
+        {
+            return self.par_fit(x, y);
         }
+        #[cfg(not(feature = "parallel"))]
+        {
+            let (n, p) = matrix_shape(x)?;
+            check_y(y, n)?;
+            let _max_feat = self.max_features.unwrap_or(p / 3);
+            let mut rng = Rng::new(self.seed);
+            let mut trees = Vec::with_capacity(self.n_trees);
 
-        self.trees = Some(trees);
-        Ok(())
+            for _ in 0..self.n_trees {
+                let (bx, by) = bootstrap_sample(x, y, n, p, &mut rng)?;
+                let mut tree = DecisionTreeRegressor::new(self.max_depth, self.min_samples_split);
+                let bx_tensor = Tensor::from_vec(bx, vec![n, p])?;
+                tree.fit(&bx_tensor, &by)?;
+                trees.push(tree);
+            }
+
+            self.trees = Some(trees);
+            Ok(())
+        }
     }
 
     fn predict(&self, x: &Tensor<T>) -> Result<Tensor<T>> {

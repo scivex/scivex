@@ -27,3 +27,8 @@ harness = false
 
 [features]
 serde-support = ["dep:serde", "scivex-core/serde-support"]
+parallel = ["dep:rayon"]
+
+[dependencies.rayon]
+version = "1"
+optional = true
