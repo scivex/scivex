@@ -105,7 +105,7 @@ Priority: operations where Rust is **slower** than Python.
 - [x] Single-column fast path (u64 hash key, no Vec alloc per row)
 
 **Remaining (Phase 2):**
-- [ ] Pre-sort + run-length encoding path for sorted groups
+- [x] Pre-sort detection + run-length encoding path for sorted groups (O(n) no hashing)
 - [ ] Parallel groupby with per-thread hash maps + merge
 
 ### 1.7 RNG (uniform/normal/randint) — IMPROVED

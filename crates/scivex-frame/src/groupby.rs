@@ -99,7 +99,16 @@ impl<'a> GroupBy<'a> {
         let (groups, group_ids, num_groups) = if cat_cols.len() == cols.len() {
             Self::group_by_codes(nrows, &cat_cols)
         } else {
-            Self::group_by_strings(df, cols, nrows)
+            // Try sorted run-length encoding first (no hashing, O(n) scan).
+            let series: Vec<&dyn AnySeries> = cols
+                .iter()
+                .map(|&c| df.column(c).expect("groupby column exists"))
+                .collect();
+            if Self::is_sorted(&series, nrows) {
+                Self::group_by_sorted_runs(&series, nrows)
+            } else {
+                Self::group_by_strings(df, cols, nrows)
+            }
         };
 
         Ok(Self {
@@ -109,6 +118,57 @@ impl<'a> GroupBy<'a> {
             group_ids,
             num_groups,
         })
+    }
+
+    /// Check if data is already sorted by the group columns.
+    fn is_sorted(series: &[&dyn AnySeries], nrows: usize) -> bool {
+        if nrows <= 1 {
+            return true;
+        }
+        for row in 1..nrows {
+            for &col in series {
+                match col.compare_at(row - 1, row) {
+                    core::cmp::Ordering::Less => break,
+                    core::cmp::Ordering::Greater => return false,
+                    core::cmp::Ordering::Equal => {}
+                }
+            }
+        }
+        true
+    }
+
+    /// Fast grouping when data is already sorted: scan for run boundaries.
+    /// O(n) with no hashing — just detect where group keys change.
+    fn group_by_sorted_runs(series: &[&dyn AnySeries], nrows: usize) -> GroupResult {
+        let mut group_ids = vec![0u32; nrows];
+        let mut group_starts: Vec<usize> = vec![0];
+        let mut gid = 0u32;
+
+        for (row, gid_slot) in group_ids.iter_mut().enumerate().skip(1) {
+            let same = series.iter().all(|col| col.hash_value(row - 1) == col.hash_value(row));
+            if !same {
+                gid += 1;
+                group_starts.push(row);
+            }
+            *gid_slot = gid;
+        }
+
+        let ng = gid as usize + 1;
+        let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+        for (row, &g) in group_ids.iter().enumerate() {
+            group_indices[g as usize].push(row);
+        }
+
+        let groups: Vec<(Vec<String>, Vec<usize>)> = group_starts
+            .into_iter()
+            .zip(group_indices)
+            .map(|(first_row, indices)| {
+                let str_key: Vec<String> = series.iter().map(|s| s.display_value(first_row)).collect();
+                (str_key, indices)
+            })
+            .collect();
+
+        (groups, group_ids, ng)
     }
 
     /// Fast grouping via integer category codes.
@@ -761,6 +821,24 @@ mod tests {
         let rev = result.column_typed::<f64>("revenue").unwrap();
         // East: 100+150+300 = 550, West: 200+250 = 450
         assert_eq!(rev.as_slice(), &[550.0, 450.0]);
+    }
+
+    #[test]
+    fn test_groupby_sorted_runs_fast_path() {
+        // Data is already sorted by group column — should use RLE path.
+        let df = DataFrame::new(vec![
+            Box::new(StringSeries::from_strs(
+                "g",
+                &["A", "A", "A", "B", "B", "C"],
+            )),
+            Box::new(Series::new("v", vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0])),
+        ])
+        .unwrap();
+        let gb = df.groupby(&["g"]).unwrap();
+        assert_eq!(gb.n_groups(), 3);
+        let result = gb.sum().unwrap();
+        let v = result.column_typed::<f64>("v").unwrap();
+        assert_eq!(v.as_slice(), &[6.0, 9.0, 6.0]);
     }
 
     #[test]
