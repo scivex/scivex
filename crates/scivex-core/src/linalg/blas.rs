@@ -577,18 +577,33 @@ pub fn gemm<T: Scalar>(
 
     // Packing buffers (allocated once, reused across tiles).
     #[cfg(all(target_arch = "aarch64", feature = "simd"))]
-    let is_f64 = {
+    let (is_f64, is_f32) = {
         use std::any::TypeId;
-        TypeId::of::<T>() == TypeId::of::<f64>()
+        (
+            TypeId::of::<T>() == TypeId::of::<f64>(),
+            TypeId::of::<T>() == TypeId::of::<f32>(),
+        )
     };
     #[cfg(all(target_arch = "aarch64", feature = "simd"))]
-    let mut pack_b: Vec<f64> = if is_f64 {
+    let mut pack_b_f64: Vec<f64> = if is_f64 {
         vec![0.0; KC * NC]
     } else {
         Vec::new()
     };
     #[cfg(all(target_arch = "aarch64", feature = "simd"))]
-    let mut pack_a: Vec<f64> = if is_f64 {
+    let mut pack_a_f64: Vec<f64> = if is_f64 {
+        vec![0.0; MC * KC]
+    } else {
+        Vec::new()
+    };
+    #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+    let mut pack_b_f32: Vec<f32> = if is_f32 {
+        vec![0.0; KC * NC]
+    } else {
+        Vec::new()
+    };
+    #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+    let mut pack_a_f32: Vec<f32> = if is_f32 {
         vec![0.0; MC * KC]
     } else {
         Vec::new()
@@ -602,14 +617,25 @@ pub fn gemm<T: Scalar>(
         for pj in (0..n).step_by(NC) {
             let nb = NC.min(n - pj);
 
-            // Pack B panel: B[pk..pk+kb, pj..pj+nb] → contiguous pack_b[p*nb + j]
+            // Pack B panel: B[pk..pk+kb, pj..pj+nb] → contiguous buffer
             #[cfg(all(target_arch = "aarch64", feature = "simd"))]
             if is_f64 {
                 unsafe {
                     let b_f64 = b_data.as_ptr().cast::<f64>();
                     for p in 0..kb {
                         let src_row = b_f64.add((pk + p) * n + pj);
-                        let dst_row = pack_b.as_mut_ptr().add(p * nb);
+                        let dst_row = pack_b_f64.as_mut_ptr().add(p * nb);
+                        core::ptr::copy_nonoverlapping(src_row, dst_row, nb);
+                    }
+                }
+            }
+            #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+            if is_f32 {
+                unsafe {
+                    let b_f32 = b_data.as_ptr().cast::<f32>();
+                    for p in 0..kb {
+                        let src_row = b_f32.add((pk + p) * n + pj);
+                        let dst_row = pack_b_f32.as_mut_ptr().add(p * nb);
                         core::ptr::copy_nonoverlapping(src_row, dst_row, nb);
                     }
                 }
@@ -626,15 +652,15 @@ pub fn gemm<T: Scalar>(
                         let c_f64 = c_data.as_mut_ptr().cast::<f64>();
                         let alpha_f64 = crate::simd::t_to_f64(alpha);
 
-                        // Pack A panel: A[pi..pi+mb, pk..pk+kb] → contiguous pack_a[i*kb + p]
+                        // Pack A panel: A[pi..pi+mb, pk..pk+kb] → contiguous
                         for i in 0..mb {
                             let src_row = a_f64.add((pi + i) * k + pk);
-                            let dst_row = pack_a.as_mut_ptr().add(i * kb);
+                            let dst_row = pack_a_f64.as_mut_ptr().add(i * kb);
                             core::ptr::copy_nonoverlapping(src_row, dst_row, kb);
                         }
 
-                        let pa = pack_a.as_ptr();
-                        let pb = pack_b.as_ptr();
+                        let pa = pack_a_f64.as_ptr();
+                        let pb = pack_b_f64.as_ptr();
                         let j4 = nb / 4 * 4;
 
                         // Process 8-row blocks with 8x4 micro-kernel
@@ -710,7 +736,98 @@ pub fn gemm<T: Scalar>(
                     continue;
                 }
 
-                // Generic fallback (non-f64 or non-aarch64)
+                // NEON f32 micro-kernel path with panel packing.
+                #[cfg(all(target_arch = "aarch64", feature = "simd"))]
+                if is_f32 {
+                    unsafe {
+                        let a_f32 = a_data.as_ptr().cast::<f32>();
+                        let c_f32 = c_data.as_mut_ptr().cast::<f32>();
+                        let alpha_f32 = crate::simd::t_to_f32(alpha);
+
+                        // Pack A panel
+                        for i in 0..mb {
+                            let src_row = a_f32.add((pi + i) * k + pk);
+                            let dst_row = pack_a_f32.as_mut_ptr().add(i * kb);
+                            core::ptr::copy_nonoverlapping(src_row, dst_row, kb);
+                        }
+
+                        let pa = pack_a_f32.as_ptr();
+                        let pb = pack_b_f32.as_ptr();
+                        let j4 = nb / 4 * 4;
+
+                        // Process 8-row blocks with 8x4 micro-kernel
+                        let i8 = mb / 8 * 8;
+                        for i in (0..i8).step_by(8) {
+                            for j in (0..j4).step_by(4) {
+                                crate::simd::neon_f32_ops::gemm_8x4_f32_neon(
+                                    pa.add(i * kb),
+                                    pb.add(j),
+                                    c_f32.add((pi + i) * n + (pj + j)),
+                                    alpha_f32,
+                                    kb,
+                                    kb,
+                                    nb,
+                                    n,
+                                );
+                            }
+                            if j4 < nb {
+                                for ii in 0..8 {
+                                    let row_c = (pi + i + ii) * n + pj + j4;
+                                    for p in 0..kb {
+                                        let scale_f32 = alpha_f32 * *pa.add((i + ii) * kb + p);
+                                        for jj in 0..(nb - j4) {
+                                            *c_f32.add(row_c + jj) +=
+                                                scale_f32 * *pb.add(p * nb + j4 + jj);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Remaining 4-row block with 4x4 micro-kernel
+                        let i4_start = i8;
+                        let i4_end = i4_start + (mb - i8) / 4 * 4;
+                        for i in (i4_start..i4_end).step_by(4) {
+                            for j in (0..j4).step_by(4) {
+                                crate::simd::neon_f32_ops::gemm_4x4_f32_neon(
+                                    pa.add(i * kb),
+                                    pb.add(j),
+                                    c_f32.add((pi + i) * n + (pj + j)),
+                                    alpha_f32,
+                                    kb,
+                                    kb,
+                                    nb,
+                                    n,
+                                );
+                            }
+                            if j4 < nb {
+                                for ii in 0..4 {
+                                    let row_c = (pi + i + ii) * n + pj + j4;
+                                    for p in 0..kb {
+                                        let scale_f32 = alpha_f32 * *pa.add((i + ii) * kb + p);
+                                        for jj in 0..(nb - j4) {
+                                            *c_f32.add(row_c + jj) +=
+                                                scale_f32 * *pb.add(p * nb + j4 + jj);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Scalar remainder rows
+                        for i in i4_end..mb {
+                            let row_c = (pi + i) * n + pj;
+                            for p in 0..kb {
+                                let scale = alpha * a_data[(pi + i) * k + pk + p];
+                                let b_off = (pk + p) * n + pj;
+                                let b_row = &b_data[b_off..b_off + nb];
+                                let c_slice = &mut c_data[row_c..row_c + nb];
+                                axpy_slice(scale, b_row, c_slice);
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                // Generic fallback (non-f64/f32 or non-aarch64)
                 for i in 0..mb {
                     let row_a = (pi + i) * k + pk;
                     let row_c = (pi + i) * n + pj;
@@ -1232,5 +1349,42 @@ mod tests {
         let x = vec_f64(&[1.0, 2.0, 3.0, 4.0, 5.0]);
         let n = nrm2(&x).unwrap();
         assert!((n - 7.416_198_487_095_663).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_gemm_f32() {
+        // Test f32 GEMM (exercises NEON f32 micro-kernels on aarch64)
+        let a = Tensor::from_vec(vec![1.0f32, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+        let b = Tensor::from_vec(vec![7.0f32, 8.0, 9.0, 10.0, 11.0, 12.0], vec![3, 2]).unwrap();
+        let mut c = Tensor::<f32>::zeros(vec![2, 2]);
+        gemm(1.0f32, &a, &b, 0.0f32, &mut c).unwrap();
+        assert_eq!(c.as_slice(), &[58.0f32, 64.0, 139.0, 154.0]);
+    }
+
+    #[test]
+    fn test_gemm_f32_large() {
+        // 16x16 f32 GEMM — exercises 8x4 and 4x4 micro-kernels + remainder handling
+        let n = 16;
+        let a_data: Vec<f32> = (0..n * n).map(|i| (i % 7) as f32 + 1.0).collect();
+        let b_data: Vec<f32> = (0..n * n).map(|i| ((i + 3) % 5) as f32 + 1.0).collect();
+        let a = Tensor::from_vec(a_data.clone(), vec![n, n]).unwrap();
+        let b = Tensor::from_vec(b_data.clone(), vec![n, n]).unwrap();
+        let mut c = Tensor::<f32>::zeros(vec![n, n]);
+        gemm(1.0f32, &a, &b, 0.0f32, &mut c).unwrap();
+
+        // Verify against naive multiplication
+        for i in 0..n {
+            for j in 0..n {
+                let mut expected = 0.0f32;
+                for k in 0..n {
+                    expected += a_data[i * n + k] * b_data[k * n + j];
+                }
+                let actual = c.as_slice()[i * n + j];
+                assert!(
+                    (actual - expected).abs() < 1e-3,
+                    "mismatch at [{i},{j}]: expected {expected}, got {actual}"
+                );
+            }
+        }
     }
 }

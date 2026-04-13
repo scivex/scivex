@@ -697,3 +697,129 @@ pub(crate) unsafe fn neg_f32_neon(a: &[f32], out: &mut [f32]) {
         *out.get_unchecked_mut(j) = -*a.get_unchecked(j);
     }
 }
+
+// ---------------------------------------------------------------------------
+// GEMM micro-kernels for f32
+// ---------------------------------------------------------------------------
+
+/// NEON 8x4 micro-kernel for f32 GEMM.
+///
+/// Computes `C[0..8, 0..4] += alpha * A[0..8, 0..kb] * B[0..kb, 0..4]`.
+/// Each row of C is a single `float32x4_t` (4 f32 lanes), so 8 accumulator
+/// registers cover the full 8×4 tile.
+///
+/// # Safety
+/// Caller must ensure valid pointers and aarch64 target.
+#[inline]
+#[allow(clippy::too_many_arguments)]
+pub(crate) unsafe fn gemm_8x4_f32_neon(
+    a_ptr: *const f32,
+    b_ptr: *const f32,
+    c_ptr: *mut f32,
+    alpha: f32,
+    kb: usize,
+    a_rs: usize, // packed A row stride
+    b_rs: usize, // packed B row stride
+    c_rs: usize, // C row stride
+) {
+    // 8 accumulator registers, one per row, each holding 4 columns.
+    let mut c0 = vdupq_n_f32(0.0);
+    let mut c1 = vdupq_n_f32(0.0);
+    let mut c2 = vdupq_n_f32(0.0);
+    let mut c3 = vdupq_n_f32(0.0);
+    let mut c4 = vdupq_n_f32(0.0);
+    let mut c5 = vdupq_n_f32(0.0);
+    let mut c6 = vdupq_n_f32(0.0);
+    let mut c7 = vdupq_n_f32(0.0);
+
+    for p in 0..kb {
+        let b_row = b_ptr.add(p * b_rs);
+        let bv = vld1q_f32(b_row); // B[p, 0..4]
+
+        c0 = vfmaq_f32(c0, vdupq_n_f32(*a_ptr.add(p)), bv);
+        c1 = vfmaq_f32(c1, vdupq_n_f32(*a_ptr.add(a_rs + p)), bv);
+        c2 = vfmaq_f32(c2, vdupq_n_f32(*a_ptr.add(2 * a_rs + p)), bv);
+        c3 = vfmaq_f32(c3, vdupq_n_f32(*a_ptr.add(3 * a_rs + p)), bv);
+        c4 = vfmaq_f32(c4, vdupq_n_f32(*a_ptr.add(4 * a_rs + p)), bv);
+        c5 = vfmaq_f32(c5, vdupq_n_f32(*a_ptr.add(5 * a_rs + p)), bv);
+        c6 = vfmaq_f32(c6, vdupq_n_f32(*a_ptr.add(6 * a_rs + p)), bv);
+        c7 = vfmaq_f32(c7, vdupq_n_f32(*a_ptr.add(7 * a_rs + p)), bv);
+    }
+
+    let valpha = vdupq_n_f32(alpha);
+    c0 = vmulq_f32(c0, valpha);
+    c1 = vmulq_f32(c1, valpha);
+    c2 = vmulq_f32(c2, valpha);
+    c3 = vmulq_f32(c3, valpha);
+    c4 = vmulq_f32(c4, valpha);
+    c5 = vmulq_f32(c5, valpha);
+    c6 = vmulq_f32(c6, valpha);
+    c7 = vmulq_f32(c7, valpha);
+
+    // Accumulate into C.
+    let cp0 = c_ptr;
+    let cp1 = c_ptr.add(c_rs);
+    let cp2 = c_ptr.add(2 * c_rs);
+    let cp3 = c_ptr.add(3 * c_rs);
+    let cp4 = c_ptr.add(4 * c_rs);
+    let cp5 = c_ptr.add(5 * c_rs);
+    let cp6 = c_ptr.add(6 * c_rs);
+    let cp7 = c_ptr.add(7 * c_rs);
+
+    vst1q_f32(cp0, vaddq_f32(vld1q_f32(cp0), c0));
+    vst1q_f32(cp1, vaddq_f32(vld1q_f32(cp1), c1));
+    vst1q_f32(cp2, vaddq_f32(vld1q_f32(cp2), c2));
+    vst1q_f32(cp3, vaddq_f32(vld1q_f32(cp3), c3));
+    vst1q_f32(cp4, vaddq_f32(vld1q_f32(cp4), c4));
+    vst1q_f32(cp5, vaddq_f32(vld1q_f32(cp5), c5));
+    vst1q_f32(cp6, vaddq_f32(vld1q_f32(cp6), c6));
+    vst1q_f32(cp7, vaddq_f32(vld1q_f32(cp7), c7));
+}
+
+/// NEON 4x4 micro-kernel for f32 GEMM.
+///
+/// Computes `C[0..4, 0..4] += alpha * A[0..4, 0..kb] * B[0..kb, 0..4]`.
+///
+/// # Safety
+/// Caller must ensure valid pointers and aarch64 target.
+#[inline]
+#[allow(clippy::too_many_arguments)]
+pub(crate) unsafe fn gemm_4x4_f32_neon(
+    a_ptr: *const f32,
+    b_ptr: *const f32,
+    c_ptr: *mut f32,
+    alpha: f32,
+    kb: usize,
+    a_rs: usize,
+    b_rs: usize,
+    c_rs: usize,
+) {
+    let mut c0 = vdupq_n_f32(0.0);
+    let mut c1 = vdupq_n_f32(0.0);
+    let mut c2 = vdupq_n_f32(0.0);
+    let mut c3 = vdupq_n_f32(0.0);
+
+    for p in 0..kb {
+        let bv = vld1q_f32(b_ptr.add(p * b_rs));
+        c0 = vfmaq_f32(c0, vdupq_n_f32(*a_ptr.add(p)), bv);
+        c1 = vfmaq_f32(c1, vdupq_n_f32(*a_ptr.add(a_rs + p)), bv);
+        c2 = vfmaq_f32(c2, vdupq_n_f32(*a_ptr.add(2 * a_rs + p)), bv);
+        c3 = vfmaq_f32(c3, vdupq_n_f32(*a_ptr.add(3 * a_rs + p)), bv);
+    }
+
+    let valpha = vdupq_n_f32(alpha);
+    c0 = vmulq_f32(c0, valpha);
+    c1 = vmulq_f32(c1, valpha);
+    c2 = vmulq_f32(c2, valpha);
+    c3 = vmulq_f32(c3, valpha);
+
+    let cp0 = c_ptr;
+    let cp1 = c_ptr.add(c_rs);
+    let cp2 = c_ptr.add(2 * c_rs);
+    let cp3 = c_ptr.add(3 * c_rs);
+
+    vst1q_f32(cp0, vaddq_f32(vld1q_f32(cp0), c0));
+    vst1q_f32(cp1, vaddq_f32(vld1q_f32(cp1), c1));
+    vst1q_f32(cp2, vaddq_f32(vld1q_f32(cp2), c2));
+    vst1q_f32(cp3, vaddq_f32(vld1q_f32(cp3), c3));
+}
