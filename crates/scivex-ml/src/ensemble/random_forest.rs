@@ -93,6 +93,7 @@ impl<T: Float> RandomForestClassifier<T> {
 }
 
 impl<T: Float> Predictor<T> for RandomForestClassifier<T> {
+    #[allow(clippy::needless_return)]
     fn fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
         #[cfg(feature = "parallel")]
         {
@@ -208,6 +209,7 @@ impl<T: Float> RandomForestRegressor<T> {
     pub fn par_fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
         let (n, p) = matrix_shape(x)?;
         check_y(y, n)?;
+        let _max_feat = self.max_features.unwrap_or(p / 3);
         let mut rng = Rng::new(self.seed);
         let child_rngs = rng.fork(self.n_trees);
 
@@ -228,6 +230,7 @@ impl<T: Float> RandomForestRegressor<T> {
 }
 
 impl<T: Float> Predictor<T> for RandomForestRegressor<T> {
+    #[allow(clippy::needless_return)]
     fn fit(&mut self, x: &Tensor<T>, y: &Tensor<T>) -> Result<()> {
         #[cfg(feature = "parallel")]
         {

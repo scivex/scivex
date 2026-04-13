@@ -16,9 +16,11 @@ use super::Tensor;
 // SIMD-dispatched element-wise binary op helper
 // ======================================================================
 
+#[cfg(feature = "simd")]
 /// Cache tile size: 4096 f64 elements = 32 KB per array.
 /// With 3 arrays (a, b, out) this uses ~96 KB, fitting comfortably in L1+L2.
 const TILE_F64: usize = 4096;
+#[cfg(feature = "simd")]
 /// Cache tile size for f32: 8192 elements = 32 KB per array.
 const TILE_F32: usize = 8192;
 

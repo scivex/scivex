@@ -47,7 +47,7 @@ pub(crate) fn div_f32_scalar(a: &[f32], b: &[f32], out: &mut [f32]) {
 /// Scalar axpy for f32.
 pub(crate) fn axpy_f32_scalar(alpha: f32, x: &[f32], y: &mut [f32]) {
     for i in 0..x.len() {
-        y[i] += alpha * x[i];
+        y[i] = alpha.mul_add(x[i], y[i]);
     }
 }
 
@@ -60,7 +60,7 @@ pub(crate) fn scal_f32_scalar(alpha: f32, x: &mut [f32]) {
 
 /// Scalar sum of squares for f32.
 pub(crate) fn sum_sq_f32_scalar(a: &[f32]) -> f32 {
-    a.iter().fold(0.0, |acc, &v| acc + v * v)
+    a.iter().fold(0.0, |acc, &v| v.mul_add(v, acc))
 }
 
 /// Scalar sum of absolute values for f32.

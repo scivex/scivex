@@ -47,7 +47,7 @@ pub(crate) fn div_f64_scalar(a: &[f64], b: &[f64], out: &mut [f64]) {
 /// Scalar axpy: `y[i] += alpha * x[i]`.
 pub(crate) fn axpy_f64_scalar(alpha: f64, x: &[f64], y: &mut [f64]) {
     for i in 0..x.len() {
-        y[i] += alpha * x[i];
+        y[i] = alpha.mul_add(x[i], y[i]);
     }
 }
 
@@ -60,7 +60,7 @@ pub(crate) fn scal_f64_scalar(alpha: f64, x: &mut [f64]) {
 
 /// Scalar sum of squares (for nrm2).
 pub(crate) fn sum_sq_f64_scalar(a: &[f64]) -> f64 {
-    a.iter().fold(0.0, |acc, &v| acc + v * v)
+    a.iter().fold(0.0, |acc, &v| v.mul_add(v, acc))
 }
 
 /// Scalar sum of absolute values (for asum).

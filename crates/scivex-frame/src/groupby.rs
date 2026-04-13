@@ -197,9 +197,10 @@ impl<'a> GroupBy<'a> {
 
         // Each thread builds: HashMap<Vec<u64>, (u32, usize)> mapping hash_key → (local_gid, first_row)
         let n_threads = rayon::current_num_threads().max(1);
-        let chunk_size = (nrows + n_threads - 1) / n_threads;
+        let chunk_size = nrows.div_ceil(n_threads);
 
         // Phase 1: per-chunk grouping in parallel.
+        #[allow(clippy::type_complexity)]
         let chunk_results: Vec<(HashMap<Vec<u64>, u32>, Vec<u32>, Vec<usize>)> = (0..n_threads)
             .into_par_iter()
             .map(|t| {
