@@ -106,7 +106,7 @@ Priority: operations where Rust is **slower** than Python.
 
 **Remaining (Phase 2):**
 - [x] Pre-sort detection + run-length encoding path for sorted groups (O(n) no hashing)
-- [ ] Parallel groupby with per-thread hash maps + merge
+- [x] Parallel groupby with per-thread hash maps + merge (auto-dispatch for nrows >= 10K with `parallel` feature)
 
 ### 1.7 RNG (uniform/normal/randint) — IMPROVED
 

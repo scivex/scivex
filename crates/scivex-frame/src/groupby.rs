@@ -2,6 +2,8 @@
 
 use std::collections::HashMap;
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 use scivex_core::Scalar;
 
 use crate::dataframe::DataFrame;
@@ -107,7 +109,19 @@ impl<'a> GroupBy<'a> {
             if Self::is_sorted(&series, nrows) {
                 Self::group_by_sorted_runs(&series, nrows)
             } else {
-                Self::group_by_strings(df, cols, nrows)
+                // Use parallel groupby for large datasets.
+                #[cfg(feature = "parallel")]
+                {
+                    if nrows >= 10_000 {
+                        Self::group_by_parallel(df, cols, nrows)
+                    } else {
+                        Self::group_by_strings(df, cols, nrows)
+                    }
+                }
+                #[cfg(not(feature = "parallel"))]
+                {
+                    Self::group_by_strings(df, cols, nrows)
+                }
             }
         };
 
@@ -164,6 +178,96 @@ impl<'a> GroupBy<'a> {
             .zip(group_indices)
             .map(|(first_row, indices)| {
                 let str_key: Vec<String> = series.iter().map(|s| s.display_value(first_row)).collect();
+                (str_key, indices)
+            })
+            .collect();
+
+        (groups, group_ids, ng)
+    }
+
+    /// Parallel groupby: split rows into chunks, build per-chunk hash maps, merge.
+    ///
+    /// Only used when `parallel` feature is enabled and nrows > threshold.
+    #[cfg(feature = "parallel")]
+    fn group_by_parallel(df: &DataFrame, cols: &[&str], nrows: usize) -> GroupResult {
+        let series: Vec<&dyn AnySeries> = cols
+            .iter()
+            .map(|&c| df.column(c).expect("groupby column exists"))
+            .collect();
+
+        // Each thread builds: HashMap<Vec<u64>, (u32, usize)> mapping hash_key → (local_gid, first_row)
+        let n_threads = rayon::current_num_threads().max(1);
+        let chunk_size = (nrows + n_threads - 1) / n_threads;
+
+        // Phase 1: per-chunk grouping in parallel.
+        let chunk_results: Vec<(HashMap<Vec<u64>, u32>, Vec<u32>, Vec<usize>)> = (0..n_threads)
+            .into_par_iter()
+            .map(|t| {
+                let start = t * chunk_size;
+                let end = (start + chunk_size).min(nrows);
+                let mut map: HashMap<Vec<u64>, u32> = HashMap::new();
+                let mut local_ids = vec![0u32; end - start];
+                let mut first_rows: Vec<usize> = Vec::new();
+                let mut next_gid = 0u32;
+
+                for row in start..end {
+                    let hash_key: Vec<u64> = series.iter().map(|s| s.hash_value(row)).collect();
+                    let gid = *map.entry(hash_key).or_insert_with(|| {
+                        let g = next_gid;
+                        next_gid += 1;
+                        first_rows.push(row);
+                        g
+                    });
+                    local_ids[row - start] = gid;
+                }
+                (map, local_ids, first_rows)
+            })
+            .collect();
+
+        // Phase 2: merge per-chunk maps into global map.
+        let mut global_map: HashMap<Vec<u64>, u32> = HashMap::new();
+        let mut global_first_rows: Vec<usize> = Vec::new();
+        let mut next_global = 0u32;
+        // For each chunk, store the local→global gid mapping.
+        let mut remap: Vec<Vec<u32>> = Vec::with_capacity(n_threads);
+
+        for (local_map, _, local_firsts) in &chunk_results {
+            let mut local_remap = vec![0u32; local_map.len()];
+            for (hash_key, &local_gid) in local_map {
+                let global_gid = *global_map.entry(hash_key.clone()).or_insert_with(|| {
+                    let g = next_global;
+                    next_global += 1;
+                    global_first_rows.push(local_firsts[local_gid as usize]);
+                    g
+                });
+                local_remap[local_gid as usize] = global_gid;
+            }
+            remap.push(local_remap);
+        }
+
+        // Phase 3: build global group_ids by remapping local ids.
+        let ng = next_global as usize;
+        let mut group_ids = vec![0u32; nrows];
+        for (t, (_, local_ids, _)) in chunk_results.iter().enumerate() {
+            let start = t * chunk_size;
+            let mapping = &remap[t];
+            for (i, &local_gid) in local_ids.iter().enumerate() {
+                group_ids[start + i] = mapping[local_gid as usize];
+            }
+        }
+
+        // Build groups vec.
+        let mut group_indices: Vec<Vec<usize>> = vec![Vec::new(); ng];
+        for (row, &gid) in group_ids.iter().enumerate() {
+            group_indices[gid as usize].push(row);
+        }
+
+        let groups: Vec<(Vec<String>, Vec<usize>)> = global_first_rows
+            .into_iter()
+            .zip(group_indices)
+            .map(|(first_row, indices)| {
+                let str_key: Vec<String> =
+                    series.iter().map(|s| s.display_value(first_row)).collect();
                 (str_key, indices)
             })
             .collect();
