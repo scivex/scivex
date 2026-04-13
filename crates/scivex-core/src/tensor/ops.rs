@@ -16,9 +16,16 @@ use super::Tensor;
 // SIMD-dispatched element-wise binary op helper
 // ======================================================================
 
+/// Cache tile size: 4096 f64 elements = 32 KB per array.
+/// With 3 arrays (a, b, out) this uses ~96 KB, fitting comfortably in L1+L2.
+const TILE_F64: usize = 4096;
+/// Cache tile size for f32: 8192 elements = 32 KB per array.
+const TILE_F32: usize = 8192;
+
 /// Apply a SIMD-dispatched element-wise binary operation.
 ///
 /// For f64 and f32, delegates to the provided SIMD kernel function.
+/// Uses cache-tiled processing for large arrays to avoid L1/L2 thrashing.
 /// For other types, falls back to the scalar closure.
 #[cfg(feature = "simd")]
 fn simd_binop<T: Scalar>(
@@ -34,7 +41,11 @@ fn simd_binop<T: Scalar>(
         let a_f64 = unsafe { crate::simd::slice_as_f64(a) };
         let b_f64 = unsafe { crate::simd::slice_as_f64(b) };
         let mut out = vec![0.0f64; a.len()];
-        f64_kernel(a_f64, b_f64, &mut out);
+        // Tiled processing for cache friendliness at large N.
+        for start in (0..a.len()).step_by(TILE_F64) {
+            let end = (start + TILE_F64).min(a.len());
+            f64_kernel(&a_f64[start..end], &b_f64[start..end], &mut out[start..end]);
+        }
         // SAFETY: T is f64, Vec<f64> and Vec<T> have identical layout.
         let mut out = core::mem::ManuallyDrop::new(out);
         unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
@@ -43,7 +54,10 @@ fn simd_binop<T: Scalar>(
         let a_f32 = unsafe { crate::simd::slice_as_f32(a) };
         let b_f32 = unsafe { crate::simd::slice_as_f32(b) };
         let mut out = vec![0.0f32; a.len()];
-        f32_kernel(a_f32, b_f32, &mut out);
+        for start in (0..a.len()).step_by(TILE_F32) {
+            let end = (start + TILE_F32).min(a.len());
+            f32_kernel(&a_f32[start..end], &b_f32[start..end], &mut out[start..end]);
+        }
         // SAFETY: T is f32, Vec<f32> and Vec<T> have identical layout.
         let mut out = core::mem::ManuallyDrop::new(out);
         unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
@@ -57,8 +71,9 @@ fn simd_binop<T: Scalar>(
 
 /// Apply a SIMD-dispatched element-wise binary operation in-place on `a`.
 ///
-/// The NEON/AVX kernels load each element before writing, so passing `a` as
-/// both input and output is safe (no aliasing issue within a single chunk).
+/// Uses cache-tiled processing for large arrays. The NEON/AVX kernels load
+/// each element before writing, so passing `a` as both input and output is
+/// safe (no aliasing issue within a single chunk).
 #[cfg(feature = "simd")]
 fn simd_binop_inplace<T: Scalar>(
     a: &mut [T],
@@ -69,17 +84,27 @@ fn simd_binop_inplace<T: Scalar>(
 ) {
     use std::any::TypeId;
     if TypeId::of::<T>() == TypeId::of::<f64>() {
+        let n = a.len();
         let b_f64 = unsafe { crate::simd::slice_as_f64(b) };
         let a_f64 = unsafe { crate::simd::slice_as_f64_mut(a) };
-        // SAFETY: Kernel reads a[i] into register before writing result to a[i].
-        // We create a non-overlapping "input" view via raw pointer cast.
-        let a_input = unsafe { core::slice::from_raw_parts(a_f64.as_ptr(), a_f64.len()) };
-        f64_kernel(a_input, b_f64, a_f64);
+        // Tiled processing for cache friendliness at large N.
+        for start in (0..n).step_by(TILE_F64) {
+            let end = (start + TILE_F64).min(n);
+            // SAFETY: Kernel reads a[i] into register before writing result to a[i].
+            let a_input =
+                unsafe { core::slice::from_raw_parts(a_f64[start..end].as_ptr(), end - start) };
+            f64_kernel(a_input, &b_f64[start..end], &mut a_f64[start..end]);
+        }
     } else if TypeId::of::<T>() == TypeId::of::<f32>() {
+        let n = a.len();
         let b_f32 = unsafe { crate::simd::slice_as_f32(b) };
         let a_f32 = unsafe { crate::simd::slice_as_f32_mut(a) };
-        let a_input = unsafe { core::slice::from_raw_parts(a_f32.as_ptr(), a_f32.len()) };
-        f32_kernel(a_input, b_f32, a_f32);
+        for start in (0..n).step_by(TILE_F32) {
+            let end = (start + TILE_F32).min(n);
+            let a_input =
+                unsafe { core::slice::from_raw_parts(a_f32[start..end].as_ptr(), end - start) };
+            f32_kernel(a_input, &b_f32[start..end], &mut a_f32[start..end]);
+        }
     } else {
         for (x, &y) in a.iter_mut().zip(b.iter()) {
             *x = scalar_op(*x, y);

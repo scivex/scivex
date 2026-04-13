@@ -45,7 +45,7 @@ Priority: operations where Rust is **slower** than Python.
 - [x] Add missing f64 SIMD kernels (sub, div)
 
 **Remaining (Phase 2):**
-- [ ] Tiled/blocked element-wise ops for cache friendliness at large N
+- [x] Tiled/blocked element-wise ops for cache friendliness at large N (4K f64 / 8K f32 tile size)
 
 ### 1.2 Core GEMM — ~~0.1x~~ FIXED
 
