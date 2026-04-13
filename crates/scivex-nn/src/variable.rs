@@ -170,17 +170,26 @@ impl<T: Float> Variable<T> {
         }
 
         // Reverse walk.
+        // For intermediate nodes (those with grad_fn), we take the gradient
+        // instead of cloning to avoid unnecessary allocation.
         for var in &order {
-            let node = var.inner.borrow();
-            let grad_fn = node.grad_fn.as_ref();
-            let parents_clone: Vec<Variable<T>> = node.parents.clone();
-            let grad_val = node.grad.clone();
+            let (grad_fn, parents, grad_val) = {
+                let mut node = var.inner.borrow_mut();
+                let gf = node.grad_fn.take();
+                let p = core::mem::take(&mut node.parents);
+                // Take grad from intermediate nodes; they won't be read after backward.
+                // Leaf nodes (no grad_fn) keep their grad for the user to read.
+                let g = if gf.is_some() {
+                    node.grad.take()
+                } else {
+                    node.grad.clone()
+                };
+                (gf, p, g)
+            };
 
             if let (Some(gf), Some(g)) = (grad_fn, grad_val) {
                 let parent_grads = gf(&g);
-                // Drop the borrow before touching parents.
-                drop(node);
-                for (parent, pg) in parents_clone.iter().zip(parent_grads) {
+                for (parent, pg) in parents.iter().zip(parent_grads) {
                     if parent.requires_grad() {
                         parent.acc_grad(&pg);
                     }

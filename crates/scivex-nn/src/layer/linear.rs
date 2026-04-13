@@ -66,20 +66,13 @@ impl<T: Float> Layer<T> for Linear<T> {
     fn forward(&self, x: &Variable<T>) -> Result<Variable<T>> {
         // x: [batch, in], weight: [out, in]
         // y = x @ W^T
-        let wt_data = self.weight.data().transpose()?;
-        let wt = Variable::new(wt_data, false);
-
-        // We need matmul that participates in the graph for weight gradients.
-        // Use ops::matmul(x, wt_var) where wt_var carries the weight connection.
         let wt_var = Variable::from_op(
             self.weight.data().transpose()?,
             vec![self.weight.clone()],
             Box::new(|g: &scivex_core::Tensor<T>| {
-                // grad of transpose is transpose of grad
                 vec![g.transpose().expect("2-D from forward pass")]
             }),
         );
-        let _ = wt; // drop unused
 
         let y = ops::matmul(x, &wt_var);
 
