@@ -127,7 +127,7 @@ impl<T: Float> GradScaler<T> {
         // Unscale gradients and check for non-finite values.
         for p in params {
             if let Some(grad) = p.grad() {
-                let unscaled = grad.map(|g| g * inv_scale);
+                let unscaled = &grad * inv_scale;
                 let has_inf = unscaled.as_slice().iter().any(|&v| !v.is_finite());
                 if has_inf {
                     self.found_inf = true;

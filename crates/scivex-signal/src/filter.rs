@@ -338,7 +338,7 @@ impl FirFilter {
         }
         let lp_high = Self::low_pass(high, num_taps)?;
         let lp_low = Self::low_pass(low, num_taps)?;
-        lp_high.zip_map(&lp_low, |a, b| a - b).map_err(Into::into)
+        lp_high.sub_checked(&lp_low).map_err(Into::into)
     }
 }
 

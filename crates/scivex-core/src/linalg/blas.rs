@@ -153,7 +153,7 @@ pub fn axpy<T: Scalar>(alpha: T, x: &Tensor<T>, y: &mut Tensor<T>) -> Result<()>
 }
 
 /// In-place axpy on raw slices, dispatching to SIMD when available.
-fn axpy_slice<T: Scalar>(alpha: T, x: &[T], y: &mut [T]) {
+pub(crate) fn axpy_slice<T: Scalar>(alpha: T, x: &[T], y: &mut [T]) {
     #[cfg(feature = "simd")]
     {
         use crate::simd;

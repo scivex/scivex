@@ -31,7 +31,7 @@ pub fn mse_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
     }
     let n = p.numel();
     let diff = &p - &t;
-    let sq = diff.map(|v| v * v);
+    let sq = &diff * &diff;
     let loss_val = sq.mean();
     let data = Tensor::from_vec(vec![loss_val], vec![1])?;
 
@@ -45,9 +45,9 @@ pub fn mse_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
         Box::new(move |g: &Tensor<T>| {
             let g_val = g.as_slice()[0];
             let scale = two * g_val / n_t;
-            let grad = diff.map(|d| d * scale);
+            let grad = &diff * scale;
             // grad_target = -grad_pred
-            let grad_t = grad.map(|v| -v);
+            let grad_t = -&grad;
             vec![
                 Tensor::from_vec(grad.into_vec(), shape.clone())
                     .expect("grad shape matches forward pass"),

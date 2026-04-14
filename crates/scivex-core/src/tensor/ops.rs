@@ -545,7 +545,13 @@ impl<T: Scalar> Tensor<T> {
     /// assert_eq!(c.as_slice(), &[5, 7, 9]);
     /// ```
     pub fn add_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
-        self.zip_map(other, |a, b| a + b)
+        if self.shape != other.shape {
+            return Err(crate::error::CoreError::DimensionMismatch {
+                expected: self.shape.clone(),
+                got: other.shape.clone(),
+            });
+        }
+        Ok(self + other)
     }
 
     /// Element-wise subtraction, returning `Err` on shape mismatch.
@@ -560,7 +566,13 @@ impl<T: Scalar> Tensor<T> {
     /// assert_eq!(c.as_slice(), &[9, 18, 27]);
     /// ```
     pub fn sub_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
-        self.zip_map(other, |a, b| a - b)
+        if self.shape != other.shape {
+            return Err(crate::error::CoreError::DimensionMismatch {
+                expected: self.shape.clone(),
+                got: other.shape.clone(),
+            });
+        }
+        Ok(self - other)
     }
 
     /// Element-wise multiplication, returning `Err` on shape mismatch.
@@ -575,7 +587,13 @@ impl<T: Scalar> Tensor<T> {
     /// assert_eq!(c.as_slice(), &[10, 18, 28]);
     /// ```
     pub fn mul_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
-        self.zip_map(other, |a, b| a * b)
+        if self.shape != other.shape {
+            return Err(crate::error::CoreError::DimensionMismatch {
+                expected: self.shape.clone(),
+                got: other.shape.clone(),
+            });
+        }
+        Ok(self * other)
     }
 
     /// Element-wise division, returning `Err` on shape mismatch.
@@ -590,7 +608,13 @@ impl<T: Scalar> Tensor<T> {
     /// assert_eq!(c.as_slice(), &[5, 4, 5]);
     /// ```
     pub fn div_checked(&self, other: &Tensor<T>) -> crate::Result<Tensor<T>> {
-        self.zip_map(other, |a, b| a / b)
+        if self.shape != other.shape {
+            return Err(crate::error::CoreError::DimensionMismatch {
+                expected: self.shape.clone(),
+                got: other.shape.clone(),
+            });
+        }
+        Ok(self / other)
     }
 }
 
@@ -752,9 +776,11 @@ impl<T: Scalar> Tensor<T> {
             for k in 0..axis_len {
                 let src_offset = (o * axis_len + k) * inner;
                 let dst_offset = o * inner;
-                for i in 0..inner {
-                    result_data[dst_offset + i] += self.data[src_offset + i];
-                }
+                crate::linalg::blas::axpy_slice(
+                    T::one(),
+                    &self.data[src_offset..src_offset + inner],
+                    &mut result_data[dst_offset..dst_offset + inner],
+                );
             }
         }
 

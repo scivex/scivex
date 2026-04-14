@@ -242,7 +242,7 @@ pub unsafe extern "C" fn scivex_tensor_mul(
     a: *const ScivexTensor,
     b: *const ScivexTensor,
 ) -> *mut ScivexTensor {
-    match unsafe { (*a).inner.zip_map(&(*b).inner, |x, y| x * y) } {
+    match unsafe { (*a).inner.mul_checked(&(*b).inner) } {
         Ok(t) => Box::into_raw(Box::new(ScivexTensor { inner: t })),
         Err(e) => {
             set_error(&e.to_string());
@@ -333,7 +333,7 @@ pub unsafe extern "C" fn scivex_tensor_mul_scalar(
     t: *const ScivexTensor,
     val: f64,
 ) -> *mut ScivexTensor {
-    let result = unsafe { (*t).inner.map(|x| x * val) };
+    let result = unsafe { &(*t).inner * val };
     Box::into_raw(Box::new(ScivexTensor { inner: result }))
 }
 

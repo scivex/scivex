@@ -82,7 +82,7 @@ impl<T: Float> Optimizer<T> for Adagrad<T> {
                 Some(prev) => prev
                     .zip_map(&grad, |si, gi| si + gi * gi)
                     .expect("sum_sq and grad shapes match"),
-                None => grad.map(|gi| gi * gi),
+                None => &grad * &grad,
             };
 
             // Update: param -= lr * grad / (sqrt(sum_sq) + eps)

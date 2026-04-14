@@ -216,7 +216,7 @@ pub fn pow<T: Float>(a: &Variable<T>, exponent: T) -> Variable<T> {
         Box::new(move |g: &Tensor<T>| {
             // d/da (a^n) = n * a^(n-1)
             let n_minus_1 = exponent - T::one();
-            let deriv = a_data.powf(n_minus_1).map(|v| exponent * v);
+            let deriv = a_data.powf(n_minus_1) * exponent;
             let grad = g * &deriv;
             vec![grad]
         }),
@@ -240,7 +240,7 @@ pub fn scalar_mul<T: Float>(a: &Variable<T>, scalar: T) -> Variable<T> {
     Variable::from_op(
         data,
         vec![a.clone()],
-        Box::new(move |g: &Tensor<T>| vec![g.map(|v| v * scalar)]),
+        Box::new(move |g: &Tensor<T>| vec![g * scalar]),
     )
 }
 
@@ -294,7 +294,6 @@ pub fn add_bias<T: Float>(input: &Variable<T>, bias: &Variable<T>) -> Variable<T
     let data =
         Tensor::from_vec(out_data, shape).expect("output data length matches shape from input");
 
-    let cols_copy = cols;
     Variable::from_op(
         data,
         vec![input.clone(), bias.clone()],
@@ -302,16 +301,9 @@ pub fn add_bias<T: Float>(input: &Variable<T>, bias: &Variable<T>) -> Variable<T
             // grad_input = g (same shape)
             let g_input = g.clone();
             // grad_bias = sum over rows (reduce axis 0)
-            let g_slice = g.as_slice();
-            let g_rows = g.shape()[0];
-            let mut bias_grad = vec![T::zero(); cols_copy];
-            for r in 0..g_rows {
-                for c in 0..cols_copy {
-                    bias_grad[c] += g_slice[r * cols_copy + c];
-                }
-            }
-            let g_bias = Tensor::from_vec(bias_grad, vec![cols_copy])
-                .expect("bias grad length matches feature count");
+            let g_bias = g
+                .sum_axis(0)
+                .expect("grad has 2+ dims from forward pass");
             vec![g_input, g_bias]
         }),
     )

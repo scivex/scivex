@@ -113,7 +113,7 @@ impl WasmTensor {
     pub fn mul(&self, other: &WasmTensor) -> Result<WasmTensor, JsError> {
         let t = self
             .inner
-            .zip_map(&other.inner, |a, b| a * b)
+            .mul_checked(&other.inner)
             .map_err(|e| JsError::new(&e.to_string()))?;
         Ok(WasmTensor { inner: t })
     }
@@ -146,7 +146,7 @@ impl WasmTensor {
     #[wasm_bindgen(js_name = "mulScalar")]
     pub fn mul_scalar(&self, val: f64) -> WasmTensor {
         WasmTensor {
-            inner: self.inner.map(|x| x * val),
+            inner: &self.inner * val,
         }
     }
 
