@@ -64,9 +64,7 @@ where
         });
     }
 
-    let diff = input
-        .zip_map(baseline, |a, b| a - b)
-        .map_err(NnError::from)?;
+    let diff = input - baseline;
 
     let n = input.numel();
     let mut accumulated = vec![T::zero(); n];

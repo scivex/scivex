@@ -76,12 +76,8 @@ pub fn mul<T: Float>(a: &Variable<T>, b: &Variable<T>) -> Variable<T> {
         data,
         vec![a.clone(), b.clone()],
         Box::new(move |g: &Tensor<T>| {
-            let ga = g
-                .zip_map(&b_data, |gi, bi| gi * bi)
-                .expect("shapes match from forward pass");
-            let gb = g
-                .zip_map(&a_data, |gi, ai| gi * ai)
-                .expect("shapes match from forward pass");
+            let ga = g * &b_data;
+            let gb = g * &a_data;
             vec![ga, gb]
         }),
     )
@@ -221,9 +217,7 @@ pub fn pow<T: Float>(a: &Variable<T>, exponent: T) -> Variable<T> {
             // d/da (a^n) = n * a^(n-1)
             let n_minus_1 = exponent - T::one();
             let deriv = a_data.powf(n_minus_1).map(|v| exponent * v);
-            let grad = g
-                .zip_map(&deriv, |gi, di| gi * di)
-                .expect("shapes match from forward pass");
+            let grad = g * &deriv;
             vec![grad]
         }),
     )

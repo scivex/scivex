@@ -99,17 +99,28 @@ impl<T: Scalar> Tensor<T> {
     /// assert_eq!(tt.shape(), &[3, 2]);
     /// ```
     pub fn transpose(&self) -> Result<Self> {
+        // Cache-blocked transpose: process BxB tiles to keep both source
+        // and destination accesses within L1 cache.
+        const BLOCK: usize = 32;
+
         if self.ndim() != 2 {
             return Err(CoreError::InvalidArgument {
                 reason: "transpose() requires a 2-D tensor; use permute() for higher ranks",
             });
         }
+
         let (rows, cols) = (self.shape[0], self.shape[1]);
         let mut data = vec![T::zero(); self.numel()];
-
-        for r in 0..rows {
-            for c in 0..cols {
-                data[c * rows + r] = self.data[r * cols + c];
+        let src = &self.data;
+        for bi in (0..rows).step_by(BLOCK) {
+            let bi_end = (bi + BLOCK).min(rows);
+            for bj in (0..cols).step_by(BLOCK) {
+                let bj_end = (bj + BLOCK).min(cols);
+                for r in bi..bi_end {
+                    for c in bj..bj_end {
+                        data[c * rows + r] = src[r * cols + c];
+                    }
+                }
             }
         }
 

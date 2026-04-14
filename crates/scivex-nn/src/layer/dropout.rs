@@ -86,10 +86,7 @@ impl<T: Float> Layer<T> for Dropout<T> {
             out,
             vec![x.clone()],
             Box::new(move |g: &Tensor<T>| {
-                vec![
-                    g.zip_map(&mask, |gi, mi| gi * mi)
-                        .expect("shapes match from forward pass"),
-                ]
+                vec![g * &mask]
             }),
         ))
     }

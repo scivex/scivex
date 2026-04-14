@@ -30,7 +30,7 @@ pub fn mse_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
         });
     }
     let n = p.numel();
-    let diff = p.zip_map(&t, |a, b| a - b)?;
+    let diff = &p - &t;
     let sq = diff.map(|v| v * v);
     let loss_val = sq.mean();
     let data = Tensor::from_vec(vec![loss_val], vec![1])?;
@@ -256,7 +256,7 @@ pub fn huber_loss<T: Float>(
     let n_t = T::from_usize(n);
     let half = T::from_f64(0.5);
 
-    let diff = p.zip_map(&t, |a, b| a - b)?;
+    let diff = &p - &t;
 
     let loss_val = diff
         .as_slice()
@@ -568,7 +568,7 @@ pub fn smooth_l1_loss<T: Float>(
     let n_t = T::from_usize(n);
     let half = T::from_f64(0.5);
 
-    let diff = p.zip_map(&t, |a, b| a - b)?;
+    let diff = &p - &t;
 
     let loss_val = diff
         .as_slice()
