@@ -46,6 +46,9 @@ Priority: operations where Rust is **slower** than Python.
 
 **Remaining (Phase 2):**
 - [x] Tiled/blocked element-wise ops for cache friendliness at large N (4K f64 / 8K f32 tile size)
+- [x] `_checked` variants (add/sub/mul/div_checked) delegate to SIMD operators
+- [x] `sum_axis` inner loop uses SIMD-accelerated axpy_slice
+- [x] FFI/WASM use SIMD-dispatched operators instead of zip_map/map
 
 ### 1.2 Core GEMM — ~~0.1x~~ FIXED
 
@@ -91,6 +94,8 @@ Priority: operations where Rust is **slower** than Python.
 - [x] Eliminate redundant weight transpose in Linear::forward
 - [x] Zero-copy backward pass: take() intermediate gradients instead of clone()
 - [x] NEON f32 GEMM micro-kernels (8x4 + 4x4) with panel packing
+- [x] SIMD-dispatch all NN gradient map/zip_map calls (loss, ops, functional, grad_scaler)
+- [x] add_bias backward uses SIMD-accelerated sum_axis(0)
 
 **Remaining (Phase 2):**
 - [ ] Arena allocator for forward-pass temporaries

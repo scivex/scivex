@@ -37,7 +37,6 @@ pub fn mse_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
 
     let two = T::from_f64(2.0);
     let n_t = T::from_usize(n);
-    let shape = p.shape().to_vec();
 
     Ok(Variable::from_op(
         data,
@@ -48,12 +47,7 @@ pub fn mse_loss<T: Float>(pred: &Variable<T>, target: &Variable<T>) -> Result<Va
             let grad = &diff * scale;
             // grad_target = -grad_pred
             let grad_t = -&grad;
-            vec![
-                Tensor::from_vec(grad.into_vec(), shape.clone())
-                    .expect("grad shape matches forward pass"),
-                Tensor::from_vec(grad_t.into_vec(), shape.clone())
-                    .expect("grad shape matches forward pass"),
-            ]
+            vec![grad, grad_t]
         }),
     ))
 }
