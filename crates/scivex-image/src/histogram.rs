@@ -21,9 +21,11 @@ pub fn histogram(img: &Image<u8>) -> Tensor<u32> {
     let src = img.as_slice();
     let mut bins = vec![0u32; c * 256];
 
-    for (i, &val) in src.iter().enumerate() {
-        let ch = i % c;
-        bins[ch * 256 + val as usize] += 1;
+    // Process whole pixels to avoid per-element modulo.
+    for pixel in src.chunks_exact(c) {
+        for (ch, &val) in pixel.iter().enumerate() {
+            bins[ch * 256 + val as usize] += 1;
+        }
     }
 
     Tensor::from_vec(bins, vec![c, 256]).expect("shape correct")

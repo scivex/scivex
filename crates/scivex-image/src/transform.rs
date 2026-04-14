@@ -149,12 +149,16 @@ fn resize_nearest<T: Scalar>(
     let src = img.as_slice();
     let mut out = vec![T::zero(); new_height * new_width * c];
 
+    // Pre-compute x-coordinate mapping to avoid per-pixel division in inner loop.
+    let x_map: Vec<usize> = (0..new_width).map(|x| x * old_w / new_width).collect();
+
     for y in 0..new_height {
         let src_y = y * old_h / new_height;
-        for x in 0..new_width {
-            let src_x = x * old_w / new_width;
-            let dst_idx = (y * new_width + x) * c;
-            let src_idx = (src_y * old_w + src_x) * c;
+        let src_row = src_y * old_w;
+        let dst_row = y * new_width;
+        for (x, &sx) in x_map.iter().enumerate() {
+            let dst_idx = (dst_row + x) * c;
+            let src_idx = (src_row + sx) * c;
             out[dst_idx..dst_idx + c].copy_from_slice(&src[src_idx..src_idx + c]);
         }
     }
